@@ -67,7 +67,10 @@ def _file(key: str, ref: str = REF) -> dict:
     path = CACHE / "kerbside" / sha[:12] / Path(FILES[key]).name
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(_git("show", f"{sha}:{FILES[key]}"))
+        # atomic: parallel workers (opus-run shards) may fill the same cache at once
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        tmp.write_bytes(_git("show", f"{sha}:{FILES[key]}"))
+        os.replace(tmp, path)
     return json.loads(path.read_text())
 
 
@@ -168,7 +171,8 @@ def shop_kinds(tag: str | None, name: str | None, ref: str = REF) -> list[str]:
     return added if replaced else [tag]
 
 
-#: Overture / OSM categories to the app's store kinds (the tag ``shop_kinds`` starts from).
+#: Overture / OSM categories to the app's store kinds (the tag ``shop_kinds`` starts from). Short
+#: words are fenced by non-letters: "pho" in mobile_phone_store made T-Mobile a Vietnamese restaurant.
 CATEGORY_KINDS = [
     (r"coffee|cafe|tea_room|bubble_tea|juice|smoothie", "cafe"),
     (r"bakery|patisserie|donut|bagel|dessert|cupcake", "bakery"),
@@ -177,7 +181,7 @@ CATEGORY_KINDS = [
     (r"mexican|taco|burrito|latin", "mexican"),
     (r"japanese|sushi|ramen|izakaya", "japanese"),
     (r"chinese|dumpling|dim_sum|cantonese|szechuan", "chinese"),
-    (r"thai", "thai"), (r"vietnamese|pho", "vietnamese"), (r"indian|nepal", "indian"),
+    (r"thai", "thai"), (r"vietnamese|(?<![a-z])pho(?![a-z])", "vietnamese"), (r"indian|nepal", "indian"),
     (r"korean", "korean"), (r"italian", "italian"),
     (r"greek|mediterranean|middle_eastern|lebanese|turkish", "mediterranean"),
     (r"seafood|oyster|poke|fish", "seafood"),
@@ -187,15 +191,15 @@ CATEGORY_KINDS = [
     (r"wine_bar|cocktail|dive_bar|sports_bar|pub|bar\b|_bar$|^bar$|lounge|brewery|tavern", "bar"),
     (r"restaurant|food", "restaurant"),
     (r"bank|credit_union|atm", "bank"),
-    (r"salon|hair", "salon"), (r"barber", "barber"), (r"nail", "nail_salon"),
+    (r"salon|(?<![a-z])hair", "salon"), (r"barber", "barber"), (r"nail", "nail_salon"),
     (r"gym|fitness|yoga|pilates|boxing|barre", "gym"),
     (r"clothing|boutique|fashion|shoe|apparel", "clothing"),
     (r"grocery|supermarket|market", "grocery"), (r"convenience", "convenience"),
     (r"pharmacy|drugstore", "pharmacy"), (r"jewel", "jewelry"), (r"book", "books"),
     (r"florist|flower", "florist"), (r"dry_clean|laundr", "dry_cleaner"),
     (r"dentist|dental", "dentist"), (r"doctor|clinic|medical|health", "clinic"),
-    (r"optometrist|optician|eyewear", "optician"), (r"pet", "pet"),
-    (r"spa|massage|skin|beauty", "spa"), (r"hotel|motel|inn", "hotel"),
+    (r"optometrist|optician|eyewear", "optician"), (r"(?<![a-z])pet(?!rol)", "pet"),
+    (r"(?<![a-z])spa(?![a-z])|massage|skin|beauty", "spa"), (r"hotel|motel|(?<![a-z])inn(?![a-z])", "hotel"),
 ]
 FOOD_KINDS = {"cafe", "bakery", "restaurant", "american", "diner", "mexican", "japanese",
               "chinese", "thai", "vietnamese", "indian", "korean", "italian", "mediterranean",

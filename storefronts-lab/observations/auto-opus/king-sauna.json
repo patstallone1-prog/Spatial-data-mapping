@@ -1,0 +1,808 @@
+{
+ "model": "king-sauna",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 3 views",
+ "notes": "Positions are perspective-corrected from photo 2 (right end farther from the camera, scale about 0.74) and checked against both corners. The grid appears shifted and compressed toward the left. Three arched windows repeat at a 3.2 m period, followed by a blind arch over the garage. Frieze relief panels are approximated as rect ornaments. Photographed signage belongs to earlier tenants and is not used.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 8.4,
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 8.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.25,
+    "depth": 0.15,
+    "colour": "#ebe7dc",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.4,
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#e9e5da",
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#f1eee6",
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "clere-0",
+     "kind": "window",
+     "u": 0.8,
+     "v": 3.4,
+     "w": 2.7,
+     "h": 1.6,
+     "shape": "arched",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e9e5da",
+     "pane_colour": "#3b3d3e",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "clere-1",
+     "kind": "window",
+     "u": 4.0,
+     "v": 3.4,
+     "w": 2.7,
+     "h": 1.6,
+     "shape": "arched",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#e9e5da",
+     "pane_colour": "#3b3d3e",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "clere-2",
+     "kind": "window",
+     "u": 7.2,
+     "v": 3.4,
+     "w": 2.7,
+     "h": 1.6,
+     "shape": "arched",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#e9e5da",
+     "pane_colour": "#3b3d3e",
+     "depth": 0.18,
+     "sill": true
+    },
+    {
+     "id": "garage",
+     "kind": "door",
+     "u": 10.8,
+     "v": 0.0,
+     "w": 2.05,
+     "h": 2.45,
+     "shape": "rect",
+     "colour": "#e6e1d3",
+     "glazed": false
+    },
+    {
+     "id": "side-door",
+     "kind": "door",
+     "u": 13.2,
+     "v": 0.0,
+     "w": 0.95,
+     "h": 2.5,
+     "shape": "rect",
+     "colour": "#6b6440",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [
+    {
+     "u": [
+      0.4,
+      3.75,
+      6.95,
+      10.15
+     ],
+     "w": 0.45,
+     "v0": 0.0,
+     "v1": 7.0,
+     "depth": 0.12,
+     "colour": "#ece8dd",
+     "groove_colour": "#d6d1c3",
+     "top": "stepped",
+     "steps": 2,
+     "step_h": 0.12,
+     "flutes": 0,
+     "id": "w3:pil0"
+    },
+    {
+     "u": [
+      12.95
+     ],
+     "w": 0.4,
+     "v0": 0.0,
+     "v1": 3.2,
+     "depth": 0.1,
+     "colour": "#ece8dd",
+     "groove_colour": "#d6d1c3",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w3:pil1"
+    },
+    {
+     "u": [
+      14.8
+     ],
+     "w": 1.1,
+     "v0": 0.0,
+     "v1": 7.0,
+     "depth": 0.12,
+     "colour": "#ece8dd",
+     "groove_colour": "#d6d1c3",
+     "top": "stepped",
+     "steps": 2,
+     "step_h": 0.12,
+     "flutes": 0,
+     "id": "w3:pil2"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 3.15,
+     "h": 0.2,
+     "colour": "#ece8dd",
+     "depth": 0.1,
+     "id": "w3:bel0"
+    },
+    {
+     "v": 5.25,
+     "h": 0.1,
+     "colour": "#ece8dd",
+     "depth": 0.05,
+     "id": "w3:bel1"
+    },
+    {
+     "v": 6.85,
+     "h": 0.15,
+     "colour": "#ece8dd",
+     "depth": 0.08,
+     "id": "w3:bel2"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [
+    {
+     "shape": "rect",
+     "u": 10.4,
+     "v": 3.45,
+     "w": 3.9,
+     "h": 1.5,
+     "colour": "#e4e0d4",
+     "depth": 0.05,
+     "id": "w3:orn0"
+    },
+    {
+     "shape": "circle",
+     "u": 0.4,
+     "v": 5.0,
+     "w": 0.35,
+     "h": 0.35,
+     "colour": "#e2ddd0",
+     "depth": 0.04,
+     "id": "w3:orn1"
+    },
+    {
+     "shape": "circle",
+     "u": 3.6,
+     "v": 5.0,
+     "w": 0.35,
+     "h": 0.35,
+     "colour": "#e2ddd0",
+     "depth": 0.04,
+     "id": "w3:orn2"
+    },
+    {
+     "shape": "circle",
+     "u": 6.8,
+     "v": 5.0,
+     "w": 0.35,
+     "h": 0.35,
+     "colour": "#e2ddd0",
+     "depth": 0.04,
+     "id": "w3:orn3"
+    },
+    {
+     "shape": "circle",
+     "u": 10.0,
+     "v": 5.0,
+     "w": 0.35,
+     "h": 0.35,
+     "colour": "#e2ddd0",
+     "depth": 0.04,
+     "id": "w3:orn4"
+    },
+    {
+     "shape": "circle",
+     "u": 13.2,
+     "v": 5.0,
+     "w": 0.35,
+     "h": 0.35,
+     "colour": "#e2ddd0",
+     "depth": 0.04,
+     "id": "w3:orn5"
+    },
+    {
+     "shape": "rect",
+     "u": 0.9,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn6"
+    },
+    {
+     "shape": "rect",
+     "u": 1.68,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn7"
+    },
+    {
+     "shape": "rect",
+     "u": 2.46,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn8"
+    },
+    {
+     "shape": "rect",
+     "u": 3.24,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn9"
+    },
+    {
+     "shape": "rect",
+     "u": 4.02,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn10"
+    },
+    {
+     "shape": "rect",
+     "u": 4.8,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn11"
+    },
+    {
+     "shape": "rect",
+     "u": 5.58,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn12"
+    },
+    {
+     "shape": "rect",
+     "u": 6.36,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn13"
+    },
+    {
+     "shape": "rect",
+     "u": 7.14,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn14"
+    },
+    {
+     "shape": "rect",
+     "u": 7.92,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn15"
+    },
+    {
+     "shape": "rect",
+     "u": 8.7,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn16"
+    },
+    {
+     "shape": "rect",
+     "u": 9.48,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn17"
+    },
+    {
+     "shape": "rect",
+     "u": 10.26,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn18"
+    },
+    {
+     "shape": "rect",
+     "u": 11.04,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn19"
+    },
+    {
+     "shape": "rect",
+     "u": 11.82,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn20"
+    },
+    {
+     "shape": "rect",
+     "u": 12.6,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn21"
+    },
+    {
+     "shape": "rect",
+     "u": 13.38,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn22"
+    },
+    {
+     "shape": "rect",
+     "u": 14.16,
+     "v": 7.1,
+     "w": 0.5,
+     "h": 0.85,
+     "colour": "#dcd7c9",
+     "depth": 0.04,
+     "id": "w3:orn23"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-king-sauna",
+     "business_id": "mb-3a32967d26c0",
+     "category": "shop",
+     "brand": null,
+     "name": "King Sauna",
+     "u0": 0,
+     "u1": 10.3,
+     "band_h": 3.15,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e9e5da",
+      "accent": "#2b2b2b",
+      "frame": "#e9e5da",
+      "base": "#e9e5da",
+      "letter": "#2b2b2b",
+      "metal": "#9a9c9b",
+      "glass": "#3a4044"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "ks:g0",
+       "kind": "window",
+       "u": 0.6,
+       "v": 0.35,
+       "w": 3.0,
+       "h": 2.7,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "ks:side-l",
+       "kind": "window",
+       "u": 3.95,
+       "v": 0.35,
+       "w": 0.45,
+       "h": 2.7,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "ks:door",
+       "kind": "door",
+       "u": 4.45,
+       "v": 0.0,
+       "w": 1.7,
+       "h": 2.6,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "ks:side-r",
+       "kind": "window",
+       "u": 6.2,
+       "v": 0.35,
+       "w": 0.55,
+       "h": 2.7,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "ks:g1",
+       "kind": "window",
+       "u": 7.15,
+       "v": 0.35,
+       "w": 2.9,
+       "h": 2.7,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "ks-sign",
+       "kind": "letters",
+       "u": 1.15,
+       "v": 5.65,
+       "w": 7.25,
+       "h": 0.8,
+       "offset": 0.0,
+       "thick": 0.04,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "King Sauna",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#2b2b2b",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1100635503980296",
+       "1103495961229285",
+       "1253944761730312",
+       "317396806454999",
+       "649436320166669"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "pole-1",
+     "kind": "pole",
+     "u": 2.2,
+     "w": 0.35,
+     "r": 0.15,
+     "trunk_h": 9.0,
+     "colour": "#bdbab2",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1100635503980296",
+     "1103495961229285",
+     "1253944761730312",
+     "317396806454999",
+     "649436320166669"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

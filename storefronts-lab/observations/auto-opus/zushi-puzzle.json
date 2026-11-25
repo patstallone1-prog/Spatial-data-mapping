@@ -1,0 +1,550 @@
+{
+ "model": "zushi-puzzle",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 1 views",
+ "notes": "The facade spans u 0.8-6.73 in the grid; its right edge matches u=L, so the grid looks unshifted. The neighbour covers u 0-0.8. The shop span follows the visible front, not the record's 0-6.1. No awning or readable sign is visible in the 2022 photo. The right ground bay is dark and recessed behind the tree.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.35,
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.4
+    },
+    {
+     "v": 3.4,
+     "h": 2.75
+    },
+    {
+     "v": 6.15,
+     "h": 2.75
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.25,
+    "depth": 0.12,
+    "colour": "#a8553a",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.6,
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#e8d6a8",
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#d9b46e",
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "f2w1",
+     "kind": "window",
+     "u": 1.63,
+     "v": 4.2,
+     "w": 0.72,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#3a4048",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2w2",
+     "kind": "window",
+     "u": 2.62,
+     "v": 4.2,
+     "w": 0.68,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#3a4048",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2w3",
+     "kind": "window",
+     "u": 3.75,
+     "v": 4.2,
+     "w": 0.62,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#3a4048",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f2w4",
+     "kind": "window",
+     "u": 4.88,
+     "v": 4.2,
+     "w": 0.74,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#3a4048",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f3w1",
+     "kind": "window",
+     "u": 1.63,
+     "v": 6.65,
+     "w": 0.72,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#4a5058",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f3w2",
+     "kind": "window",
+     "u": 2.62,
+     "v": 6.65,
+     "w": 0.68,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#4a5058",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f3w3",
+     "kind": "window",
+     "u": 3.73,
+     "v": 6.65,
+     "w": 0.64,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#3a4048",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "f3w4",
+     "kind": "window",
+     "u": 4.88,
+     "v": 6.65,
+     "w": 0.72,
+     "h": 1.25,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece2c8",
+     "pane_colour": "#3a4048",
+     "depth": 0.12,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [
+    {
+     "u": [
+      1.05,
+      6.38
+     ],
+     "w": 0.55,
+     "v0": 3.4,
+     "v1": 9.3,
+     "depth": 0.12,
+     "colour": "#dcb874",
+     "groove_colour": "#c9a35e",
+     "top": "flat",
+     "flutes": 0,
+     "id": "w3:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 3.3,
+     "h": 0.18,
+     "colour": "#e4cf98",
+     "depth": 0.12,
+     "id": "w3:bel0"
+    },
+    {
+     "v": 8.6,
+     "h": 0.12,
+     "colour": "#e4cf98",
+     "depth": 0.06,
+     "id": "w3:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [
+    {
+     "v0": 0.0,
+     "v1": 3.3,
+     "colour": "#d8b366",
+     "id": "w3:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-zushi-puzzle",
+     "business_id": "mb-1b0341f1f6ce",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Zushi Puzzle",
+     "u0": 0.8,
+     "u1": 6.73,
+     "band_h": 3.3,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d8b366",
+      "accent": "#ecdcae",
+      "frame": "#2a2a2a",
+      "base": "#7a4a32",
+      "letter": "#ffffff",
+      "metal": "#555555",
+      "glass": "#2c3236"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "zp-g0",
+       "kind": "window",
+       "u": 1.2,
+       "v": 0.55,
+       "w": 0.62,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "zp-door",
+       "kind": "door",
+       "u": 2.25,
+       "v": 0.0,
+       "w": 1.05,
+       "h": 2.6,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true,
+       "shape": "arched"
+      },
+      {
+       "id": "zp-g1",
+       "kind": "window",
+       "u": 3.9,
+       "v": 0.45,
+       "w": 0.6,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "zp-g2",
+       "kind": "window",
+       "u": 4.85,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "2939446183038760",
+       "4370274399689714",
+       "664682758699163",
+       "884083562670846"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree1",
+     "kind": "tree",
+     "u": 5.6,
+     "w": 3.5,
+     "r": 1.9,
+     "trunk_h": 2.6,
+     "colour": "#6a6a3e",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2939446183038760",
+     "4370274399689714",
+     "664682758699163",
+     "884083562670846"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

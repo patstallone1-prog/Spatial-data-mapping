@@ -1,0 +1,546 @@
+{
+ "schema": "kerbfront.building/1",
+ "id": "equator-coffees",
+ "title": "Equator Coffees",
+ "business_id": "mb-45f85f698fc1",
+ "area": "marina-union",
+ "address": {
+  "number": 2,
+  "number_hi": null,
+  "street": "MARINA BLVD",
+  "unit": null,
+  "upper_floor": false,
+  "suite": false
+ },
+ "corridor": null,
+ "business_type": {
+  "tag": "cafe",
+  "kinds": [
+   "cafe"
+  ],
+  "office": false,
+  "render": "restaurant",
+  "basis": "kerbside rules.json stores.tenants (shopKinds) over the merged name and category"
+ },
+ "origin_lon_lat": [
+  -122.43193857,
+  37.80528208
+ ],
+ "frame": "local metres: x east, y north, z up",
+ "building_id": "201006.0149580",
+ "app_building": "58524120",
+ "footprint": [
+  [
+   11.737,
+   6.052
+  ],
+  [
+   -0.734,
+   3.101
+  ],
+  [
+   0.734,
+   -3.101
+  ],
+  [
+   13.204,
+   -0.151
+  ]
+ ],
+ "height_m": 4.4,
+ "floors": [
+  {
+   "v": 0,
+   "h": 4.2
+  }
+ ],
+ "outline": [
+  [
+   13.204,
+   -0.151
+  ],
+  [
+   0.734,
+   -3.101
+  ],
+  [
+   -0.734,
+   3.101
+  ],
+  [
+   11.737,
+   6.052
+  ]
+ ],
+ "roof": {
+  "shape": "flat",
+  "colour": "#d5b1a7",
+  "parapet_h": 0.2,
+  "cornice": {
+   "h": 0.22,
+   "depth": 0.25,
+   "colour": "#b5583a",
+   "raise": 0
+  },
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-roofs NOAA 0.25 m",
+   "confidence": 0.6
+  }
+ },
+ "walls": [
+  {
+   "id": "w0",
+   "edge": 0,
+   "length_m": 12.82,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w1",
+   "edge": 1,
+   "length_m": 6.37,
+   "role": "street",
+   "street": null,
+   "material": "stucco",
+   "colour": "#e8dcbc",
+   "texture_scale": 1.0,
+   "trim_colour": "#b5583a",
+   "visible": true,
+   "belts": [
+    {
+     "v": 0.45,
+     "h": 0.08,
+     "colour": "#f0e8d2",
+     "depth": 0.06,
+     "id": "w1:bel0"
+    }
+   ],
+   "openings": [
+    {
+     "id": "w1:vent",
+     "kind": "window",
+     "u": 4.75,
+     "v": 2.05,
+     "w": 0.12,
+     "h": 0.12,
+     "shape": "circle",
+     "frame_colour": "#6b5a40",
+     "pane_colour": "#3a3228",
+     "depth": 0.15,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   },
+   "pilasters": [
+    {
+     "u": [
+      1.0
+     ],
+     "w": 2.0,
+     "v0": 0.0,
+     "v1": 4.3,
+     "depth": 0.3,
+     "colour": "#e8dcbc",
+     "groove_colour": "#d8cba8",
+     "top": "flat",
+     "flutes": 0,
+     "id": "w1:pil0"
+    }
+   ],
+   "friezes": [],
+   "bands": [],
+   "balconies": [],
+   "ornaments": []
+  },
+  {
+   "id": "w2",
+   "edge": 2,
+   "length_m": 12.81,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  },
+  {
+   "id": "w3",
+   "edge": 3,
+   "length_m": 6.37,
+   "role": "open",
+   "street": null,
+   "material": "stucco",
+   "colour": "#d9d2c3",
+   "texture_scale": 1.0,
+   "trim_colour": "#efeae0",
+   "visible": true,
+   "belts": [],
+   "openings": [],
+   "evidence": {
+    "kind": "app",
+    "source": "sf-corridor-materials (untextured_photo_smooth_render)",
+    "confidence": 0.5
+   }
+  }
+ ],
+ "storefronts": [
+  {
+   "id": "sf-equator-coffees",
+   "business_id": "mb-45f85f698fc1",
+   "category": "cafe",
+   "brand": null,
+   "name": "Equator Coffees",
+   "u0": 0,
+   "u1": 6.37,
+   "band_h": 3.0,
+   "material": "stucco",
+   "palette": {
+    "wall": "#e8dcbc",
+    "accent": "#b5583a",
+    "frame": "#3a3228",
+    "base": "#e8dcbc",
+    "letter": "#3a3228",
+    "metal": "#8a8a86",
+    "glass": "#55626a"
+   },
+   "door_style": null,
+   "openings": [],
+   "awnings": [],
+   "extra_signs": [],
+   "signs": [],
+   "lights": [],
+   "edge": 1,
+   "evidence": {
+    "kind": "observed",
+    "frames": [
+     "176023694485052",
+     "518047807377510"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   },
+   "visible": false,
+   "note": "no shopfront seen in the photographs"
+  }
+ ],
+ "seating": [],
+ "street": {
+  "name": "Marina Boulevard",
+  "osm_id": 8916287,
+  "sidewalk_m": 6.1,
+  "kerb_m": 0.125,
+  "road_m": 18.32,
+  "parking_m": 2.4,
+  "facade_to_centreline_m": 17.17,
+  "evidence": {
+   "kind": "app",
+   "source": "sf-corridor-3d street 8916287 (curb_geometry)",
+   "confidence": 0.7
+  }
+ },
+ "context": [
+  {
+   "id": "201006.0166479",
+   "footprint": [
+    [
+     -2.307,
+     23.37
+    ],
+    [
+     -6.035,
+     22.81
+    ],
+    [
+     -5.126,
+     17.027
+    ],
+    [
+     -1.397,
+     17.584
+    ]
+   ],
+   "height_m": 3.47,
+   "colour": "#d9d2c3",
+   "roof_colour": "#8c8a84"
+  }
+ ],
+ "photos": [
+  {
+   "frame_id": "176023694485052",
+   "slot": "sign",
+   "captured_at": "2021-08-04T16:58:10+00:00",
+   "camera_type": "spherical",
+   "x": -15.941,
+   "y": -17.889,
+   "z": 2.0,
+   "heading": 133.2,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  }
+ ],
+ "facts": {
+  "year_built": null,
+  "stories": null,
+  "use": null,
+  "class": null,
+  "historic": null,
+  "context_statement": null,
+  "licence": {},
+  "services": {
+   "primaryType": "coffee_shop",
+   "types": [
+    "coffee_shop",
+    "cafe",
+    "food_store",
+    "store",
+    "food",
+    "point_of_interest",
+    "establishment"
+   ],
+   "dineIn": true,
+   "takeout": true,
+   "reservable": false,
+   "servesDinner": false,
+   "servesBreakfast": true,
+   "servesCocktails": true,
+   "userRatingCount": 560,
+   "fetched_at": "2026-11-20T23:14:36.165034Z"
+  },
+  "outdoor": {
+   "kinds": [
+    "sidewalk"
+   ],
+   "confidence": 0.65,
+   "sources": [
+    "osm"
+   ],
+   "osm_says_no": false
+  },
+  "last_exterior_change": null,
+  "tenants_on_face": 1
+ },
+ "sources": {
+  "footprint": "DataSF ynuv-fyni LiDAR footprint (simplified 0.5 m)",
+  "height": "DataSF hgt_median_m",
+  "app": {
+   "dataset": "kerbside-app",
+   "ref": "origin/main",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
+   "files": [
+    "docs/city/rules.json",
+    "docs/sf-corridor-3d.json",
+    "docs/sf-corridor-building-shapes.json",
+    "docs/sf-corridor-home-openings.json",
+    "docs/sf-corridor-materials.json",
+    "docs/sf-corridor-roofs.json",
+    "docs/sf-corridor-storefront-names.json",
+    "docs/storefront-exteriors.json"
+   ]
+  },
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
+ },
+ "edits": [],
+ "evidence": {
+  "height_m": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "floors": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.cornice": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "roof.parapet_h": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.material": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.colour": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.openings": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.friezes": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.belts": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.bands": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.balconies": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.1.ornaments": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "storefronts": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "seating": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  },
+  "street_objects": {
+   "kind": "observed",
+   "frames": [
+    "176023694485052",
+    "518047807377510"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+   "confidence": 0.35,
+   "read_by": "claude-opus-5-5"
+  }
+ },
+ "street_objects": [],
+ "observations_applied": 17
+}

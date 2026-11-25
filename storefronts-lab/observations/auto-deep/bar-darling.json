@@ -1,0 +1,378 @@
+{
+ "model": "bar-darling",
+ "read_by": "kerbfront qwen (qwen/qwen4-max, deep, reasoning high)",
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 4.8,
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "facade top from the qwen of the registered elevation of wall 1",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 3.4
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "storeys from the shop band top and the rows of upper windows",
+    "confidence": 0.6,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#e9e1c9",
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "median of wall cells above the shop band, windows, pilasters, sky, trees and cars left out",
+    "confidence": 0.7,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "CLIP zero-shot on the upper wall ({'by': 'qwen/qwen4-max'})",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "dark rectangles above the shop band, snapped to rows",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [
+    {
+     "u": [
+      0.2,
+      7.35
+     ],
+     "w": 0.3,
+     "v0": 3.4,
+     "v1": 4.6,
+     "depth": 0.1,
+     "colour": "#3b3550",
+     "groove_colour": null,
+     "top": "flat"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "repeating vertical runs of a second colour",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [
+    {
+     "v": 3.4,
+     "h": 0.2,
+     "colour": "#e9e1c9",
+     "depth": 0.08
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "rows of a second colour across the wall",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "friezes are read as belts",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#e9e1c9",
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "colour of the cornice / belts / pilasters",
+    "confidence": 0.5,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-bar-darling",
+     "business_id": "mb-d28348630b64",
+     "name": "Bar Darling",
+     "edge": 1,
+     "u0": 0.1,
+     "u1": 7.5,
+     "band_h": 3.4,
+     "category": "bar",
+     "brand": null,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e5d6c3",
+      "accent": "#713c33",
+      "frame": "#34312d",
+      "base": "#8b8277",
+      "letter": "#f6f1e7",
+      "metal": "#a5aaa7",
+      "glass": "#a7c2c8",
+      "roughness": 0.82
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sf-bar-darling:g0",
+       "kind": "window",
+       "u": 0.6,
+       "v": 0.3,
+       "w": 2.6,
+       "h": 2.1,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-bar-darling:g1",
+       "kind": "window",
+       "u": 4.6,
+       "v": 0.3,
+       "w": 2.4,
+       "h": 2.1,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "sf-bar-darling:door0",
+       "kind": "door",
+       "u": 3.6,
+       "v": 0,
+       "w": 1.0,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged"
+      }
+     ],
+     "signs": [],
+     "awnings": [
+      {
+       "id": "sf-bar-darling:awn0",
+       "kind": "shed",
+       "u0": 0.1,
+       "u1": 7.5,
+       "v": 3.4,
+       "depth_m": 1.2,
+       "drop_m": 0.35,
+       "valance_h": 0.22,
+       "colour": "#5a7a5a",
+       "stripe": null,
+       "valance_text": null,
+       "sides": true,
+       "fabric": true,
+       "material": "canvas"
+      }
+     ],
+     "lights": [],
+     "evidence": {
+      "kind": "observed",
+      "how": "shop band read from the registered elevation: glazed spans, door labels, awning and signboard labels",
+      "frames": [
+       "3392329467761075",
+       "128498206692322",
+       "2049431468600157",
+       "596519411332874",
+       "385075969286932"
+      ]
+     },
+     "extra_signs": [
+      {
+       "id": "sf-bar-darling:sign0",
+       "kind": "board",
+       "u": 1.2,
+       "v": 3.8,
+       "w": 5.4,
+       "h": 0.7,
+       "bg": "#efe8d8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Bar Darling",
+         "x": 0.5,
+         "y": 0.62,
+         "size": 0.5,
+         "fill": "#1f1f1f"
+        }
+       ],
+       "text_source": "record: photos predate the tenant (Squat & Gobble seen)"
+      }
+     ]
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "128498206692322",
+     "2049431468600157",
+     "3392329467761075",
+     "385075969286932",
+     "596519411332874"
+    ],
+    "how": "shop spans from glazing, awnings and signs on each wall",
+    "confidence": 0.55,
+    "read_by": "kerbfront auto (no reviewer)"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.4,
+    "depth": 0.3,
+    "colour": "#e9e1c9",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "qwen/qwen4-max deep reading (oblique photo)",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.6,
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "qwen/qwen4-max deep reading (oblique photo)",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#3b3550",
+   "evidence": {
+    "frames": [
+     "3392329467761075",
+     "128498206692322",
+     "2049431468600157",
+     "596519411332874",
+     "385075969286932"
+    ],
+    "how": "qwen/qwen4-max reading",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "qwen-sidewalk_strip-1-0",
+     "kind": "sidewalk_strip",
+     "edge": 1,
+     "u0": 1.0,
+     "u1": 6.5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "128498206692322",
+     "2049431468600157",
+     "3392329467761075",
+     "385075969286932",
+     "596519411332874"
+    ],
+    "how": "qwen/qwen4-max reading of the registered elevation",
+    "confidence": 0.5,
+    "read_by": "kerbfront qwen"
+   }
+  }
+ ]
+}

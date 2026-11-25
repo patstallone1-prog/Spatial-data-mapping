@@ -1,0 +1,409 @@
+{
+ "model": "twisted-st-cafe",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 3 views",
+ "notes": "The grey block measures about 5.9 m; the grid appears shifted about 1 m. I placed parts by their proportion of the block from photo 3. The last metre of the wall shows only the neighbour's brown wall and bus shelter. The logo wording is only partly legible. The fire bell, fire-department connection and the round hanging sign on the recess are omitted. The upper floors are mostly hidden by the tree; only one window is seen.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 9.8,
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.1
+    },
+    {
+     "v": 3.1,
+     "h": 3.2
+    },
+    {
+     "v": 6.3,
+     "h": 2.9
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.6,
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#c8c1b4",
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#1e1f20",
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "w3:up1",
+     "kind": "window",
+     "u": 0.26,
+     "v": 4.4,
+     "w": 1.25,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#1e1f20",
+     "pane_colour": "#3d464b",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "w3:flatdoor",
+     "kind": "door",
+     "u": 4.4,
+     "v": 0.0,
+     "w": 0.75,
+     "h": 2.05,
+     "shape": "rect",
+     "colour": "#3a3d3f",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 3.1,
+     "h": 0.03,
+     "colour": "#b8b1a4",
+     "depth": 0.01,
+     "id": "w3:bel0"
+    },
+    {
+     "v": 6.3,
+     "h": 0.03,
+     "colour": "#b8b1a4",
+     "depth": 0.01,
+     "id": "w3:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-twisted-st-cafe",
+     "business_id": "mb-f887a13094b0",
+     "category": "cafe",
+     "brand": null,
+     "name": "Twisted St. Cafe",
+     "u0": 0,
+     "u1": 3.9,
+     "band_h": 2.7,
+     "material": "stucco",
+     "palette": {
+      "wall": "#c8c1b4",
+      "accent": "#c0342b",
+      "frame": "#1e1f20",
+      "base": "#b5aea1",
+      "letter": "#ffffff",
+      "metal": "#2a2a2a",
+      "glass": "#4a5459"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "tw:g0",
+       "kind": "window",
+       "u": 0.17,
+       "v": 0.5,
+       "w": 1.2,
+       "h": 1.55,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0.3
+      },
+      {
+       "id": "tw:g1",
+       "kind": "window",
+       "u": 1.68,
+       "v": 0.5,
+       "w": 1.23,
+       "h": 1.55,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "tw-canopy",
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 3.15,
+       "v": 2.35,
+       "depth_m": 0.85,
+       "drop_m": 0.08,
+       "valance_h": 0.06,
+       "colour": "#8a6a4a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Helvetica, Arial, sans-serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "tw-logo",
+       "kind": "window_vinyl",
+       "u": 0.47,
+       "v": 1.35,
+       "w": 0.55,
+       "h": 0.55,
+       "offset": 0,
+       "thick": 0,
+       "bg": "#ffffff",
+       "edge_colour": "#c0342b",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.5,
+         "r": 0.48,
+         "fill": "#c0342b"
+        },
+        {
+         "type": "text",
+         "text": "TWISTED ST.",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.16,
+         "fill": "#ffffff",
+         "font": "Georgia, serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "213261987472155",
+       "565669931460454",
+       "5812286458866394"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tw-tree",
+     "kind": "tree",
+     "u": 3.5,
+     "w": 5.5,
+     "r": 2.8,
+     "trunk_h": 3.2,
+     "colour": "#4f6a3a",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "213261987472155",
+     "565669931460454",
+     "5812286458866394"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

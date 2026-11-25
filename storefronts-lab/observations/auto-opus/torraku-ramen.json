@@ -1,0 +1,440 @@
+{
+ "model": "torraku-ramen",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 5: 1 views",
+ "notes": "The rectified grid seems shifted about 1.4 m toward u=0: it shows the window column starting at u\u22480, but the straight-on photo shows a beige pier on each side (~1.4 m left, ~1.5 m right), so I placed the windows from the photo's proportions. The tree hides the left top-floor window and the parapet top. Ground-floor openings are hidden by shade and parked cars, so their divisions are approximate. Sidewalk dining is on record but not visible in the photo, so it is omitted.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 10.4,
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.6
+    },
+    {
+     "v": 3.6,
+     "h": 3.3
+    },
+    {
+     "v": 6.9,
+     "h": 2.9
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.6,
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.colour",
+   "value": "#d6b88e",
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.trim_colour",
+   "value": "#2e2e2e",
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.openings",
+   "value": [
+    {
+     "id": "f2-win",
+     "kind": "window",
+     "u": 1.45,
+     "v": 3.8,
+     "w": 1.8,
+     "h": 2.7,
+     "shape": "rect",
+     "mullions": [
+      2,
+      2
+     ],
+     "frame_colour": "#2e2e2e",
+     "pane_colour": "#8e9aa3",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f2-win",
+     "kind": "window",
+     "u": 3.4,
+     "v": 3.8,
+     "w": 1.8,
+     "h": 2.7,
+     "shape": "rect",
+     "mullions": [
+      2,
+      2
+     ],
+     "frame_colour": "#2e2e2e",
+     "pane_colour": "#8e9aa3",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-win",
+     "kind": "window",
+     "u": 1.45,
+     "v": 7.0,
+     "w": 1.8,
+     "h": 2.6,
+     "shape": "rect",
+     "mullions": [
+      2,
+      2
+     ],
+     "frame_colour": "#2e2e2e",
+     "pane_colour": "#8e9aa3",
+     "depth": 0.2,
+     "sill": false
+    },
+    {
+     "id": "f3-win",
+     "kind": "window",
+     "u": 3.4,
+     "v": 7.0,
+     "w": 1.8,
+     "h": 2.6,
+     "shape": "rect",
+     "mullions": [
+      2,
+      2
+     ],
+     "frame_colour": "#2e2e2e",
+     "pane_colour": "#8e9aa3",
+     "depth": 0.2,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.5.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-torraku-ramen",
+     "business_id": "mb-1e20152f3017",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Torraku Ramen",
+     "u0": 0,
+     "u1": 6.77,
+     "band_h": 3.6,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d6b88e",
+      "accent": "#2a2522",
+      "frame": "#2a2a2a",
+      "base": "#3a3633",
+      "letter": "#4a2e1e",
+      "metal": "#8a8d8f",
+      "glass": "#3e4549"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "tr:g-left",
+       "kind": "window",
+       "u": 0.3,
+       "v": 0.5,
+       "w": 1.1,
+       "h": 2.1,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "tr:g0",
+       "kind": "window",
+       "u": 1.6,
+       "v": 0.3,
+       "w": 1.2,
+       "h": 2.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "tr:door",
+       "kind": "door",
+       "u": 2.9,
+       "v": 0.0,
+       "w": 1.0,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "tr:g1",
+       "kind": "window",
+       "u": 4.0,
+       "v": 0.3,
+       "w": 1.3,
+       "h": 2.6,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "tr-board",
+       "kind": "board",
+       "u": 1.9,
+       "v": 3.1,
+       "w": 2.9,
+       "h": 0.42,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": "#c9a274",
+       "edge_colour": "#8a6a45",
+       "layers": [
+        {
+         "type": "text",
+         "text": "TORRAKU RAMEN",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#4a2e1e",
+         "font": "Georgia, serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 5,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1262423302286944",
+       "1349247735875153",
+       "369744594505257"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "pole-1",
+     "kind": "pole",
+     "u": 6.4,
+     "w": 0.2,
+     "r": 0.06,
+     "colour": "#9a9c9c",
+     "edge": 5
+    },
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "u": 0.6,
+     "w": 4.5,
+     "r": 2.6,
+     "trunk_h": 3.0,
+     "colour": "#3f5a2c",
+     "edge": 5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1262423302286944",
+     "1349247735875153",
+     "369744594505257"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

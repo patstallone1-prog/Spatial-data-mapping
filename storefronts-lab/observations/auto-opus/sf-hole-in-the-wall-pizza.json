@@ -1,0 +1,670 @@
+{
+ "model": "sf-hole-in-the-wall-pizza",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 0: 2 views",
+ "notes": "Photos (2021-22) predate the current tenant. They show Hole in the Wall Pizza (left, maroon awning with text valance) and Roma Antica (right, yellow striped awning over a dark fascia). I modelled one storefront for the record tenant with a plain sign and dropped the old text. Upper windows are placed from photo 2's corners because the grid image is shifted and stretched (building appears at about u -0.8 to 7.6). The ground floor is largely hidden behind the parklet, so openings are approximate.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 8.35,
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.2
+    },
+    {
+     "v": 4.2,
+     "h": 3.5
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.3,
+    "depth": 0.15,
+    "colour": "#b3603d",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.65,
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#d8b98c",
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#f2efe8",
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [
+    {
+     "id": "bay1",
+     "kind": "bay",
+     "u": 0.45,
+     "w": 2.95,
+     "v0": 4.3,
+     "v1": 7.55,
+     "projection": 0.35,
+     "front_share": 0.4,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#d8b98c",
+     "trim_colour": "#f2efe8",
+     "v": 4.8999999999999995,
+     "h": 2.3,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay2",
+     "kind": "bay",
+     "u": 4.15,
+     "w": 3.05,
+     "v0": 4.3,
+     "v1": 7.55,
+     "projection": 0.35,
+     "front_share": 0.4,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#d8b98c",
+     "trim_colour": "#f2efe8",
+     "v": 4.8999999999999995,
+     "h": 2.3,
+     "projection_from": "photos"
+    },
+    {
+     "id": "w1",
+     "kind": "window",
+     "u": 0.65,
+     "v": 4.8,
+     "w": 0.5,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2efe8",
+     "pane_colour": "#5c6668",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w2",
+     "kind": "window",
+     "u": 1.5,
+     "v": 4.8,
+     "w": 0.72,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2efe8",
+     "pane_colour": "#5c6668",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w3",
+     "kind": "window",
+     "u": 2.62,
+     "v": 4.8,
+     "w": 0.58,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2efe8",
+     "pane_colour": "#5c6668",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w4",
+     "kind": "window",
+     "u": 4.35,
+     "v": 4.8,
+     "w": 0.58,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2efe8",
+     "pane_colour": "#5c6668",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w5",
+     "kind": "window",
+     "u": 5.32,
+     "v": 4.8,
+     "w": 0.76,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2efe8",
+     "pane_colour": "#5c6668",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w6",
+     "kind": "window",
+     "u": 6.46,
+     "v": 4.8,
+     "w": 0.55,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#f2efe8",
+     "pane_colour": "#5c6668",
+     "depth": 0.1,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [
+    {
+     "v": 4.2,
+     "h": 0.25,
+     "colour": "#cfae80",
+     "depth": 0.3,
+     "id": "w0:bel0"
+    },
+    {
+     "v": 7.6,
+     "h": 0.12,
+     "colour": "#cfae80",
+     "depth": 0.08,
+     "id": "w0:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.ornaments",
+   "value": [
+    {
+     "kind": "panel",
+     "u": 0.6,
+     "v": 6.95,
+     "w": 0.6,
+     "h": 0.45,
+     "colour": "#cdab7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w0:orn0"
+    },
+    {
+     "kind": "panel",
+     "u": 1.5,
+     "v": 6.95,
+     "w": 0.72,
+     "h": 0.45,
+     "colour": "#cdab7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w0:orn1"
+    },
+    {
+     "kind": "panel",
+     "u": 2.6,
+     "v": 6.95,
+     "w": 0.62,
+     "h": 0.45,
+     "colour": "#cdab7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w0:orn2"
+    },
+    {
+     "kind": "panel",
+     "u": 4.33,
+     "v": 6.95,
+     "w": 0.62,
+     "h": 0.45,
+     "colour": "#cdab7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w0:orn3"
+    },
+    {
+     "kind": "panel",
+     "u": 5.32,
+     "v": 6.95,
+     "w": 0.76,
+     "h": 0.45,
+     "colour": "#cdab7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w0:orn4"
+    },
+    {
+     "kind": "panel",
+     "u": 6.43,
+     "v": 6.95,
+     "w": 0.6,
+     "h": 0.45,
+     "colour": "#cdab7c",
+     "shape": "rect",
+     "depth": 0.05,
+     "id": "w0:orn5"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-sf-hole-in-the-wall-pizza",
+     "business_id": "mb-b61cff40aef8",
+     "category": "pizza",
+     "brand": null,
+     "name": "SF Hole in the Wall Pizza",
+     "u0": 0.2,
+     "u1": 7.5,
+     "band_h": 3.9,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d8b98c",
+      "accent": "#7a2e33",
+      "frame": "#5a4030",
+      "base": "#6b5a48",
+      "letter": "#f4efe4",
+      "metal": "#9a9a96",
+      "glass": "#4c5658"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "g0",
+       "kind": "window",
+       "u": 0.3,
+       "v": 0.3,
+       "w": 1.1,
+       "h": 2.2,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "d0",
+       "kind": "door",
+       "u": 1.55,
+       "v": 0.0,
+       "w": 0.9,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "g1",
+       "kind": "window",
+       "u": 3.35,
+       "v": 0.3,
+       "w": 4.0,
+       "h": 2.2,
+       "transom_fraction": 0.1,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "shed",
+       "u0": 0.8,
+       "u1": 3.35,
+       "v": 3.9,
+       "depth_m": 0.9,
+       "drop_m": 0.85,
+       "valance_h": 0.4,
+       "colour": "#7a2e33",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f4efe4",
+       "font": "Georgia, serif",
+       "sides": true,
+       "id": "sf-sf-hole-in-the-wall-pizza:awn0"
+      },
+      {
+       "kind": "shed",
+       "u0": 3.35,
+       "u1": 7.5,
+       "v": 3.7,
+       "depth_m": 0.8,
+       "drop_m": 0.5,
+       "valance_h": 0.0,
+       "colour": "#e8cf52",
+       "stripe": "#f2e6a0",
+       "valance_text": null,
+       "text_colour": "#f4efe4",
+       "font": "Georgia, serif",
+       "sides": false,
+       "id": "sf-sf-hole-in-the-wall-pizza:awn1"
+      }
+     ],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 3.4,
+       "v": 2.65,
+       "w": 4.1,
+       "h": 0.5,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#3a3a3a",
+       "edge_colour": "#2a2a2a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "SF Hole in the Wall Pizza",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.5,
+         "fill": "#f4efe4",
+         "font": "Georgia, serif",
+         "weight": 400
+        }
+       ],
+       "id": "sf-sf-hole-in-the-wall-pizza:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1280763555689526",
+       "1390146521516539",
+       "155635803228804",
+       "526807062668892",
+       "822021338679682"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "kind": "parklet",
+     "u0": 0.0,
+     "u1": 7.57,
+     "depth_m": 2.0,
+     "offset_m": 4.9,
+     "barrier": "planks",
+     "barrier_h": 1.0,
+     "barrier_colour": "#a0703f",
+     "deck_colour": "#7a6650",
+     "tables": "four_top",
+     "chair_colour": "#c9b07a",
+     "roof": "corrugated",
+     "roof_colour": "#b05a3a",
+     "roof_h": 2.7,
+     "plants": true,
+     "edge": 0,
+     "id": "opus-seat-0-0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1280763555689526",
+     "1390146521516539",
+     "155635803228804",
+     "526807062668892",
+     "822021338679682"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

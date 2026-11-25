@@ -1,0 +1,886 @@
+{
+ "model": "ly-s-vietnamese-cuisine",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 0: 2 views; wall 1: 3 views",
+ "notes": "Photo 2 shows a different building and was not used. Dome awning extent is taken from photo 3 because the grid smears it. The parapet height is estimated above the 6.1 m LiDAR roof. Neon 'Ly's' and 'PHO' vinyl inside the shop window are omitted. | Grid shows a brown wood-sided stretch (u\u22480-5.5, probably the neighbour, with one small window and exterior stairs) and a beige Victorian front (u\u22485.5-21): portico columns on pedestals, dark entry gate, white glazed garage pair, wide upper bay. Which lot the stretches belong to and the exact alignment are uncertain. No shop or signage on this wall. Upper bay and cornice partly hidden by tree foliage.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.2,
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.9
+    },
+    {
+     "v": 3.9,
+     "h": 3.3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.1,
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#4a4039",
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#3a332e",
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [
+    {
+     "id": "up-left",
+     "kind": "window",
+     "u": 0.8,
+     "v": 4.15,
+     "w": 2.5,
+     "h": 1.7,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a332e",
+     "pane_colour": "#2e3a44",
+     "depth": 0.08,
+     "sill": false
+    },
+    {
+     "id": "up-right",
+     "kind": "window",
+     "u": 5.75,
+     "v": 4.15,
+     "w": 0.9,
+     "h": 1.7,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#3a332e",
+     "pane_colour": "#5d7080",
+     "depth": 0.08,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [
+    {
+     "v": 3.85,
+     "h": 0.15,
+     "colour": "#3a332e",
+     "depth": 0.08,
+     "id": "w0:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-ly-s-vietnamese-cuisine",
+     "business_id": "mb-cac4bcb2e372",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Ly's Vietnamese Cuisine",
+     "u0": 0,
+     "u1": 6.92,
+     "band_h": 3.9,
+     "material": "wood_siding",
+     "palette": {
+      "wall": "#4a4039",
+      "accent": "#1f2433",
+      "frame": "#3a332e",
+      "base": "#3e3631",
+      "letter": "#f2eef0",
+      "metal": "#8a8580",
+      "glass": "#2b2f33"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lys-g0",
+       "kind": "window",
+       "u": 0.8,
+       "v": 0.9,
+       "w": 2.8,
+       "h": 1.75,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lys-door",
+       "kind": "door",
+       "u": 4.0,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "lys-gate",
+       "kind": "door",
+       "u": 5.8,
+       "v": 0.0,
+       "w": 1.1,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "sliding",
+       "glazed": false
+      }
+     ],
+     "awnings": [
+      {
+       "id": "lys-awn-1",
+       "kind": "shed",
+       "u0": 0.5,
+       "u1": 3.6,
+       "v": 3.4,
+       "depth_m": 0.6,
+       "drop_m": 0.6,
+       "valance_h": 0.35,
+       "colour": "#1f2433",
+       "stripe": null,
+       "valance_text": "1779 Lombard St.   Vietnamese Cuisine   (415) 563-1927",
+       "text_colour": "#f2eef0",
+       "font": "Arial, sans-serif",
+       "sides": true
+      },
+      {
+       "id": "lys-awn-2",
+       "kind": "dome",
+       "u0": 4.0,
+       "u1": 6.45,
+       "v": 3.6,
+       "depth_m": 1.6,
+       "drop_m": 0.75,
+       "valance_h": 0.3,
+       "colour": "#1f2433",
+       "stripe": null,
+       "valance_text": "Vietnamese Cuisine",
+       "text_colour": "#f2eef0",
+       "font": "Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "lys-script-1",
+       "kind": "letters",
+       "u": 1.6,
+       "v": 3.15,
+       "w": 0.9,
+       "h": 0.3,
+       "offset": 0.6,
+       "thick": 0.02,
+       "bg": "#1f2433",
+       "edge_colour": "#1f2433",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Ly's",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#e6c9d8",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "lys-script-2",
+       "kind": "letters",
+       "u": 4.75,
+       "v": 3.3,
+       "w": 0.9,
+       "h": 0.3,
+       "offset": 1.6,
+       "thick": 0.02,
+       "bg": "#1f2433",
+       "edge_colour": "#1f2433",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Ly's",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#e6c9d8",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 0.3,
+       "u1": 6.7,
+       "v": 3.75,
+       "w": 0.3
+      }
+     ],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1003372463743621",
+       "2354632828047821"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1003372463743621",
+     "2354632828047821"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#c9a47c",
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#ece3cf",
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "brown-win",
+     "kind": "window",
+     "u": 3.2,
+     "v": 5.2,
+     "w": 0.75,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#5a4a40",
+     "pane_colour": "#2e2f30",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "gate",
+     "kind": "door",
+     "u": 6.6,
+     "v": 0.0,
+     "w": 1.9,
+     "h": 2.7,
+     "shape": "rect",
+     "colour": "#2a2a28",
+     "glazed": false
+    },
+    {
+     "id": "garage-l",
+     "kind": "door",
+     "u": 12.4,
+     "v": 0.0,
+     "w": 2.7,
+     "h": 2.9,
+     "shape": "rect",
+     "colour": "#ece9df",
+     "glazed": true
+    },
+    {
+     "id": "garage-r",
+     "kind": "door",
+     "u": 15.4,
+     "v": 0.0,
+     "w": 2.9,
+     "h": 2.9,
+     "shape": "rect",
+     "colour": "#ece9df",
+     "glazed": true
+    },
+    {
+     "id": "bay",
+     "kind": "bay",
+     "u": 11.7,
+     "w": 9.1,
+     "v0": 4.5,
+     "v1": 7.5,
+     "projection": 0.6,
+     "front_share": 0.7,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "wood_siding",
+     "colour": "#d6b58f",
+     "trim_colour": "#ece3cf",
+     "cap": {
+      "h": 0.3,
+      "colour": "#ece3cf",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.1,
+     "h": 2.05,
+     "projection_from": "photos"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [
+    {
+     "u": [
+      6.0,
+      9.1
+     ],
+     "w": 0.6,
+     "v0": 0.0,
+     "v1": 7.4,
+     "depth": 0.45,
+     "colour": "#ece3cf",
+     "groove_colour": "#d4c8b0",
+     "top": "stepped",
+     "steps": 2,
+     "step_h": 0.15,
+     "flutes": 0,
+     "id": "w1:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [
+    {
+     "v": 3.9,
+     "h": 0.3,
+     "colour": "#ece3cf",
+     "depth": 0.2,
+     "id": "w1:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-ly-s-vietnamese-cuisine",
+     "business_id": "mb-cac4bcb2e372",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Ly's Vietnamese Cuisine",
+     "u0": 0,
+     "u1": 6.92,
+     "band_h": 3.9,
+     "material": "wood_siding",
+     "palette": {
+      "wall": "#4a4039",
+      "accent": "#1f2433",
+      "frame": "#3a332e",
+      "base": "#3e3631",
+      "letter": "#f2eef0",
+      "metal": "#8a8580",
+      "glass": "#2b2f33"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lys-g0",
+       "kind": "window",
+       "u": 0.8,
+       "v": 0.9,
+       "w": 2.8,
+       "h": 1.75,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lys-door",
+       "kind": "door",
+       "u": 4.0,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "lys-gate",
+       "kind": "door",
+       "u": 5.8,
+       "v": 0.0,
+       "w": 1.1,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "sliding",
+       "glazed": false
+      }
+     ],
+     "awnings": [
+      {
+       "id": "lys-awn-1",
+       "kind": "shed",
+       "u0": 0.5,
+       "u1": 3.6,
+       "v": 3.4,
+       "depth_m": 0.6,
+       "drop_m": 0.6,
+       "valance_h": 0.35,
+       "colour": "#1f2433",
+       "stripe": null,
+       "valance_text": "1779 Lombard St.   Vietnamese Cuisine   (415) 563-1927",
+       "text_colour": "#f2eef0",
+       "font": "Arial, sans-serif",
+       "sides": true
+      },
+      {
+       "id": "lys-awn-2",
+       "kind": "dome",
+       "u0": 4.0,
+       "u1": 6.45,
+       "v": 3.6,
+       "depth_m": 1.6,
+       "drop_m": 0.75,
+       "valance_h": 0.3,
+       "colour": "#1f2433",
+       "stripe": null,
+       "valance_text": "Vietnamese Cuisine",
+       "text_colour": "#f2eef0",
+       "font": "Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "lys-script-1",
+       "kind": "letters",
+       "u": 1.6,
+       "v": 3.15,
+       "w": 0.9,
+       "h": 0.3,
+       "offset": 0.6,
+       "thick": 0.02,
+       "bg": "#1f2433",
+       "edge_colour": "#1f2433",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Ly's",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#e6c9d8",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "lys-script-2",
+       "kind": "letters",
+       "u": 4.75,
+       "v": 3.3,
+       "w": 0.9,
+       "h": 0.3,
+       "offset": 1.6,
+       "thick": 0.02,
+       "bg": "#1f2433",
+       "edge_colour": "#1f2433",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Ly's",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#e6c9d8",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 0.3,
+       "u1": 6.7,
+       "v": 3.75,
+       "w": 0.3
+      }
+     ],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1003372463743621",
+       "2354632828047821"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "u": 17.0,
+     "w": 5.0,
+     "r": 3.0,
+     "trunk_h": 3.0,
+     "colour": "#4f6a3e",
+     "edge": 1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1208902256328025",
+     "1264721707730357",
+     "748807042450749"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

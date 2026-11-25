@@ -1,0 +1,443 @@
+{
+ "model": "isa",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 4: 2 views",
+ "notes": "The ground-floor shopfront is hidden behind the covered dining enclosure, so it has no glazing or door. The white box at the right end is edge-on and its text is unreadable. The parapet height is taken from the grid (about 7.0 m) against the LiDAR roof at 6.3 m.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.05,
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.3
+    },
+    {
+     "v": 3.3,
+     "h": 3.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.3,
+    "depth": 0.3,
+    "colour": "#dcd8c6",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.75,
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.colour",
+   "value": "#c8c5b3",
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.trim_colour",
+   "value": "#e4e1d2",
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.openings",
+   "value": [
+    {
+     "id": "w4:win-l",
+     "kind": "window",
+     "u": 0.7,
+     "v": 3.65,
+     "w": 2.25,
+     "h": 1.75,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#f2f1ea",
+     "pane_colour": "#9a9a92",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w4:win-r",
+     "kind": "window",
+     "u": 4.7,
+     "v": 3.65,
+     "w": 2.2,
+     "h": 1.8,
+     "shape": "rect",
+     "mullions": [
+      3,
+      2
+     ],
+     "glazing": "grid",
+     "frame_colour": "#f2f1ea",
+     "pane_colour": "#9a9a92",
+     "depth": 0.1,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.friezes",
+   "value": [
+    {
+     "v": 5.95,
+     "h": 0.25,
+     "colour": "#d6d2c0",
+     "motif": "dentil",
+     "motif_colour": "#e8e5d8",
+     "spacing": 0.22,
+     "depth": 0.06,
+     "id": "w4:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.belts",
+   "value": [
+    {
+     "v": 5.85,
+     "h": 0.08,
+     "colour": "#dcd8c6",
+     "depth": 0.04,
+     "id": "w4:bel0"
+    },
+    {
+     "v": 6.55,
+     "h": 0.08,
+     "colour": "#dcd8c6",
+     "depth": 0.05,
+     "id": "w4:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.4.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-isa",
+     "business_id": "mb-6db5e08f84cf",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Isa",
+     "u0": 0,
+     "u1": 7.91,
+     "band_h": 3.0,
+     "material": "stucco",
+     "palette": {
+      "wall": "#c8c5b3",
+      "accent": "#1f4fa0",
+      "frame": "#1e1e1e",
+      "base": "#3a3a36",
+      "letter": "#2a4f9e",
+      "metal": "#8a8d8c",
+      "glass": "#3e4446"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [
+      {
+       "id": "isa-awn",
+       "kind": "shed",
+       "u0": 0.0,
+       "u1": 7.91,
+       "v": 3.15,
+       "depth_m": 0.6,
+       "drop_m": 0.3,
+       "valance_h": 0.15,
+       "colour": "#1f4fa0",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Helvetica, sans-serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "isa-letters",
+       "kind": "letters",
+       "u": 3.5,
+       "v": 3.95,
+       "w": 0.85,
+       "h": 0.75,
+       "offset": 0.02,
+       "thick": 0.03,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "l",
+         "x": 0.1,
+         "y": 0.5,
+         "size": 0.95,
+         "fill": "#2a4f9e",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 400
+        },
+        {
+         "type": "text",
+         "text": "s",
+         "x": 0.47,
+         "y": 0.65,
+         "size": 0.6,
+         "fill": "#d0452c",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 400
+        },
+        {
+         "type": "text",
+         "text": "a",
+         "x": 0.82,
+         "y": 0.65,
+         "size": 0.6,
+         "fill": "#2a4f9e",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "isa-box",
+       "kind": "blade",
+       "u": 7.4,
+       "v": 4.6,
+       "w": 0.4,
+       "h": 1.5,
+       "offset": 0.1,
+       "thick": 0.3,
+       "bg": "#f0efe8",
+       "edge_colour": "#d8d6cc",
+       "layers": []
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 4,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1427868584242399",
+       "852072152652936"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+      "confidence": 0.6,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "isa-patio",
+     "kind": "patio",
+     "u0": 0.0,
+     "u1": 7.91,
+     "depth_m": 4.0,
+     "offset_m": 0.0,
+     "barrier": "low_wall",
+     "barrier_h": 1.1,
+     "barrier_colour": "#2a2a28",
+     "deck_colour": "#5a5a55",
+     "tables": "two_top",
+     "chair_colour": "#e8e8e4",
+     "roof": "corrugated",
+     "roof_colour": "#2e2e2c",
+     "roof_h": 3.0,
+     "plants": true,
+     "evidence": {
+      "kind": "observed",
+      "how": "dark corrugated-roof glazed dining enclosure over the sidewalk in both photos; not on record"
+     },
+     "edge": 4
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1427868584242399",
+     "852072152652936"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

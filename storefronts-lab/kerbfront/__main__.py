@@ -19,6 +19,10 @@ def main(argv: list[str] | None = None) -> None:
     x.add_argument("--area", default="marina-union")
     x.add_argument("--corridor")
     x.add_argument("--limit", type=int, default=40)
+    x.add_argument("--restaurants", action="store_true",
+                   help="only the restaurants the Qwen flow can take (no limit), all their picks")
+    x.add_argument("--retail", action="store_true",
+                   help="with --restaurants: the retail shops the readers take (not yet checked)")
     h = sub.add_parser("handoff", help="write smc.exteriors input programs for swept buildings")
     h.add_argument("--area", default="marina-union")
     h.add_argument("--corridor")
@@ -60,6 +64,19 @@ def main(argv: list[str] | None = None) -> None:
     qr = sub.add_parser("qwen-run", help="read eligible restaurants' facades with Qwen (one worker, budget cap)")
     qr.add_argument("--budget", type=float, default=3.0, help="stop when OpenRouter spend reaches this (USD)")
     qr.add_argument("--limit", type=int, default=None, help="restaurants to try this run")
+    qr.add_argument("--shard", help="i/n: this worker takes every n-th restaurant from the i-th")
+    qr.add_argument("--only", nargs="+", help="a test batch: these restaurants (names or ids), in order")
+    qr.add_argument("--deep", action="store_true", help="add an oblique photo and ask for depths (models/auto-deep)")
+    qr.add_argument("--effort", choices=("low", "medium", "high"), help="let the model reason at this effort")
+    op = sub.add_parser("opus-run", help="read Marina restaurants' facades with Claude Opus 5.5 (budget cap, shards)")
+    op.add_argument("--budget", type=float, default=60.0, help="stop when Anthropic spend reaches this (USD)")
+    op.add_argument("--limit", type=int, default=None, help="restaurants to try this run")
+    op.add_argument("--shard", help="i/n: this worker takes every n-th restaurant from the i-th")
+    op.add_argument("--only", nargs="+", help="a test batch: these restaurants (names or ids)")
+    op.add_argument("--no-check", action="store_true", help="skip the correction turn over the drawn parts")
+    op.add_argument("--dry", action="store_true", help="build and save the inputs, call nothing")
+    op.add_argument("--retail", action="store_true", help="shops too (cafes, clothing, grocery...), not only food")
+    op.add_argument("--corners", action="store_true", help="also read a corner building's other street wall")
     st = sub.add_parser("studio", help="serve the building studio (view + edit models)")
     st.add_argument("--port", type=int, default=8791)
     a = ap.parse_args(argv)
@@ -72,7 +89,13 @@ def main(argv: list[str] | None = None) -> None:
         res = run_geometry(a.area, a.corridor, a.source)
     elif a.cmd == "pixels":
         from .photos.run import run_pixels
-        res = run_pixels(a.area, a.corridor, a.limit)
+        if a.restaurants:
+            from .auto.flow import candidates
+            res = run_pixels(a.area, a.corridor, 10_000, per_business=8,
+                             only=(candidates(a.area, a.corridor, "retail") - candidates(a.area, a.corridor))
+                             if a.retail else candidates(a.area, a.corridor))
+        else:
+            res = run_pixels(a.area, a.corridor, a.limit)
     elif a.cmd == "model":
         from .model import build, photos_for, write
         from .observe import apply_observations
@@ -111,7 +134,17 @@ def main(argv: list[str] | None = None) -> None:
                       "failed": [f"{c['check']} (wall {c['edge']})" for c in r["detail"] if not c["pass"]]}
     elif a.cmd == "qwen-run":
         from .auto.flow import run as qrun
-        res = qrun(a.budget, a.limit)
+        shard = tuple(int(x) for x in a.shard.split("/")) if a.shard else None
+        res = qrun(a.budget, a.limit, shard=shard, ids=a.only, deep=a.deep, effort=a.effort)
+    elif a.cmd == "opus-run":
+        shard = tuple(int(x) for x in a.shard.split("/")) if a.shard else None
+        if a.dry:
+            from .auto.opus_flow import dry
+            res = dry(a.only, a.limit, retail=a.retail, corners=a.corners)
+        else:
+            from .auto.opus_flow import run as orun
+            res = orun(a.budget, a.limit, shard=shard, ids=a.only, check=not a.no_check,
+                       retail=a.retail, corners=a.corners)
     elif a.cmd == "studio":
         from .studio import serve
         serve(a.port)

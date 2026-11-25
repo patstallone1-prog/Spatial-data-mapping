@@ -1,0 +1,338 @@
+{
+ "model": "food-mart",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 2: 3 views",
+ "notes": "The footprint is the open fuel canopy: there is no enclosed wall, and the pumps stand underneath. The rectified grid shows the canopy fascia at about 2.6-3.3 m. That is because the canopy edge and pumps stand behind the wall plane and are compressed: the pumps, about 2 m tall, project to about 1 m. The fascia height is therefore taken from the 5.1 m LiDAR roof, as yellow and white bands over a red stripe with a thin projecting cornice. A second, smaller canopy deeper on the lot is not on this wall. The Food Mart kiosk sign is on a separate structure to the left and is not drawn. The bus shelte",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 5.1,
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 5.1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.08,
+    "depth": 0.3,
+    "colour": "#f2f2ef",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.0,
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.material",
+   "value": "metal_panel",
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.colour",
+   "value": "#ecebe6",
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.trim_colour",
+   "value": "#d8262c",
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.belts",
+   "value": [
+    {
+     "v": 4.33,
+     "h": 0.1,
+     "colour": "#d8262c",
+     "depth": 0.3,
+     "id": "w2:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.bands",
+   "value": [
+    {
+     "v0": 4.43,
+     "v1": 4.98,
+     "colour": "#f5c518",
+     "material": "metal_panel",
+     "id": "w2:ban0"
+    },
+    {
+     "v0": 4.98,
+     "v1": 5.1,
+     "colour": "#f2f2ef",
+     "material": "metal_panel",
+     "id": "w2:ban1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-food-mart",
+     "business_id": "mb-183a20f1779d",
+     "category": "corner_store",
+     "brand": null,
+     "name": "Food Mart",
+     "u0": 0,
+     "u1": 7.93,
+     "band_h": 4.33,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#ecebe6",
+      "accent": "#f5c518",
+      "frame": "#c9ccce",
+      "base": "#9a9a96",
+      "letter": "#d8262c",
+      "metal": "#b8bcbf",
+      "glass": "#6f7c84"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 2,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1080198039328482",
+       "2088122958049685",
+       "525493702013688"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+      "confidence": 0.35,
+      "read_by": "claude-opus-5-5"
+     },
+     "visible": false,
+     "note": "no shopfront seen in the photographs"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "lombard-shelter",
+     "kind": "bus_shelter",
+     "u": 4.6,
+     "w": 2.0,
+     "len": 5.0,
+     "colour": "#8a8f92",
+     "edge": 2
+    },
+    {
+     "id": "lombard-bin",
+     "kind": "planter",
+     "u": 7.4,
+     "w": 0.6,
+     "colour": "#3a4a52",
+     "edge": 2
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1080198039328482",
+     "2088122958049685",
+     "525493702013688"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.35,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

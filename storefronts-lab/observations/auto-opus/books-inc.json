@@ -1,0 +1,498 @@
+{
+ "model": "books-inc",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 2 views",
+ "notes": "Horizontal positions measured from building corners in both photos (they agree: opening ~u1.2-7.2); the grid image appears stretched/shifted rightward, so it was not trusted for u. Blade sign text unreadable, left blank. Parklet with mural panels is mainly the neighbour's; only its end overlaps this wall. Parapet height estimated.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.6,
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 6.6
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.5,
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#e6cb74",
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#4a4038",
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "w3:pierL",
+     "kind": "window",
+     "u": 0.4,
+     "v": 1.2,
+     "w": 0.36,
+     "h": 0.8,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#d8bd68",
+     "pane_colour": "#2a2a2a",
+     "depth": 0.15,
+     "sill": false
+    },
+    {
+     "id": "w3:pierR",
+     "kind": "window",
+     "u": 7.6,
+     "v": 1.2,
+     "w": 0.4,
+     "h": 0.85,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#d8bd68",
+     "pane_colour": "#2a2a2a",
+     "depth": 0.15,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-books-inc",
+     "business_id": "mb-a592dacd2781",
+     "category": "books",
+     "brand": null,
+     "name": "Books Inc.",
+     "u0": 0,
+     "u1": 8.42,
+     "band_h": 4.1,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e6cb74",
+      "accent": "#4a4038",
+      "frame": "#a7a9a5",
+      "base": "#b9b6ad",
+      "letter": "#d9d6cc",
+      "metal": "#a7a9a5",
+      "glass": "#3c4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "bi:transom",
+       "kind": "window",
+       "u": 1.22,
+       "v": 2.95,
+       "w": 5.98,
+       "h": 1.13,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0,
+       "mullions": [
+        7,
+        2
+       ]
+      },
+      {
+       "id": "bi:gL",
+       "kind": "window",
+       "u": 1.22,
+       "v": 0.18,
+       "w": 1.95,
+       "h": 2.65,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0,
+       "mullions": [
+        2,
+        2
+       ]
+      },
+      {
+       "id": "bi:gR",
+       "kind": "window",
+       "u": 5.05,
+       "v": 0.18,
+       "w": 2.15,
+       "h": 2.65,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0,
+       "mullions": [
+        2,
+        2
+       ]
+      },
+      {
+       "id": "bi:door",
+       "kind": "door",
+       "u": 3.2,
+       "v": 0.0,
+       "w": 1.8,
+       "h": 2.7,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [
+      {
+       "id": "bi:canopy",
+       "kind": "flat_canopy",
+       "u0": 1.25,
+       "u1": 7.15,
+       "v": 2.9,
+       "depth_m": 0.45,
+       "drop_m": 0.12,
+       "valance_h": 0.1,
+       "colour": "#c9c7bf",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Georgia, serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "bi:rail",
+       "kind": "board",
+       "u": 1.63,
+       "v": 4.98,
+       "w": 4.9,
+       "h": 0.08,
+       "thick": 0.05,
+       "bg": "#3f3a34",
+       "edge_colour": "#3f3a34",
+       "layers": []
+      },
+      {
+       "id": "bi:letters",
+       "kind": "letters",
+       "u": 1.92,
+       "v": 5.08,
+       "w": 4.3,
+       "h": 0.45,
+       "thick": 0.04,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "BOOKS INC",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#d9d6cc",
+         "font": "Georgia, serif",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "bi:vinyl",
+       "kind": "window_vinyl",
+       "u": 2.9,
+       "v": 3.1,
+       "w": 2.4,
+       "h": 0.3,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "BOOKS INC",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.8,
+         "fill": "#f2f0ea",
+         "font": "Georgia, serif",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "bi:blade",
+       "kind": "blade",
+       "u": 7.9,
+       "v": 2.95,
+       "w": 0.25,
+       "h": 3.4,
+       "offset": 0.1,
+       "thick": 0.08,
+       "bg": "#7d8a96",
+       "edge_colour": "#5e6a75",
+       "layers": []
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 7.4,
+       "u1": 8.2,
+       "v": 2.95,
+       "w": 0.8
+      }
+     ],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "249425490358382",
+       "346624963603958",
+       "829367578286923",
+       "836345557407020"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+      "confidence": 0.6,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [
+    {
+     "id": "nbr-parklet",
+     "kind": "parklet",
+     "u0": 0.0,
+     "u1": 1.1,
+     "depth_m": 2.0,
+     "offset_m": 0.0,
+     "barrier": "planks",
+     "barrier_h": 1.0,
+     "barrier_colour": "#a8d8c8",
+     "deck_colour": "#7a6a55",
+     "tables": "none",
+     "chair_colour": "#3a3a36",
+     "roof": "slats",
+     "roof_colour": "#a8d8c8",
+     "roof_h": 2.6,
+     "plants": false,
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "249425490358382",
+     "346624963603958",
+     "829367578286923",
+     "836345557407020"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.6,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

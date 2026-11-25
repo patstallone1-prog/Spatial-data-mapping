@@ -1,0 +1,1991 @@
+{
+ "model": "bakana",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 8: 1 views; wall 9: 4 views",
+ "notes": "Wall 8 covers the right part of the teal neighbour (u 0-3.3) plus the grey shingled gabled building (u 3.3-11.14); the grid agrees with this split. Teal part: the Postal Chase shopfront, three upper windows and a teal bay above, with the fire escape left of the wall start. Grey building: two-storey left bay over the flats entry (two green glazed doors), a middle window column on floors 2-3 plus an attic window, and a corner bay that wraps onto Filbert and is smeared in the grid. Bakana's shop extent (5.6-11.14) is read from the photo; the record gives 3.5-8.6. The photos predate Bakana: the ol | The four-storey shiplap building fills 0-21 m. A low white two-storey neighbour fills 21-31.5 m; its true height (about 6.5 m) cannot be expressed apart from the main building's. That neighbour's signs are unreadable, so it has no lettering and a placeholder name. Bakana does not appear on this wall. The Rooster & Rice sign is a round disc projecting on a bracket, so it draws edge-on in the elevation. The small window near u=3 was raised to v=2.0. There is no repeated bay module on this wall.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 14.4,
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.3
+    },
+    {
+     "v": 4.3,
+     "h": 3.0
+    },
+    {
+     "v": 7.3,
+     "h": 3.1
+    },
+    {
+     "v": 10.4,
+     "h": 3.8
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.45,
+    "depth": 0.45,
+    "colour": "#ece4d0",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.2,
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.material",
+   "value": "shingle",
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.colour",
+   "value": "#a9b6ae",
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.trim_colour",
+   "value": "#ece4d0",
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.openings",
+   "value": [
+    {
+     "id": "teal-win",
+     "kind": "window",
+     "u": 0.1,
+     "v": 5.0,
+     "w": 0.65,
+     "h": 1.7,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece4d0",
+     "pane_colour": "#3a4244",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "teal-win",
+     "kind": "window",
+     "u": 0.9,
+     "v": 5.0,
+     "w": 0.65,
+     "h": 1.7,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece4d0",
+     "pane_colour": "#3a4244",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "teal-win",
+     "kind": "window",
+     "u": 1.7,
+     "v": 5.0,
+     "w": 0.65,
+     "h": 1.7,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece4d0",
+     "pane_colour": "#3a4244",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "teal-bay",
+     "kind": "bay",
+     "u": 0.0,
+     "w": 2.9,
+     "v0": 7.7,
+     "v1": 10.5,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "wood_siding",
+     "colour": "#4fb8b3",
+     "trim_colour": "#ece4d0",
+     "cap": {
+      "h": 0.3,
+      "colour": "#ece4d0",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 8.3,
+     "h": 1.8499999999999999,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f0",
+     "kind": "bay",
+     "u": 3.4,
+     "w": 3.1,
+     "v0": 4.4,
+     "v1": 7.6,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "shingle",
+     "colour": "#a9b6ae",
+     "trim_colour": "#ece4d0",
+     "v": 5.04,
+     "h": 1.92,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f1",
+     "kind": "bay",
+     "u": 3.4,
+     "w": 3.1,
+     "v0": 7.6,
+     "v1": 10.8,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "shingle",
+     "colour": "#a9b6ae",
+     "trim_colour": "#ece4d0",
+     "cap": {
+      "h": 0.35,
+      "colour": "#ece4d0",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 8.24,
+     "h": 1.92,
+     "projection_from": "photos"
+    },
+    {
+     "id": "mid-win",
+     "kind": "window",
+     "u": 7.55,
+     "v": 5.4,
+     "w": 1.0,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece4d0",
+     "pane_colour": "#3f4648",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "mid-win",
+     "kind": "window",
+     "u": 10.55,
+     "v": 5.4,
+     "w": 1.0,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece4d0",
+     "pane_colour": "#3f4648",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "attic-win",
+     "kind": "window",
+     "u": 7.5,
+     "v": 11.5,
+     "w": 1.0,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#ece4d0",
+     "pane_colour": "#3f4648",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "bay-corner-f0",
+     "kind": "bay",
+     "u": 9.8,
+     "w": 1.34,
+     "v0": 4.4,
+     "v1": 7.43,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "shingle",
+     "colour": "#a9b6ae",
+     "trim_colour": "#ece4d0",
+     "v": 5.01,
+     "h": 1.82,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-corner-f1",
+     "kind": "bay",
+     "u": 9.8,
+     "w": 1.34,
+     "v0": 7.43,
+     "v1": 10.47,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "shingle",
+     "colour": "#a9b6ae",
+     "trim_colour": "#ece4d0",
+     "v": 8.04,
+     "h": 1.82,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-corner-f2",
+     "kind": "bay",
+     "u": 9.8,
+     "w": 1.34,
+     "v0": 10.47,
+     "v1": 13.5,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "shingle",
+     "colour": "#a9b6ae",
+     "trim_colour": "#ece4d0",
+     "cap": {
+      "h": 0.4,
+      "colour": "#ece4d0",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 11.07,
+     "h": 1.82,
+     "projection_from": "photos"
+    },
+    {
+     "id": "teal-door",
+     "kind": "door",
+     "u": 2.55,
+     "v": 0.3,
+     "w": 0.7,
+     "h": 2.3,
+     "shape": "rect",
+     "colour": "#2f3b36",
+     "glazed": false
+    },
+    {
+     "id": "flats-door-1",
+     "kind": "door",
+     "u": 3.7,
+     "v": 0.5,
+     "w": 0.8,
+     "h": 2.4,
+     "shape": "rect",
+     "colour": "#3d5148",
+     "glazed": true
+    },
+    {
+     "id": "flats-door-2",
+     "kind": "door",
+     "u": 4.6,
+     "v": 0.5,
+     "w": 0.8,
+     "h": 2.4,
+     "shape": "rect",
+     "colour": "#3d5148",
+     "glazed": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.pilasters",
+   "value": [
+    {
+     "u": [
+      2.45,
+      3.4,
+      5.55
+     ],
+     "w": 0.2,
+     "v0": 0.0,
+     "v1": 4.3,
+     "depth": 0.08,
+     "colour": "#ece4d0",
+     "groove_colour": "#d6cdb8",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0,
+     "flutes": 0,
+     "id": "w8:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.belts",
+   "value": [
+    {
+     "v": 4.3,
+     "h": 0.2,
+     "colour": "#ece4d0",
+     "depth": 0.08,
+     "id": "w8:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.8.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-opus-w8-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "The Postal Chase",
+     "u0": 0,
+     "u1": 2.4,
+     "band_h": 4.2,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e8e4dc",
+      "accent": "#c8202a",
+      "frame": "#2a2a2a",
+      "base": "#2a4a8a",
+      "letter": "#1f3c8c",
+      "metal": "#9a9e9c",
+      "glass": "#3c4446"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "pc:g0",
+       "kind": "window",
+       "u": 0.1,
+       "v": 0.6,
+       "w": 1.3,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.2
+      },
+      {
+       "id": "pc:door",
+       "kind": "door",
+       "u": 1.5,
+       "v": 0.0,
+       "w": 0.85,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 0.0,
+       "v": 3.3,
+       "w": 2.4,
+       "h": 0.9,
+       "offset": 0.1,
+       "thick": 0.1,
+       "bg": "#f2f0ea",
+       "edge_colour": "#c8202a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "THE POSTAL CHASE",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.3,
+         "fill": "#1f3c8c",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ],
+       "id": "sf-opus-w8-0:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 8,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "2816805751918385",
+       "352674909567665",
+       "541142557456463",
+       "706667507329825",
+       "826858515216293",
+       "927151694563915"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-bakana",
+     "business_id": "mb-6e44862f5d21",
+     "category": "clothing",
+     "brand": null,
+     "name": "Bakana",
+     "u0": 5.6,
+     "u1": 11.14,
+     "band_h": 3.8,
+     "material": "shingle",
+     "palette": {
+      "wall": "#a9b6ae",
+      "accent": "#2f4a40",
+      "frame": "#ece4d0",
+      "base": "#8e9a95",
+      "letter": "#2f4a40",
+      "metal": "#9a9e9c",
+      "glass": "#4a5558"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "bk:g0",
+       "kind": "window",
+       "u": 5.75,
+       "v": 0.9,
+       "w": 1.65,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "bk:door",
+       "kind": "door",
+       "u": 7.6,
+       "v": 0.45,
+       "w": 0.95,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "bk:g1",
+       "kind": "window",
+       "u": 8.7,
+       "v": 0.9,
+       "w": 1.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "bk:g2",
+       "kind": "window",
+       "u": 9.85,
+       "v": 0.9,
+       "w": 1.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "flat_canopy",
+       "u0": 5.65,
+       "u1": 11.0,
+       "v": 2.95,
+       "depth_m": 0.4,
+       "drop_m": 0.2,
+       "valance_h": 0.2,
+       "colour": "#2f4a40",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Georgia, serif",
+       "sides": false,
+       "id": "sf-bakana:awn0"
+      }
+     ],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 7.3,
+       "v": 3.05,
+       "w": 2.0,
+       "h": 0.7,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#f4f1ea",
+       "edge_colour": "#2f4a40",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Bakana",
+         "x": 0.5,
+         "y": 0.55,
+         "size": 0.5,
+         "fill": "#2f4a40",
+         "font": "Georgia, serif",
+         "weight": 500
+        }
+       ],
+       "id": "sf-bakana:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 8,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "2816805751918385",
+       "352674909567665",
+       "541142557456463",
+       "706667507329825",
+       "826858515216293",
+       "927151694563915"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "2816805751918385",
+     "352674909567665",
+     "541142557456463",
+     "706667507329825",
+     "826858515216293",
+     "927151694563915"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.material",
+   "value": "shiplap",
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.colour",
+   "value": "#8d9eab",
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.trim_colour",
+   "value": "#e6e0cf",
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.openings",
+   "value": [
+    {
+     "id": "w-l3",
+     "kind": "window",
+     "u": 3.9,
+     "v": 10.4,
+     "w": 1.2,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e6e0cf",
+     "pane_colour": "#3a4046",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-l2",
+     "kind": "window",
+     "u": 3.9,
+     "v": 6.6,
+     "w": 1.2,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e6e0cf",
+     "pane_colour": "#3a4046",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-r3",
+     "kind": "window",
+     "u": 15.0,
+     "v": 10.5,
+     "w": 1.1,
+     "h": 2.0,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e6e0cf",
+     "pane_colour": "#3a4046",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-r2",
+     "kind": "window",
+     "u": 15.0,
+     "v": 6.7,
+     "w": 1.1,
+     "h": 1.9,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e6e0cf",
+     "pane_colour": "#3a4046",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "bay-c-f0",
+     "kind": "bay",
+     "u": 8.9,
+     "w": 3.3,
+     "v0": 5.45,
+     "v1": 8.6,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "painted_wood",
+     "colour": "#d9d6cc",
+     "trim_colour": "#e6e0cf",
+     "v": 6.08,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-c-f1",
+     "kind": "bay",
+     "u": 8.9,
+     "w": 3.3,
+     "v0": 8.6,
+     "v1": 11.75,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "painted_wood",
+     "colour": "#d9d6cc",
+     "trim_colour": "#e6e0cf",
+     "v": 9.23,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-c-f2",
+     "kind": "bay",
+     "u": 8.9,
+     "w": 3.3,
+     "v0": 11.75,
+     "v1": 14.9,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "painted_wood",
+     "colour": "#d9d6cc",
+     "trim_colour": "#e6e0cf",
+     "cap": {
+      "h": 0.35,
+      "colour": "#e6e0cf",
+      "crest_h": 0.9,
+      "crest_w": 2.4
+     },
+     "v": 12.38,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "g-cl1",
+     "kind": "window",
+     "u": 6.0,
+     "v": 3.95,
+     "w": 1.9,
+     "h": 1.2,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#5c6166",
+     "pane_colour": "#c9c9c4",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "g-cl2",
+     "kind": "window",
+     "u": 8.4,
+     "v": 3.95,
+     "w": 1.9,
+     "h": 1.2,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#5c6166",
+     "pane_colour": "#c9c9c4",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "g-vent",
+     "kind": "window",
+     "u": 2.8,
+     "v": 2.0,
+     "w": 1.1,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#e6e0cf",
+     "pane_colour": "#6b7075",
+     "depth": 0.08,
+     "sill": false
+    },
+    {
+     "id": "g-cl3",
+     "kind": "window",
+     "u": 15.8,
+     "v": 4.0,
+     "w": 1.5,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#5c6166",
+     "pane_colour": "#c9c9c4",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "d-svc",
+     "kind": "door",
+     "u": 19.3,
+     "v": 0.1,
+     "w": 0.9,
+     "h": 2.1,
+     "shape": "rect",
+     "colour": "#9aa0a4",
+     "glazed": false
+    },
+    {
+     "id": "nb-up1",
+     "kind": "window",
+     "u": 25.8,
+     "v": 4.0,
+     "w": 1.1,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#2a2a2a",
+     "pane_colour": "#2f3438",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "nb-up2",
+     "kind": "window",
+     "u": 27.6,
+     "v": 3.9,
+     "w": 1.5,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#2a2a2a",
+     "pane_colour": "#c9cbc8",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "nb-up3",
+     "kind": "window",
+     "u": 29.7,
+     "v": 4.0,
+     "w": 1.1,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#2a2a2a",
+     "pane_colour": "#2f3438",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "nb-glass",
+     "kind": "window",
+     "u": 21.2,
+     "v": 3.6,
+     "w": 3.6,
+     "h": 1.8,
+     "shape": "rect",
+     "mullions": [
+      4,
+      1
+     ],
+     "frame_colour": "#2a2a2a",
+     "pane_colour": "#d8dcda",
+     "depth": 0.05,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.friezes",
+   "value": [
+    {
+     "v": 14.3,
+     "h": 0.3,
+     "colour": "#e6e0cf",
+     "motif": "dentil",
+     "motif_colour": "#cfc8b6",
+     "spacing": 0.3,
+     "depth": 0.06,
+     "id": "w9:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.belts",
+   "value": [
+    {
+     "v": 5.55,
+     "h": 0.18,
+     "colour": "#e6e0cf",
+     "depth": 0.08,
+     "id": "w9:bel0"
+    },
+    {
+     "v": 13.9,
+     "h": 0.12,
+     "colour": "#e6e0cf",
+     "depth": 0.05,
+     "id": "w9:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.bands",
+   "value": [
+    {
+     "v0": 0.0,
+     "v1": 1.1,
+     "colour": "#6e757b",
+     "material": "shiplap",
+     "id": "w9:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.9.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-opus-w8-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "The Postal Chase",
+     "u0": 0,
+     "u1": 2.4,
+     "band_h": 4.2,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#e8e4dc",
+      "accent": "#c8202a",
+      "frame": "#2a2a2a",
+      "base": "#2a4a8a",
+      "letter": "#1f3c8c",
+      "metal": "#9a9e9c",
+      "glass": "#3c4446"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "pc:g0",
+       "kind": "window",
+       "u": 0.1,
+       "v": 0.6,
+       "w": 1.3,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.2
+      },
+      {
+       "id": "pc:door",
+       "kind": "door",
+       "u": 1.5,
+       "v": 0.0,
+       "w": 0.85,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 0.0,
+       "v": 3.3,
+       "w": 2.4,
+       "h": 0.9,
+       "offset": 0.1,
+       "thick": 0.1,
+       "bg": "#f2f0ea",
+       "edge_colour": "#c8202a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "THE POSTAL CHASE",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.3,
+         "fill": "#1f3c8c",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ],
+       "id": "sf-opus-w8-0:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 8,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "2816805751918385",
+       "352674909567665",
+       "541142557456463",
+       "706667507329825",
+       "826858515216293",
+       "927151694563915"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-bakana",
+     "business_id": "mb-6e44862f5d21",
+     "category": "clothing",
+     "brand": null,
+     "name": "Bakana",
+     "u0": 5.6,
+     "u1": 11.14,
+     "band_h": 3.8,
+     "material": "shingle",
+     "palette": {
+      "wall": "#a9b6ae",
+      "accent": "#2f4a40",
+      "frame": "#ece4d0",
+      "base": "#8e9a95",
+      "letter": "#2f4a40",
+      "metal": "#9a9e9c",
+      "glass": "#4a5558"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "bk:g0",
+       "kind": "window",
+       "u": 5.75,
+       "v": 0.9,
+       "w": 1.65,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "bk:door",
+       "kind": "door",
+       "u": 7.6,
+       "v": 0.45,
+       "w": 0.95,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "bk:g1",
+       "kind": "window",
+       "u": 8.7,
+       "v": 0.9,
+       "w": 1.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "bk:g2",
+       "kind": "window",
+       "u": 9.85,
+       "v": 0.9,
+       "w": 1.1,
+       "h": 1.8,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "flat_canopy",
+       "u0": 5.65,
+       "u1": 11.0,
+       "v": 2.95,
+       "depth_m": 0.4,
+       "drop_m": 0.2,
+       "valance_h": 0.2,
+       "colour": "#2f4a40",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Georgia, serif",
+       "sides": false,
+       "id": "sf-bakana:awn0"
+      }
+     ],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 7.3,
+       "v": 3.05,
+       "w": 2.0,
+       "h": 0.7,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#f4f1ea",
+       "edge_colour": "#2f4a40",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Bakana",
+         "x": 0.5,
+         "y": 0.55,
+         "size": 0.5,
+         "fill": "#2f4a40",
+         "font": "Georgia, serif",
+         "weight": 500
+        }
+       ],
+       "id": "sf-bakana:ext0"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 8,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "2816805751918385",
+       "352674909567665",
+       "541142557456463",
+       "706667507329825",
+       "826858515216293",
+       "927151694563915"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 8, 1 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w9-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Office entrance",
+     "u0": 5.5,
+     "u1": 10.5,
+     "band_h": 3.9,
+     "material": "shiplap",
+     "palette": {
+      "wall": "#8d9eab",
+      "accent": "#1e1f21",
+      "frame": "#e6e0cf",
+      "base": "#6e757b",
+      "letter": "#ffffff",
+      "metal": "#8a8f92",
+      "glass": "#3c4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "ow:door",
+       "kind": "door",
+       "u": 6.9,
+       "v": 0.0,
+       "w": 0.9,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "ow:g0",
+       "kind": "window",
+       "u": 8.3,
+       "v": 0.9,
+       "w": 1.7,
+       "h": 1.6,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "ow:g1",
+       "kind": "window",
+       "u": 5.8,
+       "v": 0.9,
+       "w": 0.5,
+       "h": 1.6,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "ow-awn",
+       "kind": "box",
+       "u0": 5.6,
+       "u1": 10.5,
+       "v": 3.9,
+       "depth_m": 0.9,
+       "drop_m": 0.8,
+       "valance_h": 0.8,
+       "colour": "#1e1f21",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Helvetica, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 5.4,
+       "u1": 5.6,
+       "v": 3.9,
+       "w": 0.3
+      }
+     ],
+     "edge": 9,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1118094982220368",
+       "173052608036212",
+       "4492763977433231",
+       "452998220158024",
+       "653763439534902",
+       "996883934461646"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+      "confidence": 0.52,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w9-1",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Zazen",
+     "u0": 11.7,
+     "u1": 12.7,
+     "band_h": 3.6,
+     "material": "shiplap",
+     "palette": {
+      "wall": "#8d9eab",
+      "accent": "#2e3134",
+      "frame": "#2e3134",
+      "base": "#6e757b",
+      "letter": "#2e3134",
+      "metal": "#8a8f92",
+      "glass": "#3c4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "zz:door",
+       "kind": "door",
+       "u": 11.8,
+       "v": 0.0,
+       "w": 0.9,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": false
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "zz-board",
+       "kind": "board",
+       "u": 11.75,
+       "v": 3.0,
+       "w": 0.9,
+       "h": 0.45,
+       "offset": 0.02,
+       "thick": 0.03,
+       "bg": "#e8e4dc",
+       "edge_colour": "#8a8680",
+       "layers": [
+        {
+         "type": "text",
+         "text": "zazen",
+         "x": 0.5,
+         "y": 0.45,
+         "size": 0.55,
+         "fill": "#2e3134",
+         "font": "Georgia, serif",
+         "weight": 400
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 9,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1118094982220368",
+       "173052608036212",
+       "4492763977433231",
+       "452998220158024",
+       "653763439534902",
+       "996883934461646"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+      "confidence": 0.52,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w9-2",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Rooster & Rice",
+     "u0": 12.7,
+     "u1": 18.6,
+     "band_h": 3.7,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#2e3134",
+      "accent": "#1e1f21",
+      "frame": "#e9e7e2",
+      "base": "#2e3134",
+      "letter": "#ffffff",
+      "metal": "#8a8f92",
+      "glass": "#3c4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rr:g0",
+       "kind": "window",
+       "u": 13.1,
+       "v": 1.1,
+       "w": 1.8,
+       "h": 1.3,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rr:door",
+       "kind": "door",
+       "u": 15.4,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "rr:g1",
+       "kind": "window",
+       "u": 17.3,
+       "v": 1.5,
+       "w": 0.5,
+       "h": 0.8,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "rr-awn",
+       "kind": "dome",
+       "u0": 12.8,
+       "u1": 18.4,
+       "v": 3.7,
+       "depth_m": 0.9,
+       "drop_m": 0.7,
+       "valance_h": 0.4,
+       "colour": "#1e1f21",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Helvetica, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "rr-disc",
+       "kind": "blade",
+       "u": 15.3,
+       "v": 2.8,
+       "w": 1.2,
+       "h": 1.6,
+       "offset": 0.5,
+       "thick": 0.08,
+       "bg": "#3f8fc4",
+       "edge_colour": "#d9d4c6",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.62,
+         "r": 0.48,
+         "fill": "#3f8fc4"
+        },
+        {
+         "type": "rect",
+         "x": 0.42,
+         "y": 0.05,
+         "w": 0.3,
+         "h": 0.3,
+         "fill": "#e8b23a"
+        },
+        {
+         "type": "text",
+         "text": "ROOSTER",
+         "x": 0.5,
+         "y": 0.55,
+         "size": 0.13,
+         "fill": "#ffffff",
+         "font": "\"Arial Black\", sans-serif",
+         "weight": 800
+        },
+        {
+         "type": "text",
+         "text": "& RICE",
+         "x": 0.5,
+         "y": 0.7,
+         "size": 0.13,
+         "fill": "#ffffff",
+         "font": "\"Arial Black\", sans-serif",
+         "weight": 800
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 9,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1118094982220368",
+       "173052608036212",
+       "4492763977433231",
+       "452998220158024",
+       "653763439534902",
+       "996883934461646"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+      "confidence": 0.52,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w9-3",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Neighbouring shop",
+     "u0": 21.0,
+     "u1": 31.48,
+     "band_h": 3.2,
+     "material": "painted_wood",
+     "palette": {
+      "wall": "#ecebe6",
+      "accent": "#2a2c30",
+      "frame": "#2a2a2a",
+      "base": "#ecebe6",
+      "letter": "#ffffff",
+      "metal": "#8a8f92",
+      "glass": "#3c4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "nb:g0",
+       "kind": "window",
+       "u": 22.0,
+       "v": 0.4,
+       "w": 2.0,
+       "h": 2.3,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "nb:door",
+       "kind": "door",
+       "u": 26.2,
+       "v": 0.0,
+       "w": 1.0,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "nb:g1",
+       "kind": "window",
+       "u": 27.6,
+       "v": 0.4,
+       "w": 2.0,
+       "h": 2.3,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "nb-awn",
+       "kind": "shed",
+       "u0": 21.0,
+       "u1": 31.3,
+       "v": 3.1,
+       "depth_m": 0.9,
+       "drop_m": 0.45,
+       "valance_h": 0.2,
+       "colour": "#2a2c30",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Helvetica, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 9,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1118094982220368",
+       "173052608036212",
+       "4492763977433231",
+       "452998220158024",
+       "653763439534902",
+       "996883934461646"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+      "confidence": 0.52,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1118094982220368",
+     "173052608036212",
+     "4492763977433231",
+     "452998220158024",
+     "653763439534902",
+     "996883934461646"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 9, 4 clean views + metric elevation",
+    "confidence": 0.52,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

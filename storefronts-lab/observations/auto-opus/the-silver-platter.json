@@ -1,0 +1,1669 @@
+{
+ "model": "the-silver-platter",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 17: 4 views; wall 16: 4 views",
+ "notes": "Height and position of the bays are read from the angled photographs. The bay crests step the parapet up above each bay. The 'For Sale' realtor sign is temporary and left out. The awning wraps around the corner, and its corner end carries 'The New York Times' in blackletter; that panel is not modelled separately. | Height: lowered to 13.0 m to match the parapet in the grid and photographs (about 12.5-13 m); the LiDAR roof surface is given as 14.0 m, so the true height is uncertain. The left lower block (u 0-8.6) holds a black-fascia shop and the Black Horse London Deli. The centre ground floor is a vacant shop with pink frames and a For Sale sign, a gated door to the flats, and blank stucco panels with vertical-board cladding above and a red tile base. Silver Platter signage at the right corner is only partly visible. The fire-escape balconies are approximate.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 14.0,
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.2
+    },
+    {
+     "v": 4.2,
+     "h": 4.1
+    },
+    {
+     "v": 8.3,
+     "h": 4.9
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.25,
+    "depth": 0.15,
+    "colour": "#ece4d4",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.8,
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.colour",
+   "value": "#e3d8c4",
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.trim_colour",
+   "value": "#efe8da",
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.openings",
+   "value": [
+    {
+     "id": "w2:l",
+     "kind": "window",
+     "u": 1.4,
+     "v": 5.1,
+     "w": 1.9,
+     "h": 1.45,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efe8da",
+     "pane_colour": "#5a646a",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w2:r",
+     "kind": "window",
+     "u": 6.3,
+     "v": 5.05,
+     "w": 1.85,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#efe8da",
+     "pane_colour": "#8a8f94",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "bay:l",
+     "kind": "bay",
+     "u": 1.0,
+     "w": 2.9,
+     "v0": 8.3,
+     "v1": 11.4,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#e3d8c4",
+     "trim_colour": "#efe8da",
+     "cap": {
+      "h": 0.3,
+      "colour": "#efe8da",
+      "crest_h": 0.6,
+      "crest_w": 2.9
+     },
+     "v": 8.9,
+     "h": 2.1499999999999995,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay:r",
+     "kind": "bay",
+     "u": 5.2,
+     "w": 2.6,
+     "v0": 8.3,
+     "v1": 11.2,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#e3d8c4",
+     "trim_colour": "#efe8da",
+     "cap": {
+      "h": 0.3,
+      "colour": "#efe8da",
+      "crest_h": 0.6,
+      "crest_w": 2.6
+     },
+     "v": 8.9,
+     "h": 1.9499999999999986,
+     "projection_from": "photos"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.belts",
+   "value": [
+    {
+     "v": 4.95,
+     "h": 0.08,
+     "colour": "#efe8da",
+     "depth": 0.04,
+     "id": "w17:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.bands",
+   "value": [
+    {
+     "v0": 3.2,
+     "v1": 4.2,
+     "colour": "#cdb48e",
+     "material": "wood_siding",
+     "id": "w17:ban0"
+    },
+    {
+     "v0": 0.0,
+     "v1": 1.0,
+     "colour": "#8c3f2e",
+     "material": "tile",
+     "id": "w17:ban1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.17.ornaments",
+   "value": [
+    {
+     "shape": "rect",
+     "u": 4.2,
+     "v": 7.1,
+     "w": 0.35,
+     "h": 0.08,
+     "colour": "#7a7166",
+     "depth": 0.03,
+     "id": "w17:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-the-silver-platter",
+     "business_id": "mb-8e07b5120ac6",
+     "category": "corner_store",
+     "brand": null,
+     "name": "The Silver Platter",
+     "u0": 0,
+     "u1": 9.2,
+     "band_h": 4.2,
+     "material": "tile",
+     "palette": {
+      "wall": "#cdb48e",
+      "accent": "#1f4f8c",
+      "frame": "#2a2826",
+      "base": "#8c3f2e",
+      "letter": "#1f6b3a",
+      "metal": "#8a8d8f",
+      "glass": "#3a4248"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sp:g0",
+       "kind": "window",
+       "u": 0.2,
+       "v": 1.0,
+       "w": 2.7,
+       "h": 1.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      },
+      {
+       "id": "sp:door",
+       "kind": "door",
+       "u": 3.7,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "sp:g1",
+       "kind": "window",
+       "u": 5.5,
+       "v": 1.0,
+       "w": 2.9,
+       "h": 1.25,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      }
+     ],
+     "awnings": [
+      {
+       "id": "sp-awn",
+       "kind": "shed",
+       "u0": 0.0,
+       "u1": 8.8,
+       "v": 2.6,
+       "depth_m": 0.9,
+       "drop_m": 0.45,
+       "valance_h": 0.3,
+       "colour": "#1f4f8c",
+       "stripe": null,
+       "valance_text": "SILVER PLATTER  MARKET & LIQUORS",
+       "text_colour": "#ffffff",
+       "font": "Arial Black, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "sp-board",
+       "kind": "board",
+       "u": 1.2,
+       "v": 2.7,
+       "w": 6.6,
+       "h": 0.95,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#e9e0a8",
+       "edge_colour": "#c9c3b0",
+       "layers": [
+        {
+         "type": "text",
+         "text": "The Silver  Platter",
+         "x": 0.5,
+         "y": 0.25,
+         "size": 0.25,
+         "fill": "#1f5a3a",
+         "font": "Georgia, serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "LIQUORS & GROCERIES",
+         "x": 0.5,
+         "y": 0.68,
+         "size": 0.42,
+         "fill": "#1f6b3a",
+         "font": "Georgia, serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 17,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "103993355839362",
+       "1136016787286316",
+       "1176052330460871",
+       "125100563076261",
+       "946292320135222",
+       "996073584558498"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "pole-r",
+     "kind": "pole",
+     "u": 9.0,
+     "w": 0.4,
+     "r": 0.15,
+     "trunk_h": 9.0,
+     "colour": "#5f6862",
+     "edge": 17
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "103993355839362",
+     "1136016787286316",
+     "1176052330460871",
+     "125100563076261",
+     "946292320135222",
+     "996073584558498"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+    "confidence": 0.62,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.colour",
+   "value": "#d9cdb3",
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.trim_colour",
+   "value": "#ece6d8",
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.openings",
+   "value": [
+    {
+     "id": "lo-u1",
+     "kind": "window",
+     "u": 0.9,
+     "v": 6.3,
+     "w": 1.1,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#5a5650",
+     "pane_colour": "#3c4148",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "lo-u2",
+     "kind": "window",
+     "u": 4.4,
+     "v": 6.3,
+     "w": 1.1,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#5a5650",
+     "pane_colour": "#3c4148",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "lo-m1",
+     "kind": "window",
+     "u": 0.9,
+     "v": 3.7,
+     "w": 1.3,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#5a5650",
+     "pane_colour": "#3c4148",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "lo-m2",
+     "kind": "window",
+     "u": 3.0,
+     "v": 3.8,
+     "w": 0.7,
+     "h": 0.8,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#5a5650",
+     "pane_colour": "#3c4148",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "lo-m3",
+     "kind": "window",
+     "u": 4.4,
+     "v": 3.7,
+     "w": 1.3,
+     "h": 1.0,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#5a5650",
+     "pane_colour": "#3c4148",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "t3-narrow",
+     "kind": "window",
+     "u": 9.6,
+     "v": 8.4,
+     "w": 0.65,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t3-bayL",
+     "kind": "bay",
+     "u": 11.4,
+     "w": 2.6,
+     "v0": 7.7,
+     "v1": 10.6,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#d9cdb3",
+     "trim_colour": "#ece6d8",
+     "cap": {
+      "h": 0.4,
+      "colour": "#ece6d8",
+      "crest_h": 0.6,
+      "crest_w": 2.6
+     },
+     "v": 8.3,
+     "h": 1.9499999999999995,
+     "projection_from": "photos"
+    },
+    {
+     "id": "t3-w1",
+     "kind": "window",
+     "u": 15.8,
+     "v": 8.6,
+     "w": 1.6,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t3-bayR",
+     "kind": "bay",
+     "u": 19.3,
+     "w": 2.7,
+     "v0": 7.7,
+     "v1": 10.6,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#e2d9c6",
+     "trim_colour": "#ece6d8",
+     "cap": {
+      "h": 0.4,
+      "colour": "#ece6d8",
+      "crest_h": 0.6,
+      "crest_w": 2.7
+     },
+     "v": 8.3,
+     "h": 1.9499999999999995,
+     "projection_from": "photos"
+    },
+    {
+     "id": "t3-w2",
+     "kind": "window",
+     "u": 22.2,
+     "v": 8.6,
+     "w": 0.7,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t3-w3",
+     "kind": "window",
+     "u": 23.8,
+     "v": 8.6,
+     "w": 1.5,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t2-narrow",
+     "kind": "window",
+     "u": 9.6,
+     "v": 5.0,
+     "w": 0.65,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t2-w1",
+     "kind": "window",
+     "u": 12.0,
+     "v": 5.0,
+     "w": 1.6,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t2-w2",
+     "kind": "window",
+     "u": 15.8,
+     "v": 5.0,
+     "w": 1.6,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t2-w3",
+     "kind": "window",
+     "u": 18.6,
+     "v": 5.0,
+     "w": 1.6,
+     "h": 1.3,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t2-w4",
+     "kind": "window",
+     "u": 21.8,
+     "v": 5.0,
+     "w": 1.2,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "t2-w5",
+     "kind": "window",
+     "u": 23.8,
+     "v": 5.0,
+     "w": 1.6,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#6b665e",
+     "pane_colour": "#3a3f46",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "flats-door",
+     "kind": "door",
+     "u": 9.2,
+     "v": 0.0,
+     "w": 1.1,
+     "h": 2.3,
+     "shape": "rect",
+     "colour": "#1e1e1e",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.belts",
+   "value": [
+    {
+     "v": 4.1,
+     "h": 0.15,
+     "colour": "#e2d9c6",
+     "depth": 0.08,
+     "id": "w16:bel0"
+    },
+    {
+     "v": 3.9,
+     "h": 0.12,
+     "colour": "#d9cdb3",
+     "depth": 0.05,
+     "id": "w16:bel1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.bands",
+   "value": [
+    {
+     "v0": 2.9,
+     "v1": 3.9,
+     "colour": "#d3c4a6",
+     "material": "wood_siding",
+     "id": "w16:ban0"
+    },
+    {
+     "v0": 0.0,
+     "v1": 0.5,
+     "colour": "#a24a32",
+     "material": "tile",
+     "id": "w16:ban1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.balconies",
+   "value": [
+    {
+     "u": 21.6,
+     "w": 4.6,
+     "v": 8.0,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#e8e4dc",
+     "h": 0.9,
+     "id": "w16:bal0"
+    },
+    {
+     "u": 21.6,
+     "w": 4.6,
+     "v": 4.8,
+     "depth": 0.9,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#e8e4dc",
+     "h": 0.9,
+     "id": "w16:bal1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.16.ornaments",
+   "value": [
+    {
+     "shape": "circle",
+     "u": 16.0,
+     "v": 3.4,
+     "w": 0.35,
+     "h": 0.35,
+     "colour": "#3a3530",
+     "depth": 0.03,
+     "id": "w16:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-the-silver-platter",
+     "business_id": "mb-8e07b5120ac6",
+     "category": "corner_store",
+     "brand": null,
+     "name": "The Silver Platter",
+     "u0": 0,
+     "u1": 9.2,
+     "band_h": 4.2,
+     "material": "tile",
+     "palette": {
+      "wall": "#cdb48e",
+      "accent": "#1f4f8c",
+      "frame": "#2a2826",
+      "base": "#8c3f2e",
+      "letter": "#1f6b3a",
+      "metal": "#8a8d8f",
+      "glass": "#3a4248"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sp:g0",
+       "kind": "window",
+       "u": 0.2,
+       "v": 1.0,
+       "w": 2.7,
+       "h": 1.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      },
+      {
+       "id": "sp:door",
+       "kind": "door",
+       "u": 3.7,
+       "v": 0.0,
+       "w": 1.3,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "sp:g1",
+       "kind": "window",
+       "u": 5.5,
+       "v": 1.0,
+       "w": 2.9,
+       "h": 1.25,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      }
+     ],
+     "awnings": [
+      {
+       "id": "sp-awn",
+       "kind": "shed",
+       "u0": 0.0,
+       "u1": 8.8,
+       "v": 2.6,
+       "depth_m": 0.9,
+       "drop_m": 0.45,
+       "valance_h": 0.3,
+       "colour": "#1f4f8c",
+       "stripe": null,
+       "valance_text": "SILVER PLATTER  MARKET & LIQUORS",
+       "text_colour": "#ffffff",
+       "font": "Arial Black, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "sp-board",
+       "kind": "board",
+       "u": 1.2,
+       "v": 2.7,
+       "w": 6.6,
+       "h": 0.95,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#e9e0a8",
+       "edge_colour": "#c9c3b0",
+       "layers": [
+        {
+         "type": "text",
+         "text": "The Silver  Platter",
+         "x": 0.5,
+         "y": 0.25,
+         "size": 0.25,
+         "fill": "#1f5a3a",
+         "font": "Georgia, serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "LIQUORS & GROCERIES",
+         "x": 0.5,
+         "y": 0.68,
+         "size": 0.42,
+         "fill": "#1f6b3a",
+         "font": "Georgia, serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 17,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "103993355839362",
+       "1136016787286316",
+       "1176052330460871",
+       "125100563076261",
+       "946292320135222",
+       "996073584558498"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 17, 4 clean views + metric elevation",
+      "confidence": 0.62,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w16-0",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Shop",
+     "u0": 0,
+     "u1": 6.0,
+     "band_h": 3.3,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9cdb3",
+      "accent": "#1c1c1c",
+      "frame": "#1c1c1c",
+      "base": "#2f5a9a",
+      "letter": "#e8e8e8",
+      "metal": "#8a8a8a",
+      "glass": "#3e4650"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "ln-g0",
+       "kind": "window",
+       "u": 0.1,
+       "v": 0.5,
+       "w": 5.6,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.5
+      }
+     ],
+     "awnings": [
+      {
+       "id": "ln-awn",
+       "kind": "box",
+       "u0": 0.0,
+       "u1": 6.0,
+       "v": 3.0,
+       "depth_m": 0.6,
+       "drop_m": 0.45,
+       "valance_h": 0.45,
+       "colour": "#1c1c1c",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#e8e8e8",
+       "font": "Helvetica, Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 16,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "173916711473388",
+       "181915244417507",
+       "202956695514991",
+       "2990590597970259",
+       "619396501226292",
+       "851781115726343"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w16-1",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "The Black Horse London Deli",
+     "u0": 6.0,
+     "u1": 8.9,
+     "band_h": 3.4,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9cdb3",
+      "accent": "#d42a2a",
+      "frame": "#d42a2a",
+      "base": "#2f5a9a",
+      "letter": "#f2f2f2",
+      "metal": "#8a8a8a",
+      "glass": "#3e4650"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "bh-g0",
+       "kind": "window",
+       "u": 6.3,
+       "v": 0.5,
+       "w": 0.9,
+       "h": 1.9,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "bh-door",
+       "kind": "door",
+       "u": 7.5,
+       "v": 0.0,
+       "w": 0.9,
+       "h": 2.4,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "bh-board",
+       "kind": "board",
+       "u": 6.0,
+       "v": 2.6,
+       "w": 2.9,
+       "h": 0.8,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#1e1e1e",
+       "edge_colour": "#d8d0c0",
+       "layers": [
+        {
+         "type": "text",
+         "text": "THE BLACK HORSE LONDON",
+         "x": 0.5,
+         "y": 0.3,
+         "size": 0.28,
+         "fill": "#f2f2f2",
+         "font": "Impact, \"Arial Black\", sans-serif",
+         "weight": 700
+        },
+        {
+         "type": "text",
+         "text": "DELI",
+         "x": 0.5,
+         "y": 0.68,
+         "size": 0.32,
+         "fill": "#f2f2f2",
+         "font": "Impact, \"Arial Black\", sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 16,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "173916711473388",
+       "181915244417507",
+       "202956695514991",
+       "2990590597970259",
+       "619396501226292",
+       "851781115726343"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w16-2",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "Vacant shop",
+     "u0": 11.2,
+     "u1": 14.1,
+     "band_h": 2.9,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9cdb3",
+      "accent": "#b0607a",
+      "frame": "#b0607a",
+      "base": "#a24a32",
+      "letter": "#ffffff",
+      "metal": "#8a8a8a",
+      "glass": "#2e333a"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "vac-g0",
+       "kind": "window",
+       "u": 11.3,
+       "v": 0.5,
+       "w": 1.4,
+       "h": 2.2,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "vac-door",
+       "kind": "door",
+       "u": 12.8,
+       "v": 0.0,
+       "w": 1.0,
+       "h": 2.6,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "forsale",
+       "kind": "board",
+       "u": 14.1,
+       "v": 2.9,
+       "w": 1.0,
+       "h": 0.95,
+       "offset": 0.03,
+       "thick": 0.03,
+       "bg": "#1c1c1c",
+       "edge_colour": "#1c1c1c",
+       "layers": [
+        {
+         "type": "text",
+         "text": "For Sale",
+         "x": 0.3,
+         "y": 0.25,
+         "size": 0.18,
+         "fill": "#ffffff",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 16,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "173916711473388",
+       "181915244417507",
+       "202956695514991",
+       "2990590597970259",
+       "619396501226292",
+       "851781115726343"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-the-silver-platter-w16",
+     "business_id": "mb-8e07b5120ac6",
+     "category": "corner_store",
+     "brand": null,
+     "name": "The Silver Platter",
+     "u0": 26.2,
+     "u1": 28.63,
+     "band_h": 3.6,
+     "material": "stucco",
+     "palette": {
+      "wall": "#d9cdb3",
+      "accent": "#2a5aa8",
+      "frame": "#3a3a3a",
+      "base": "#a24a32",
+      "letter": "#2a5aa8",
+      "metal": "#8a8a8a",
+      "glass": "#3e4650"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "sp-g0",
+       "kind": "window",
+       "u": 26.4,
+       "v": 0.6,
+       "w": 2.0,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "sp-board",
+       "kind": "board",
+       "u": 26.2,
+       "v": 3.0,
+       "w": 2.4,
+       "h": 0.5,
+       "offset": 0.05,
+       "thick": 0.05,
+       "bg": "#f2f2ee",
+       "edge_colour": "#2a5aa8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "The Silver Platter",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.5,
+         "fill": "#2a5aa8",
+         "font": "Georgia, serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 16,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "173916711473388",
+       "181915244417507",
+       "202956695514991",
+       "2990590597970259",
+       "619396501226292",
+       "851781115726343"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "pole-r",
+     "kind": "pole",
+     "u": 9.0,
+     "w": 0.4,
+     "r": 0.15,
+     "trunk_h": 9.0,
+     "colour": "#5f6862",
+     "edge": 17
+    },
+    {
+     "id": "bus-shelter",
+     "kind": "bus_shelter",
+     "u": 23.5,
+     "w": 2.5,
+     "len": 5.6,
+     "depth": 1.45,
+     "h": 2.75,
+     "roof_style": "wave",
+     "roof_colour": "#c0302a",
+     "frame_colour": "#8a8f8c",
+     "edge": 16
+    },
+    {
+     "id": "pole-corner",
+     "kind": "pole",
+     "u": 26.6,
+     "w": 0.3,
+     "h": 8.5,
+     "r": 0.12,
+     "colour": "#d8d8d4",
+     "edge": 16
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "173916711473388",
+     "181915244417507",
+     "202956695514991",
+     "2990590597970259",
+     "619396501226292",
+     "851781115726343"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 16, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}
