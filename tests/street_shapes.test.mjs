@@ -62,8 +62,13 @@ test('paving is cut off the roadway along its edge, and a fence\'s free end is c
   assert.ok(parks.indexOf('window.kerbsideFenceEnds = closeFenceEnds();') > parks.indexOf('await runStepsSliced(buildFencesSteps(ground));'), 'after every fence is laid');
   // Never across a roadway, a pavement, a driveway, a gate or a path; a parted end is left.
   assert.ok(trees.includes('const publicWay = (x, z) => insideCarriageway(x, z, 0.1) || pavementTopAt(x, z) !== undefined'));
-  assert.ok(trees.includes('if (publicWay(px, pz) || inFenceGate(px, pz) || pathThroughFence(px, pz, -uz, ux)) return null;'));
-  assert.ok(trees.includes('if (!sink.closing && typeof fencePanelsLaid !== "undefined") fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV });'));
+  // (The closing panel runs along the ray: a path across the ray is across the panel. The ray's
+  // square was once passed here, and let closings cross the paths they were to keep clear of.)
+  assert.ok(trees.includes('if (publicWay(px, pz) || inFenceGate(px, pz) || pathThroughFence(px, pz, ux, uz)) return null;'));
+  assert.ok(trees.includes('|| (typeof parkPavementAt === "function" && parkPavementAt(x, z)) || onPublicPath(x, z);'));
+  // Only onto a wall or more of its own fence (marina_fences_courts_trees.test.mjs walks it).
+  assert.ok(trees.includes('if (d > 0.5 && fenceAt(px, pz, own, 0.2, true)) return d;'));
+  assert.ok(trees.includes('if (!sink.closing && !sink.leaf && typeof fencePanelsLaid !== "undefined") fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV,'));
 });
 
 test('one walking pace at every zoom, a quarter slower; a sprint as fast as it was', () => {

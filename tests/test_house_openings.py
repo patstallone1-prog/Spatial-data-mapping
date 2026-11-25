@@ -34,6 +34,12 @@ def _run(body: str, names: tuple[str, ...]) -> dict:
         # The kerb cut a garage stands behind, and the driveway no tree stands in.
         consts += "\nconst GARAGE_CUT_MARGIN_M = 0.15;\nconst DRIVEWAY_ZONES = [];"
         names = (*names, "cutOnWall", "cutDrawnWidth", "drivewayZone", "inDriveway", "pointInRing")
+    if "normaliseGarages" in names:
+        consts += "\nconst GARAGE_ALIGN_SLACK_M = 0.3, GARAGE_MIN_W_M = 2.2;"
+        names = (*names, "garageOnItsCut", "garageFrontBlocked")
+    if "settleDoors" in names:
+        consts += "\nconst garageDoorStats = { moved: 0, measuredMoved: 0, dropped: 0, stuck: 0 };"
+        names = (*names, "moveDoorOffGarages")
     if "frontDoorSpot" in names:
         # A party wall never has the door; with buildingAt() empty, no wall is one.
         names = (*names, "partyWall", "wallPoint")
@@ -98,6 +104,61 @@ def test_an_inferred_interior_door_under_a_garage_moves_beside_it() -> None:
     """, ("garageSpansOnEdge", "doorOn", "settleDoors"))
     assert result["n"] == 1
     # The garage spans 3.75 +- 1.3 m along the edge; the door's centre clears it by half a leaf.
+    assert abs(result["centre"] - 3.75) >= 1.3 + 0.5 + 0.35 - 1e-6
+
+
+def test_a_garage_never_slides_off_its_kerb_cut() -> None:
+    # A cut at the very corner of the frontage: a door kept on the wall would stand beside the cut,
+    # not behind it, so there is none; one a little in from the corner is drawn behind its cut.
+    result = _run(f"""
+    const a = {_house(0, 7)}, b = {_house(20, 7)};
+    a.garages = [{{ a: M(7, 0), b: M(0, 0), t: 0.96, w: 2.6, n: 0, cp: M(0.25, 3) }}];
+    b.garages = [{{ a: M(27, 0), b: M(20, 0), t: 0.5, w: 2.6, n: 0, cp: M(21.6, 3) }}];
+    const stats = normaliseGarages([a, b]);
+    const g = b.garages[0], [ax] = xy(...g.a), [bx] = xy(...g.b), centre = ax + (bx - ax) * g.t;
+    console.log(JSON.stringify({{ a: a.garages.length, b: b.garages.length, offCut: stats.offCut || 0,
+      lo: centre - g.w / 2, hi: centre + g.w / 2 }}));
+    """, ("outwardBearing", "normaliseGarages"))
+    assert result["a"] == 0 and result["offCut"] == 1
+    assert result["b"] == 1
+    # Behind the cut (21.6 +- 1.3 m, with 0.3 m slack), never beyond it.
+    assert result["lo"] >= 21.6 - 1.3 - 0.3 - 1e-6 and result["hi"] <= 21.6 + 1.3 + 0.3 + 1e-6
+
+
+def test_no_garage_where_the_ground_in_front_of_the_door_is_built_on() -> None:
+    # The neighbour's bay stands 1.5 m out in front of half the cut: the door would open into it.
+    result = _run(f"""
+    const a = {_house(0, 7)};
+    const bay = {{ kind: 'building', covered: true, points: [M(4.5, 0.02), M(4.5, 1.5), M(9, 1.5), M(9, 0.02), M(4.5, 0.02)] }};
+    a.garages = [{{ a: M(7, 0), b: M(0, 0), t: 0.4, w: 2.6, n: 0, cp: M(4.2, 3) }}];
+    const stats = normaliseGarages([a, bay]);
+    console.log(JSON.stringify({{ n: (a.garages || []).length, indent: stats.indent || 0 }}));
+    """, ("outwardBearing", "normaliseGarages"))
+    assert result == {"n": 0, "indent": 1}
+
+
+def test_a_photographed_door_under_a_garage_moves_beside_it_and_keeps_its_photograph() -> None:
+    result = _run(f"""
+    function distanceToSegmentSquared(px, pz, ax, az, bx, bz) {{
+      const dx = bx - ax, dz = bz - az, L = dx * dx + dz * dz || 1;
+      let t = ((px - ax) * dx + (pz - az) * dz) / L; t = Math.max(0, Math.min(1, t));
+      return (ax + dx * t - px) ** 2 + (az + dz * t - pz) ** 2;
+    }}
+    function insideFootprint(entry, x, z) {{ return x > 0 && x < 7.5 && z > 0 && z < 10; }}
+    function photoEntryDoor() {{ return null; }}
+    const way = {_house(0, 7.5)};
+    way.garages = [{{ a: M(7.5, 0), b: M(0, 0), t: 0.5, w: 2.6, n: 0 }}];
+    const entry = {{ way, local: [[7.5, 0], [0, 0], [0, 10], [7.5, 10], [7.5, 0]] }};
+    // Photographed (source 1), dead centre: under the garage.
+    const door = doorOn(entry, 0, 0.5, 1.0, 1);
+    door.photoEntry = {{ u: 3.25, w: 1.0 }};
+    entry.doors = [door];
+    settleDoors(entry);
+    const d = entry.doors[0];
+    console.log(JSON.stringify({{ n: entry.doors.length, source: d.source, photo: Boolean(d.photoEntry),
+      centre: (d.t0 + d.t1) / 2 * 7.5, moved: garageDoorStats.measuredMoved }}));
+    """, ("garageSpansOnEdge", "doorOn", "settleDoors"))
+    assert result["n"] == 1 and result["source"] == 1 and result["photo"] and result["moved"] == 1
     assert abs(result["centre"] - 3.75) >= 1.3 + 0.5 + 0.35 - 1e-6
 
 
