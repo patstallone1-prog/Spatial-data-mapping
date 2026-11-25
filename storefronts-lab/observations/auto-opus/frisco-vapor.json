@@ -1,0 +1,382 @@
+{
+ "model": "frisco-vapor",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 1: 1 views",
+ "notes": "Rectified grid is shifted about 2.5 m (the neighbour's siding fills its left 2.5 m), so all u positions are taken from photo 2 using the true corners: sign and boarded window at the left end, stair centre, garage at the right end. The open wooden stair (u 2.2-4.8) is not in the vocabulary and is omitted. Porch mullion counts are approximate. The parapet has stepped shoulders.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.6,
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.0
+    },
+    {
+     "v": 3.0,
+     "h": 3.8
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.25,
+    "depth": 0.3,
+    "colour": "#e4e5e2",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.8,
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#c8cbc8",
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#e6e7e3",
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "porch-l",
+     "kind": "window",
+     "u": 0.2,
+     "v": 3.9,
+     "w": 3.2,
+     "h": 1.95,
+     "shape": "rect",
+     "mullions": [
+      5,
+      3
+     ],
+     "frame_colour": "#e6e7e3",
+     "pane_colour": "#5c6466",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "porch-door",
+     "kind": "door",
+     "u": 3.55,
+     "v": 3.1,
+     "w": 1.0,
+     "h": 2.6,
+     "shape": "rect",
+     "colour": "#3e4441",
+     "glazed": true
+    },
+    {
+     "id": "porch-r",
+     "kind": "window",
+     "u": 4.7,
+     "v": 3.9,
+     "w": 2.8,
+     "h": 1.95,
+     "shape": "rect",
+     "mullions": [
+      4,
+      3
+     ],
+     "frame_colour": "#e6e7e3",
+     "pane_colour": "#5c6466",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "garage",
+     "kind": "door",
+     "u": 5.4,
+     "v": 0.05,
+     "w": 2.05,
+     "h": 2.75,
+     "shape": "rect",
+     "colour": "#e8e8e4",
+     "glazed": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [
+    {
+     "v": 3.75,
+     "h": 0.12,
+     "colour": "#e6e7e3",
+     "depth": 0.05,
+     "id": "w1:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-frisco-vapor",
+     "business_id": "mb-a14e3f2d732a",
+     "category": "hardware",
+     "brand": null,
+     "name": "Frisco Vapor",
+     "u0": 0,
+     "u1": 3.3,
+     "band_h": 3.6,
+     "material": "wood_siding",
+     "palette": {
+      "wall": "#c8cbc8",
+      "accent": "#c8332e",
+      "frame": "#e6e7e3",
+      "base": "#c8cbc8",
+      "letter": "#f4efe6",
+      "metal": "#9a9e9c",
+      "glass": "#4f5759"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "fv:g0",
+       "kind": "window",
+       "u": 0.2,
+       "v": 0.45,
+       "w": 2.7,
+       "h": 2.05,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 1.0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "fv-fascia",
+       "kind": "board",
+       "u": 0.2,
+       "v": 2.6,
+       "w": 3.1,
+       "h": 0.95,
+       "offset": 0.03,
+       "thick": 0.05,
+       "bg": "#c8332e",
+       "edge_colour": "#e6e7e3",
+       "layers": [
+        {
+         "type": "text",
+         "text": "FRISCO VAPOR",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.42,
+         "fill": "#f4efe6",
+         "font": "\"Stencil\", Impact, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1143282549681079",
+       "808163446532398"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1143282549681079",
+     "808163446532398"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

@@ -1,0 +1,661 @@
+{
+ "model": "american-giant",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 1: 3 views",
+ "notes": "There are 8 crest bays between 9 ribs, period 0.79 m (6.33 m / 8, about 0.5 m edge piers each side), checked against both corners. The gold crests are modelled as diamond ornaments, and their exact outline is simplified. The upper glazing has clipped top corners and irregular radiating mullions, approximated as an 8x3 grid. The record gives American Giant the whole frontage, but the 2021 and 2022 photos show The Woodbridge occupying the right half with its own sign and door; the split near u=4.0 is estimated. The Woodbridge's category is guessed from cafe tables seen inside. The sidewalk A-fra",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 7.4,
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.05
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.8,
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#3a9fa3",
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#1f7479",
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "upper-glass",
+     "kind": "window",
+     "u": 0.6,
+     "v": 3.1,
+     "w": 6.15,
+     "h": 1.55,
+     "shape": "rect",
+     "mullions": [
+      8,
+      3
+     ],
+     "glazing": "grid",
+     "frame_colour": "#1c2e30",
+     "pane_colour": "#2a3236",
+     "depth": 0.15,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [
+    {
+     "u": [
+      0.25,
+      7.08
+     ],
+     "w": 0.45,
+     "v0": 0.3,
+     "v1": 7.2,
+     "depth": 0.12,
+     "colour": "#2f9196",
+     "groove_colour": "#1f7479",
+     "top": "stepped",
+     "steps": 2,
+     "step_h": 0.15,
+     "flutes": 0,
+     "id": "w1:pil0"
+    },
+    {
+     "u": [
+      0.5,
+      1.29,
+      2.08,
+      2.87,
+      3.66,
+      4.45,
+      5.24,
+      6.03,
+      6.82
+     ],
+     "w": 0.16,
+     "v0": 5.0,
+     "v1": 7.35,
+     "depth": 0.14,
+     "colour": "#1f7479",
+     "groove_colour": "#175c60",
+     "top": "stepped",
+     "steps": 2,
+     "step_h": 0.12,
+     "flutes": 0,
+     "id": "w1:pil1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [
+    {
+     "v": 6.2,
+     "h": 0.18,
+     "colour": "#1f7479",
+     "motif": "quarter_round",
+     "motif_colour": "#3a9fa3",
+     "spacing": 0.79,
+     "depth": 0.06,
+     "id": "w1:fri0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [
+    {
+     "v": 4.75,
+     "h": 0.12,
+     "colour": "#1f7479",
+     "depth": 0.06,
+     "id": "w1:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [
+    {
+     "shape": "diamond",
+     "u": 0.9,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn0"
+    },
+    {
+     "shape": "diamond",
+     "u": 1.69,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn1"
+    },
+    {
+     "shape": "diamond",
+     "u": 2.48,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn2"
+    },
+    {
+     "shape": "diamond",
+     "u": 3.27,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn3"
+    },
+    {
+     "shape": "diamond",
+     "u": 4.05,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn4"
+    },
+    {
+     "shape": "diamond",
+     "u": 4.84,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn5"
+    },
+    {
+     "shape": "diamond",
+     "u": 5.63,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn6"
+    },
+    {
+     "shape": "diamond",
+     "u": 6.42,
+     "v": 6.4,
+     "w": 0.55,
+     "h": 0.95,
+     "colour": "#d4a24c",
+     "depth": 0.08,
+     "id": "w1:orn7"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-american-giant",
+     "business_id": "mb-27f57438e440",
+     "category": "clothing",
+     "brand": null,
+     "name": "American Giant",
+     "u0": 0,
+     "u1": 4.0,
+     "band_h": 3.05,
+     "material": "stucco",
+     "palette": {
+      "wall": "#3a9fa3",
+      "accent": "#1f7479",
+      "frame": "#1f6f72",
+      "base": "#2f8a8e",
+      "letter": "#222222",
+      "metal": "#8a9496",
+      "glass": "#3a4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "ag:g0",
+       "kind": "window",
+       "u": 0.45,
+       "v": 0.3,
+       "w": 2.6,
+       "h": 2.1,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "ag:door",
+       "kind": "door",
+       "u": 3.15,
+       "v": 0.0,
+       "w": 0.75,
+       "h": 2.1,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "ag:transom",
+       "kind": "window",
+       "u": 3.15,
+       "v": 2.12,
+       "w": 0.75,
+       "h": 0.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "ag-board",
+       "kind": "board",
+       "u": 0.53,
+       "v": 2.48,
+       "w": 3.17,
+       "h": 0.5,
+       "offset": 0.0,
+       "thick": 0.06,
+       "bg": "#f7f7f5",
+       "edge_colour": "#1f6f72",
+       "layers": [
+        {
+         "type": "rect",
+         "x": 0.2,
+         "y": 0.5,
+         "w": 0.06,
+         "h": 0.4,
+         "fill": "#d23a2f"
+        },
+        {
+         "type": "text",
+         "text": "AMERICAN GIANT",
+         "x": 0.55,
+         "y": 0.5,
+         "size": 0.42,
+         "fill": "#222222",
+         "font": "\"Helvetica Neue\", Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "114895704635593",
+       "1326445498186390",
+       "149424067840590",
+       "1545869115859177",
+       "203330638430420",
+       "956730251772791"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+      "confidence": 0.64,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-opus-w1-1",
+     "business_id": null,
+     "category": "shop",
+     "brand": null,
+     "name": "The Woodbridge",
+     "u0": 4.0,
+     "u1": 7.33,
+     "band_h": 3.05,
+     "material": "stucco",
+     "palette": {
+      "wall": "#3a9fa3",
+      "accent": "#3a9fa5",
+      "frame": "#1f6f72",
+      "base": "#2f8a8e",
+      "letter": "#1e3a40",
+      "metal": "#8a9496",
+      "glass": "#3a4448"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "wb:door",
+       "kind": "door",
+       "u": 4.15,
+       "v": 0.0,
+       "w": 0.75,
+       "h": 2.1,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "wb:transom",
+       "kind": "window",
+       "u": 4.15,
+       "v": 2.12,
+       "w": 0.75,
+       "h": 0.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "wb:g0",
+       "kind": "window",
+       "u": 4.95,
+       "v": 0.3,
+       "w": 1.72,
+       "h": 2.1,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "wb-board",
+       "kind": "board",
+       "u": 3.79,
+       "v": 2.48,
+       "w": 3.0,
+       "h": 0.5,
+       "offset": 0.0,
+       "thick": 0.06,
+       "bg": "#3fa4aa",
+       "edge_colour": "#1f6f72",
+       "layers": [
+        {
+         "type": "text",
+         "text": "THE WOODBRIDGE",
+         "x": 0.5,
+         "y": 0.4,
+         "size": 0.38,
+         "fill": "#1e3a40",
+         "font": "Georgia, serif",
+         "weight": 500
+        },
+        {
+         "type": "text",
+         "text": "X",
+         "x": 0.5,
+         "y": 0.8,
+         "size": 0.2,
+         "fill": "#1e3a40",
+         "font": "Georgia, serif",
+         "weight": 500
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "114895704635593",
+       "1326445498186390",
+       "149424067840590",
+       "1545869115859177",
+       "203330638430420",
+       "956730251772791"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+      "confidence": 0.64,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "114895704635593",
+     "1326445498186390",
+     "149424067840590",
+     "1545869115859177",
+     "203330638430420",
+     "956730251772791"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.64,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

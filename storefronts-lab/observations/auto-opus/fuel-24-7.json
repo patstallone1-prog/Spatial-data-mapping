@@ -1,0 +1,760 @@
+{
+ "model": "fuel-24-7",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 0: 3 views; wall 3: 3 views",
+ "notes": "Wall 0 is an open gas-station canopy rather than an enclosed front. Its dark metal fascia runs about 4.1-5.3 m high across the full 7.61 m, with a light-grey underside carrying downlights. The pumps, column and kiosk sit set back under the canopy and are omitted. The 2021 photos show only 'FUEL'; the 2023 photo, which matches the tenant on record, adds the teal '24:7'. The billboards above belong to the neighbouring building and are omitted. | The wall is mostly open forecourt under the pump canopy, which the grid smears. Canopy depth and pump layout are estimated. The kiosk's panelled beige side wall has no openings, and the photographed Fuel 24:7 lettering is replaced by a plain sign because the photos predate the tenant. The ICE box and pumps are omitted because they are not in the vocabulary.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 5.3,
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.5,
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "metal_panel",
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#24282b",
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#1c1f21",
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.bands",
+   "value": [
+    {
+     "v0": 4.1,
+     "v1": 5.3,
+     "colour": "#24282b",
+     "material": "metal_panel",
+     "id": "w0:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-fuel-24-7",
+     "business_id": "mb-e43ad0372fb5",
+     "category": "shop",
+     "brand": null,
+     "name": "Fuel 24:7",
+     "u0": 0,
+     "u1": 7.61,
+     "band_h": 4.1,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#24282b",
+      "accent": "#e8642c",
+      "frame": "#24282b",
+      "base": "#cfcfcc",
+      "letter": "#e8642c",
+      "metal": "#d9dad7",
+      "glass": "#53646a"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "fuel-letters",
+       "kind": "letters",
+       "u": 5.6,
+       "v": 4.45,
+       "w": 1.95,
+       "h": 0.6,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "FUEL",
+         "x": 0.37,
+         "y": 0.5,
+         "size": 0.78,
+         "fill": "#e8642c",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 600
+        },
+        {
+         "type": "text",
+         "text": "24:7",
+         "x": 0.87,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#2fb8b0",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "193870556113929",
+       "201115025964592",
+       "2941245322783171",
+       "865951351000923"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "193870556113929",
+     "201115025964592",
+     "2941245322783171",
+     "865951351000923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "metal_panel",
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#d8d4c0",
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#1c1c1c",
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 0.0,
+     "h": 0.25,
+     "colour": "#1c1c1c",
+     "depth": 0.03,
+     "id": "w3:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-fuel-24-7",
+     "business_id": "mb-e43ad0372fb5",
+     "category": "shop",
+     "brand": null,
+     "name": "Fuel 24:7",
+     "u0": 0,
+     "u1": 7.61,
+     "band_h": 4.1,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#24282b",
+      "accent": "#e8642c",
+      "frame": "#24282b",
+      "base": "#cfcfcc",
+      "letter": "#e8642c",
+      "metal": "#d9dad7",
+      "glass": "#53646a"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "fuel-letters",
+       "kind": "letters",
+       "u": 5.6,
+       "v": 4.45,
+       "w": 1.95,
+       "h": 0.6,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "FUEL",
+         "x": 0.37,
+         "y": 0.5,
+         "size": 0.78,
+         "fill": "#e8642c",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 600
+        },
+        {
+         "type": "text",
+         "text": "24:7",
+         "x": 0.87,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#2fb8b0",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "193870556113929",
+       "201115025964592",
+       "2941245322783171",
+       "865951351000923"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-fuel-24-7-w3",
+     "business_id": "mb-e43ad0372fb5",
+     "category": "shop",
+     "brand": null,
+     "name": "Fuel 24:7",
+     "u0": 0,
+     "u1": 15.72,
+     "band_h": 3.5,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#d8d4c0",
+      "accent": "#e8562a",
+      "frame": "#1c1c1c",
+      "base": "#1c1c1c",
+      "letter": "#f4f4f2",
+      "metal": "#a8acaa",
+      "glass": "#4f5a5e"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [
+      {
+       "id": "fuel-canopy",
+       "kind": "flat_canopy",
+       "u0": 4.0,
+       "u1": 15.72,
+       "v": 5.0,
+       "depth_m": 4.0,
+       "drop_m": 0.7,
+       "valance_h": 0.7,
+       "colour": "#1e1f21",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f4f4f2",
+       "font": "Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "fuel-kiosk-band",
+       "kind": "board",
+       "u": 0.0,
+       "v": 2.8,
+       "w": 4.5,
+       "h": 0.65,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": "#e8562a",
+       "edge_colour": "#c9471f",
+       "layers": []
+      },
+      {
+       "id": "fuel-kiosk-pier",
+       "kind": "board",
+       "u": 3.0,
+       "v": 0.0,
+       "w": 1.5,
+       "h": 2.8,
+       "offset": 0.0,
+       "thick": 0.05,
+       "bg": "#1c1c1c",
+       "edge_colour": "#1c1c1c",
+       "layers": []
+      },
+      {
+       "id": "fuel-canopy-sign",
+       "kind": "board",
+       "u": 11.8,
+       "v": 4.35,
+       "w": 3.6,
+       "h": 0.6,
+       "offset": 0.02,
+       "thick": 0.05,
+       "bg": "#1e1f21",
+       "edge_colour": "#1e1f21",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Fuel 24:7",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.6,
+         "fill": "#f4f4f2",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1839021949599962",
+       "287738686177110",
+       "3065487880443912",
+       "5718733011529090",
+       "613691093327239",
+       "681502596142923"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+      "confidence": 0.42,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "brod-signal-pole",
+     "kind": "pole",
+     "u": 12.5,
+     "w": 0.3,
+     "r": 0.12,
+     "trunk_h": 6.0,
+     "colour": "#2f3a33",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1839021949599962",
+     "287738686177110",
+     "3065487880443912",
+     "5718733011529090",
+     "613691093327239",
+     "681502596142923"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.42,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

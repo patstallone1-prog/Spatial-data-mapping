@@ -1,0 +1,627 @@
+{
+ "model": "golden-gate-bridge-bike-rentals",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 2 views",
+ "notes": "The grid seems stretched or shifted about 0.5 m toward u=L at the ground and bay floors, so positions are taken from the corners in photo 2. The two bays are given as one repeat with period 3.2 m. Third-floor openings are placed by photo ratio. A neon E-BIKES sign and an LED ticker in the glazing are not modelled.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 11.0,
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 4.4
+    },
+    {
+     "v": 4.4,
+     "h": 3.5
+    },
+    {
+     "v": 7.9,
+     "h": 2.6
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 1.5,
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#cdc6b8",
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#e8e4da",
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "bay2",
+     "kind": "bay",
+     "u": 0.6,
+     "w": 2.7,
+     "v0": 4.5,
+     "v1": 7.9,
+     "projection": 0.6,
+     "front_share": 0.45,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#cdc6b8",
+     "trim_colour": "#e8e4da",
+     "cap": {
+      "h": 0.3,
+      "colour": "#d6d0c4",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.25,
+     "h": 2.4000000000000004
+    },
+    {
+     "id": "bay2",
+     "kind": "bay",
+     "u": 3.8,
+     "w": 2.7,
+     "v0": 4.5,
+     "v1": 7.9,
+     "projection": 0.6,
+     "front_share": 0.45,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#cdc6b8",
+     "trim_colour": "#e8e4da",
+     "cap": {
+      "h": 0.3,
+      "colour": "#d6d0c4",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.25,
+     "h": 2.4000000000000004
+    },
+    {
+     "id": "f3-sl",
+     "kind": "window",
+     "u": 0.55,
+     "v": 9.4,
+     "w": 0.45,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#efece4",
+     "pane_colour": "#8f9698",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "f3-a1",
+     "kind": "window",
+     "u": 1.2,
+     "v": 8.1,
+     "w": 1.05,
+     "h": 2.5,
+     "shape": "arched",
+     "mullions": [
+      2,
+      2
+     ],
+     "frame_colour": "#efece4",
+     "pane_colour": "#6f7779",
+     "depth": 0.15,
+     "sill": false
+    },
+    {
+     "id": "f3-c",
+     "kind": "window",
+     "u": 2.5,
+     "v": 8.2,
+     "w": 1.6,
+     "h": 2.1,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#efece4",
+     "pane_colour": "#7d8587",
+     "depth": 0.15,
+     "sill": false
+    },
+    {
+     "id": "f3-a2",
+     "kind": "window",
+     "u": 4.2,
+     "v": 8.1,
+     "w": 1.05,
+     "h": 2.5,
+     "shape": "arched",
+     "mullions": [
+      2,
+      2
+     ],
+     "frame_colour": "#efece4",
+     "pane_colour": "#6f7779",
+     "depth": 0.15,
+     "sill": false
+    },
+    {
+     "id": "f3-sr",
+     "kind": "window",
+     "u": 5.35,
+     "v": 9.4,
+     "w": 0.5,
+     "h": 1.1,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#efece4",
+     "pane_colour": "#8f9698",
+     "depth": 0.12,
+     "sill": false
+    },
+    {
+     "id": "sm-arch-l",
+     "kind": "window",
+     "u": 0.4,
+     "v": 3.2,
+     "w": 0.25,
+     "h": 0.8,
+     "shape": "arched",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#efece4",
+     "pane_colour": "#8f9698",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "sm-arch-r",
+     "kind": "window",
+     "u": 5.9,
+     "v": 3.2,
+     "w": 0.55,
+     "h": 0.9,
+     "shape": "arched",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#efece4",
+     "pane_colour": "#8f9698",
+     "depth": 0.1,
+     "sill": false
+    },
+    {
+     "id": "flats-door",
+     "kind": "door",
+     "u": 5.35,
+     "v": 0.0,
+     "w": 0.8,
+     "h": 2.6,
+     "shape": "rect",
+     "colour": "#cfc9bd",
+     "glazed": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 4.3,
+     "h": 0.15,
+     "colour": "#e8e4da",
+     "depth": 0.1,
+     "id": "w3:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [
+    {
+     "v0": 0.0,
+     "v1": 3.0,
+     "colour": "#d9a58e",
+     "material": "stone",
+     "id": "w3:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [
+    {
+     "u": 0.8,
+     "w": 5.3,
+     "v": 7.9,
+     "depth": 0.6,
+     "rail": "bars",
+     "rail_h": 1.0,
+     "colour": "#e0ded8",
+     "h": 1.0,
+     "id": "w3:bal0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-golden-gate-bridge-bike-rentals",
+     "business_id": "mb-5ab67a457fd8",
+     "category": "shop",
+     "brand": null,
+     "name": "Golden Gate Bridge Bike Rentals",
+     "u0": 0.4,
+     "u1": 6.72,
+     "band_h": 4.1,
+     "material": "stone",
+     "palette": {
+      "wall": "#d9a58e",
+      "accent": "#6b3a2e",
+      "frame": "#4a3a34",
+      "base": "#d9a58e",
+      "letter": "#f4f1ea",
+      "metal": "#a5aaa7",
+      "glass": "#2f3436"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "g0",
+       "kind": "window",
+       "u": 0.55,
+       "v": 1.0,
+       "w": 1.9,
+       "h": 2.1,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "g1",
+       "kind": "window",
+       "u": 2.5,
+       "v": 1.0,
+       "w": 1.8,
+       "h": 2.1,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "door",
+       "kind": "door",
+       "u": 4.35,
+       "v": 0.0,
+       "w": 0.95,
+       "h": 2.6,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "board",
+       "kind": "board",
+       "u": 0.7,
+       "v": 3.15,
+       "w": 5.1,
+       "h": 0.95,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#6b3a2e",
+       "edge_colour": "#d8c27a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "GOLDEN GATE BRIDGE BIKE RENTALS & TOURS",
+         "x": 0.5,
+         "y": 0.18,
+         "size": 0.14,
+         "fill": "#f0d98a",
+         "font": "Arial, sans-serif",
+         "weight": 600
+        },
+        {
+         "type": "text",
+         "text": "BIKE RENTALS",
+         "x": 0.5,
+         "y": 0.6,
+         "size": 0.5,
+         "fill": "#f4f1ea",
+         "font": "Impact, \"Arial Black\", sans-serif",
+         "weight": 800
+        }
+       ]
+      },
+      {
+       "id": "vinyl",
+       "kind": "window_vinyl",
+       "u": 0.6,
+       "v": 1.0,
+       "w": 3.7,
+       "h": 0.2,
+       "bg": "#8a2a22",
+       "edge_colour": "#8a2a22",
+       "layers": [
+        {
+         "type": "text",
+         "text": "HOP-ON HOP-OFF \u00b7 BUS TOURS \u00b7 NAPA \u00b7 MUIR WOODS \u00b7 SAUSALITO",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#ffffff",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "221042643840509",
+       "247426811064045",
+       "346522260510418",
+       "391640492296078",
+       "919943758563314"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "meter",
+     "kind": "pole",
+     "u": 2.3,
+     "w": 0.2,
+     "r": 0.05,
+     "trunk_h": 1.4,
+     "colour": "#9a9c9a",
+     "edge": 3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "221042643840509",
+     "247426811064045",
+     "346522260510418",
+     "391640492296078",
+     "919943758563314"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 2 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

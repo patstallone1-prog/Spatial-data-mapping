@@ -1,7 +1,7 @@
 {
  "model": "the-republic-restaurant-bar",
- "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
- "notes": "Right third of upper floor and shop window behind a large tree; right bay and the window at u 13-16.4 read from photo 3. One restaurant assumed across the whole charcoal base despite the record span 12.7-17.6. Eave about 6.0 m; LiDAR 7.2 m is the pitched roof. Corner bay wraps onto Lombard. Far right end (u 17-19) level change unclear.",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 2: 2 views; wall 0: 4 views; wall 14: 2 views",
+ "notes": "Right third of upper floor and shop window behind a large tree; right bay and the window at u 13-16.4 read from photo 3. One restaurant assumed across the whole charcoal base despite the record span 12.7-17.6. Eave about 6.0 m; LiDAR 7.2 m is the pitched roof. Corner bay wraps onto Lombard. Far right end (u 17-19) level change unclear. | Photographs show the corner bar signed MAYBECK'S (red neon letters, black blade and wall box with white serif lettering). That differs from the record name, so the record's name is used with plain signs and no lettering. Heights were re-scaled so the bay bottom is about 3.2 m and the gable peak about 7.3 m, consistent with the 6.2 m LiDAR roof surface under a gable. The left stretch (u 0-3.5) is the taller green neighbour's bay over the same dark ground floor, with a plywood-boarded opening and a plain door; its third-floor windows above 6.2 m are omitted. | Positions now follow the grid, shifted about 0.4 m left. The grid places the neighbour's light-grey facade over roughly u=0-1.3, which conflicts with the 6.09 m wall length against the visible building width. No tenant on this wall. The street tree hides the upper floor. The bay may continue past u=L.",
  "dropped": [],
  "observations": [
   {
@@ -14,7 +14,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -38,7 +38,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -58,7 +58,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -73,7 +73,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -88,7 +88,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -103,7 +103,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -118,7 +118,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -230,7 +230,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -245,7 +245,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -260,7 +260,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -283,7 +283,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -298,7 +298,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -313,7 +313,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -328,7 +328,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -487,7 +487,7 @@
        "266866404821691",
        "670059774395933"
       ],
-      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
       "confidence": 0.5,
       "read_by": "claude-opus-5-5"
      }
@@ -500,7 +500,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -515,7 +515,7 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -551,8 +551,1189 @@
      "266866404821691",
      "670059774395933"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
     "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#6b6f6a",
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#e8e6df",
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [
+    {
+     "id": "w0:board",
+     "kind": "door",
+     "u": 0.7,
+     "v": 0.0,
+     "w": 1.2,
+     "h": 2.2,
+     "shape": "rect",
+     "colour": "#b98a5a",
+     "glazed": false
+    },
+    {
+     "id": "w0:d1",
+     "kind": "door",
+     "u": 2.5,
+     "v": 0.0,
+     "w": 0.55,
+     "h": 2.15,
+     "shape": "rect",
+     "colour": "#2a2c2e",
+     "glazed": false
+    },
+    {
+     "id": "w0:nbay",
+     "kind": "bay",
+     "u": 1.1,
+     "w": 2.3,
+     "v0": 3.2,
+     "v1": 6.2,
+     "projection": 0.5,
+     "front_share": 0.55,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#7d8576",
+     "trim_colour": "#e8e6df",
+     "v": 3.95,
+     "h": 2.0
+    },
+    {
+     "id": "w0:bay",
+     "kind": "bay",
+     "u": 4.9,
+     "w": 1.8,
+     "v0": 3.2,
+     "v1": 4.9,
+     "projection": 0.5,
+     "front_share": 0.55,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "wood_siding",
+     "colour": "#6b6f6a",
+     "trim_colour": "#e8e6df",
+     "cap": {
+      "h": 0.15,
+      "colour": "#e8e6df",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 3.95,
+     "h": 0.7000000000000002
+    },
+    {
+     "id": "w0:w1",
+     "kind": "window",
+     "u": 7.6,
+     "v": 3.35,
+     "w": 0.55,
+     "h": 1.2,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e8e6df",
+     "pane_colour": "#4d5558",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w0:attic",
+     "kind": "window",
+     "u": 6.3,
+     "v": 5.4,
+     "w": 0.6,
+     "h": 0.7,
+     "shape": "rect",
+     "mullions": [
+      1,
+      1
+     ],
+     "frame_colour": "#e8e6df",
+     "pane_colour": "#3e4447",
+     "depth": 0.1,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.bands",
+   "value": [
+    {
+     "v0": 0.0,
+     "v1": 3.2,
+     "colour": "#2b2d2f",
+     "material": "smooth_render",
+     "id": "w0:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-the-republic-restaurant-bar",
+     "business_id": "mb-fcc94a58c310",
+     "category": "restaurant",
+     "brand": null,
+     "name": "The Republic Restaurant & Bar",
+     "u0": 0.9,
+     "u1": 18.6,
+     "band_h": 3.1,
+     "material": "stucco",
+     "palette": {
+      "wall": "#2e2f31",
+      "accent": "#c8392b",
+      "frame": "#1c1c1d",
+      "base": "#2a2a2b",
+      "letter": "#ff4a3a",
+      "metal": "#3a3a3a",
+      "glass": "#4a555a"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rep:g0",
+       "kind": "window",
+       "u": 3.0,
+       "v": 0.8,
+       "w": 2.2,
+       "h": 1.5,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:g1",
+       "kind": "window",
+       "u": 6.3,
+       "v": 0.3,
+       "w": 0.5,
+       "h": 1.8,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:door",
+       "kind": "door",
+       "u": 7.0,
+       "v": 0.0,
+       "w": 0.7,
+       "h": 2.1,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "rep:g2",
+       "kind": "window",
+       "u": 8.0,
+       "v": 0.3,
+       "w": 0.6,
+       "h": 1.8,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:g3",
+       "kind": "window",
+       "u": 10.2,
+       "v": 0.9,
+       "w": 2.2,
+       "h": 1.0,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:g4",
+       "kind": "window",
+       "u": 13.2,
+       "v": 0.85,
+       "w": 3.2,
+       "h": 1.0,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "rep-awn",
+       "kind": "shed",
+       "u0": 6.3,
+       "u1": 8.7,
+       "v": 2.45,
+       "depth_m": 0.7,
+       "drop_m": 0.3,
+       "valance_h": 0.08,
+       "colour": "#2b2d2e",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "sans-serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "rep-neon",
+       "kind": "letters",
+       "u": 3.0,
+       "v": 2.3,
+       "w": 2.3,
+       "h": 0.3,
+       "offset": 0.05,
+       "thick": 0.04,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "DINING & Cocktails",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.8,
+         "fill": "#ff4a3a",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 600
+        }
+       ]
+      },
+      {
+       "id": "rep-red",
+       "kind": "board",
+       "u": 8.65,
+       "v": 2.1,
+       "w": 0.6,
+       "h": 0.3,
+       "offset": 0.05,
+       "thick": 0.05,
+       "bg": "#c8392b",
+       "edge_colour": "#a02c22",
+       "layers": []
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 2,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "143589218439040",
+       "177392144965527",
+       "266866404821691",
+       "670059774395933"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-the-republic-restaurant-bar-w0",
+     "business_id": "mb-fcc94a58c310",
+     "category": "restaurant",
+     "brand": null,
+     "name": "The Republic Restaurant & Bar",
+     "u0": 3.5,
+     "u1": 9.13,
+     "band_h": 3.2,
+     "material": "smooth_render",
+     "palette": {
+      "wall": "#2b2d2f",
+      "accent": "#b8302a",
+      "frame": "#1c1d1e",
+      "base": "#2b2d2f",
+      "letter": "#f2efe6",
+      "metal": "#8a8d8f",
+      "glass": "#3f4a4f"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rep-l:door",
+       "kind": "door",
+       "u": 3.7,
+       "v": 0.0,
+       "w": 0.65,
+       "h": 2.2,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "rep-l:g0",
+       "kind": "window",
+       "u": 4.75,
+       "v": 0.7,
+       "w": 2.1,
+       "h": 1.65,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "shed",
+       "u0": 4.6,
+       "u1": 6.95,
+       "v": 2.8,
+       "depth_m": 0.7,
+       "drop_m": 0.3,
+       "valance_h": 0.2,
+       "colour": "#b8302a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2efe6",
+       "font": "Georgia, serif",
+       "sides": true,
+       "id": "sf-the-republic-restaurant-bar-w0:awn0"
+      }
+     ],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 7.7,
+       "v": 1.0,
+       "w": 0.55,
+       "h": 0.75,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#1c1d1e",
+       "edge_colour": "#3a3a3a",
+       "layers": [],
+       "id": "sf-the-republic-restaurant-bar-w0:ext0"
+      },
+      {
+       "kind": "blade",
+       "u": 8.9,
+       "v": 3.2,
+       "w": 1.0,
+       "h": 0.6,
+       "offset": 0.2,
+       "thick": 0.15,
+       "bg": "#1c1d1e",
+       "edge_colour": "#2a2a2a",
+       "layers": [],
+       "id": "sf-the-republic-restaurant-bar-w0:ext1"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1031420181021164",
+       "1212589702665373",
+       "1955656607945842",
+       "755710989256361"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "u": 16.5,
+     "w": 5.5,
+     "r": 3.0,
+     "trunk_h": 3.0,
+     "colour": "#3f5233",
+     "edge": 2
+    },
+    {
+     "id": "pole-1",
+     "kind": "pole",
+     "u": 0.5,
+     "w": 0.3,
+     "r": 0.1,
+     "trunk_h": 8.0,
+     "colour": "#9a9a98",
+     "edge": 2
+    },
+    {
+     "kind": "tree",
+     "u": 6.8,
+     "w": 3.5,
+     "r": 2.2,
+     "trunk_h": 3.0,
+     "colour": "#4f6a3a",
+     "edge": 0,
+     "id": "opus-stre-0-0"
+    },
+    {
+     "kind": "pole",
+     "u": 8.6,
+     "w": 0.4,
+     "r": 0.15,
+     "trunk_h": 7.5,
+     "colour": "#a9adb0",
+     "edge": 0,
+     "id": "opus-stre-0-1"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1031420181021164",
+     "1212589702665373",
+     "1955656607945842",
+     "755710989256361"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.material",
+   "value": "wood_siding",
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.colour",
+   "value": "#a89f8c",
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.trim_colour",
+   "value": "#e8e6df",
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.openings",
+   "value": [
+    {
+     "id": "w14:gate-l",
+     "kind": "door",
+     "u": 1.8,
+     "v": 0.0,
+     "w": 0.8,
+     "h": 2.5,
+     "shape": "rect",
+     "colour": "#1e1f20",
+     "glazed": false
+    },
+    {
+     "id": "w14:gate-r",
+     "kind": "door",
+     "u": 4.0,
+     "v": 0.0,
+     "w": 1.4,
+     "h": 2.5,
+     "shape": "rect",
+     "colour": "#1e1f20",
+     "glazed": false
+    },
+    {
+     "id": "w14:win1",
+     "kind": "window",
+     "u": 2.3,
+     "v": 3.65,
+     "w": 1.0,
+     "h": 1.2,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e8e6df",
+     "pane_colour": "#2f3a34",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w14:win2",
+     "kind": "window",
+     "u": 3.8,
+     "v": 3.6,
+     "w": 0.8,
+     "h": 1.15,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e8e6df",
+     "pane_colour": "#2f3a34",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w14:bay",
+     "kind": "bay",
+     "u": 5.1,
+     "w": 0.99,
+     "v0": 3.2,
+     "v1": 5.2,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#a89f8c",
+     "trim_colour": "#e8e6df",
+     "v": 3.95,
+     "h": 1.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.belts",
+   "value": [
+    {
+     "v": 3.1,
+     "h": 0.15,
+     "colour": "#3f4042",
+     "depth": 0.1,
+     "id": "w14:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.bands",
+   "value": [
+    {
+     "v0": 0.0,
+     "v1": 3.1,
+     "colour": "#3f4042",
+     "material": "smooth_render",
+     "id": "w14:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.14.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-the-republic-restaurant-bar",
+     "business_id": "mb-fcc94a58c310",
+     "category": "restaurant",
+     "brand": null,
+     "name": "The Republic Restaurant & Bar",
+     "u0": 0.9,
+     "u1": 18.6,
+     "band_h": 3.1,
+     "material": "stucco",
+     "palette": {
+      "wall": "#2e2f31",
+      "accent": "#c8392b",
+      "frame": "#1c1c1d",
+      "base": "#2a2a2b",
+      "letter": "#ff4a3a",
+      "metal": "#3a3a3a",
+      "glass": "#4a555a"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rep:g0",
+       "kind": "window",
+       "u": 3.0,
+       "v": 0.8,
+       "w": 2.2,
+       "h": 1.5,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:g1",
+       "kind": "window",
+       "u": 6.3,
+       "v": 0.3,
+       "w": 0.5,
+       "h": 1.8,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:door",
+       "kind": "door",
+       "u": 7.0,
+       "v": 0.0,
+       "w": 0.7,
+       "h": 2.1,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "rep:g2",
+       "kind": "window",
+       "u": 8.0,
+       "v": 0.3,
+       "w": 0.6,
+       "h": 1.8,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:g3",
+       "kind": "window",
+       "u": 10.2,
+       "v": 0.9,
+       "w": 2.2,
+       "h": 1.0,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "rep:g4",
+       "kind": "window",
+       "u": 13.2,
+       "v": 0.85,
+       "w": 3.2,
+       "h": 1.0,
+       "transom_fraction": 0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "rep-awn",
+       "kind": "shed",
+       "u0": 6.3,
+       "u1": 8.7,
+       "v": 2.45,
+       "depth_m": 0.7,
+       "drop_m": 0.3,
+       "valance_h": 0.08,
+       "colour": "#2b2d2e",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "sans-serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "rep-neon",
+       "kind": "letters",
+       "u": 3.0,
+       "v": 2.3,
+       "w": 2.3,
+       "h": 0.3,
+       "offset": 0.05,
+       "thick": 0.04,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "DINING & Cocktails",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.8,
+         "fill": "#ff4a3a",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 600
+        }
+       ]
+      },
+      {
+       "id": "rep-red",
+       "kind": "board",
+       "u": 8.65,
+       "v": 2.1,
+       "w": 0.6,
+       "h": 0.3,
+       "offset": 0.05,
+       "thick": 0.05,
+       "bg": "#c8392b",
+       "edge_colour": "#a02c22",
+       "layers": []
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 2,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "143589218439040",
+       "177392144965527",
+       "266866404821691",
+       "670059774395933"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-the-republic-restaurant-bar-w0",
+     "business_id": "mb-fcc94a58c310",
+     "category": "restaurant",
+     "brand": null,
+     "name": "The Republic Restaurant & Bar",
+     "u0": 3.5,
+     "u1": 9.13,
+     "band_h": 3.2,
+     "material": "smooth_render",
+     "palette": {
+      "wall": "#2b2d2f",
+      "accent": "#b8302a",
+      "frame": "#1c1d1e",
+      "base": "#2b2d2f",
+      "letter": "#f2efe6",
+      "metal": "#8a8d8f",
+      "glass": "#3f4a4f"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "rep-l:door",
+       "kind": "door",
+       "u": 3.7,
+       "v": 0.0,
+       "w": 0.65,
+       "h": 2.2,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "rep-l:g0",
+       "kind": "window",
+       "u": 4.75,
+       "v": 0.7,
+       "w": 2.1,
+       "h": 1.65,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "kind": "shed",
+       "u0": 4.6,
+       "u1": 6.95,
+       "v": 2.8,
+       "depth_m": 0.7,
+       "drop_m": 0.3,
+       "valance_h": 0.2,
+       "colour": "#b8302a",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2efe6",
+       "font": "Georgia, serif",
+       "sides": true,
+       "id": "sf-the-republic-restaurant-bar-w0:awn0"
+      }
+     ],
+     "extra_signs": [
+      {
+       "kind": "board",
+       "u": 7.7,
+       "v": 1.0,
+       "w": 0.55,
+       "h": 0.75,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#1c1d1e",
+       "edge_colour": "#3a3a3a",
+       "layers": [],
+       "id": "sf-the-republic-restaurant-bar-w0:ext0"
+      },
+      {
+       "kind": "blade",
+       "u": 8.9,
+       "v": 3.2,
+       "w": 1.0,
+       "h": 0.6,
+       "offset": 0.2,
+       "thick": 0.15,
+       "bg": "#1c1d1e",
+       "edge_colour": "#2a2a2a",
+       "layers": [],
+       "id": "sf-the-republic-restaurant-bar-w0:ext1"
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1031420181021164",
+       "1212589702665373",
+       "1955656607945842",
+       "755710989256361"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 4 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "u": 16.5,
+     "w": 5.5,
+     "r": 3.0,
+     "trunk_h": 3.0,
+     "colour": "#3f5233",
+     "edge": 2
+    },
+    {
+     "id": "pole-1",
+     "kind": "pole",
+     "u": 0.5,
+     "w": 0.3,
+     "r": 0.1,
+     "trunk_h": 8.0,
+     "colour": "#9a9a98",
+     "edge": 2
+    },
+    {
+     "kind": "tree",
+     "u": 6.8,
+     "w": 3.5,
+     "r": 2.2,
+     "trunk_h": 3.0,
+     "colour": "#4f6a3a",
+     "edge": 0,
+     "id": "opus-stre-0-0"
+    },
+    {
+     "kind": "pole",
+     "u": 8.6,
+     "w": 0.4,
+     "r": 0.15,
+     "trunk_h": 7.5,
+     "colour": "#a9adb0",
+     "edge": 0,
+     "id": "opus-stre-0-1"
+    },
+    {
+     "id": "w14-tree",
+     "kind": "tree",
+     "u": 2.8,
+     "w": 5.0,
+     "r": 3.0,
+     "trunk_h": 3.0,
+     "colour": "#4f6a3a",
+     "edge": 14
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1258890765046935",
+     "946935026328909"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 14, 2 clean views + metric elevation",
+    "confidence": 0.4,
     "read_by": "claude-opus-5-5"
    }
   }

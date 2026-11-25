@@ -256,270 +256,466 @@
    "role": "street",
    "street": "DIVISADERO ST",
    "material": "stucco",
-   "colour": "#d9d2c3",
+   "colour": "#ecebe6",
    "texture_scale": 1.0,
-   "trim_colour": "#efeae0",
+   "trim_colour": "#d9d8d2",
    "visible": true,
-   "belts": [],
+   "belts": [
+    {
+     "v": 4.0,
+     "h": 0.12,
+     "colour": "#e4e3de",
+     "depth": 0.06,
+     "id": "w4:bel0"
+    }
+   ],
    "openings": [
     {
-     "id": "w4:f1:w0",
-     "kind": "window",
-     "u": 0.84,
-     "v": 5.13,
-     "w": 1.1,
-     "h": 1.75,
-     "shape": "rect",
+     "id": "bay-left",
+     "kind": "bay",
+     "u": 1.0,
+     "w": 2.8,
+     "v0": 4.6,
+     "v1": 13.1,
+     "projection": 0.6,
+     "front_share": 0.5,
      "mullions": [
-      1,
-      2
+      2,
+      1
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "material": "stucco",
+     "colour": "#ecebe6",
+     "trim_colour": "#e4e3de",
+     "cap": {
+      "h": 0.3,
+      "colour": "#9c4f3c",
+      "crest_h": 0,
+      "crest_w": 0
+     },
+     "v": 5.35,
+     "h": 7.5
     },
     {
-     "id": "w4:f1:w1",
+     "id": "w-pair-f2",
      "kind": "window",
-     "u": 3.61,
-     "v": 5.13,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 4.8,
+     "v": 5.0,
+     "w": 1.2,
+     "h": 1.5,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f1:w2",
+     "id": "w-pair-f2",
      "kind": "window",
-     "u": 6.39,
-     "v": 5.13,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 6.2,
+     "v": 5.0,
+     "w": 1.2,
+     "h": 1.5,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f1:w3",
+     "id": "w-pair-f3",
      "kind": "window",
-     "u": 9.17,
-     "v": 5.13,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 4.8,
+     "v": 8.4,
+     "w": 1.2,
+     "h": 1.5,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f1:w4",
+     "id": "w-pair-f3",
      "kind": "window",
-     "u": 11.94,
-     "v": 5.13,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 6.2,
+     "v": 8.4,
+     "w": 1.2,
+     "h": 1.5,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f1:w5",
+     "id": "w-pair-f4",
      "kind": "window",
-     "u": 14.72,
-     "v": 5.13,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 4.8,
+     "v": 11.6,
+     "w": 1.2,
+     "h": 1.5,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f1:w6",
+     "id": "w-pair-f4",
      "kind": "window",
-     "u": 17.5,
-     "v": 5.13,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 6.2,
+     "v": 11.6,
+     "w": 1.2,
+     "h": 1.5,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f2:w0",
+     "id": "w-s-f2",
      "kind": "window",
-     "u": 0.84,
-     "v": 9.52,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 9.1,
+     "v": 5.0,
+     "w": 0.85,
+     "h": 1.4,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f2:w1",
+     "id": "w-s-f2",
      "kind": "window",
-     "u": 3.61,
-     "v": 9.52,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 11.5,
+     "v": 5.0,
+     "w": 0.85,
+     "h": 1.4,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f2:w2",
+     "id": "w-s-f2",
      "kind": "window",
-     "u": 6.39,
-     "v": 9.52,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 13.9,
+     "v": 5.0,
+     "w": 0.85,
+     "h": 1.4,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f2:w3",
+     "id": "w-s-f3",
      "kind": "window",
-     "u": 9.17,
-     "v": 9.52,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 9.1,
+     "v": 8.4,
+     "w": 0.85,
+     "h": 1.4,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f2:w4",
+     "id": "w-s-f3",
      "kind": "window",
-     "u": 11.94,
-     "v": 9.52,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 11.5,
+     "v": 8.4,
+     "w": 0.85,
+     "h": 1.4,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f2:w5",
+     "id": "w-s-f3",
      "kind": "window",
-     "u": 14.72,
-     "v": 9.52,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 13.9,
+     "v": 8.4,
+     "w": 0.85,
+     "h": 1.4,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
     },
     {
-     "id": "w4:f2:w6",
+     "id": "w-s-f4",
      "kind": "window",
-     "u": 17.5,
-     "v": 9.52,
-     "w": 1.1,
-     "h": 1.75,
+     "u": 9.1,
+     "v": 11.6,
+     "w": 0.85,
+     "h": 1.4,
      "shape": "rect",
      "mullions": [
       1,
       2
      ],
-     "evidence": {
-      "kind": "inferred",
-      "source": "kerbfront default grid",
-      "confidence": 0.2
-     }
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-s-f4",
+     "kind": "window",
+     "u": 11.5,
+     "v": 11.6,
+     "w": 0.85,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-s-f4",
+     "kind": "window",
+     "u": 13.9,
+     "v": 11.6,
+     "w": 0.85,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      1,
+      2
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-c-f2",
+     "kind": "window",
+     "u": 15.4,
+     "v": 5.0,
+     "w": 1.5,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-c-f2",
+     "kind": "window",
+     "u": 17.2,
+     "v": 5.0,
+     "w": 1.5,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-c-f3",
+     "kind": "window",
+     "u": 15.4,
+     "v": 8.4,
+     "w": 1.5,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-c-f3",
+     "kind": "window",
+     "u": 17.2,
+     "v": 8.4,
+     "w": 1.5,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-c-f4",
+     "kind": "window",
+     "u": 15.4,
+     "v": 11.6,
+     "w": 1.5,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "w-c-f4",
+     "kind": "window",
+     "u": 17.2,
+     "v": 11.6,
+     "w": 1.5,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#e8e8e4",
+     "pane_colour": "#4a5258",
+     "depth": 0.12,
+     "sill": true
+    },
+    {
+     "id": "d-flats",
+     "kind": "door",
+     "u": 0.3,
+     "v": 0.0,
+     "w": 0.9,
+     "h": 2.2,
+     "shape": "rect",
+     "colour": "#f0efea",
+     "glazed": false
     }
    ],
    "evidence": {
     "kind": "app",
     "source": "sf-corridor-materials (untextured_photo_smooth_render)",
     "confidence": 0.5
-   }
+   },
+   "pilasters": [],
+   "friezes": [
+    {
+     "v": 13.55,
+     "h": 0.5,
+     "colour": "#ecebe6",
+     "motif": "quarter_round",
+     "motif_colour": "#b9b8b2",
+     "spacing": 0.55,
+     "depth": 0.05,
+     "id": "w4:fri0"
+    }
+   ],
+   "bands": [
+    {
+     "v0": 0.0,
+     "v1": 4.0,
+     "colour": "#2c3030",
+     "material": "stucco",
+     "id": "w4:ban0"
+    }
+   ],
+   "balconies": [
+    {
+     "u": 3.4,
+     "w": 3.4,
+     "v": 7.4,
+     "depth": 0.8,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#e6e6e2",
+     "h": 0.9,
+     "id": "w4:bal0"
+    },
+    {
+     "u": 3.4,
+     "w": 3.4,
+     "v": 10.6,
+     "depth": 0.8,
+     "rail": "bars",
+     "rail_h": 0.9,
+     "colour": "#e6e6e2",
+     "h": 0.9,
+     "id": "w4:bal1"
+    }
+   ],
+   "ornaments": []
   },
   {
    "id": "w5",
@@ -1472,7 +1668,7 @@
      "545521080282016",
      "934970584002486"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
     "confidence": 0.4,
     "read_by": "claude-opus-5-5"
    }
@@ -1571,7 +1767,7 @@
      "545521080282016",
      "934970584002486"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
     "confidence": 0.4,
     "read_by": "claude-opus-5-5"
    }
@@ -1670,8 +1866,233 @@
      "545521080282016",
      "934970584002486"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
     "confidence": 0.4,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "id": "sf-united-liquor-deli-w4",
+   "business_id": "mb-fc90c1432e19",
+   "category": "corner_store",
+   "brand": null,
+   "name": "United Liquor & Deli",
+   "u0": 2.0,
+   "u1": 19.43,
+   "band_h": 4.0,
+   "material": "stucco",
+   "palette": {
+    "wall": "#2c3030",
+    "accent": "#1f5a35",
+    "frame": "#2a3a8a",
+    "base": "#2c3030",
+    "letter": "#f2f2ea",
+    "metal": "#8a8e8e",
+    "glass": "#3e4a50"
+   },
+   "door_style": null,
+   "openings": [
+    {
+     "id": "ud-g0",
+     "kind": "window",
+     "u": 8.3,
+     "v": 0.4,
+     "w": 5.3,
+     "h": 2.9,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0.35
+    },
+    {
+     "id": "ud-g1",
+     "kind": "window",
+     "u": 13.8,
+     "v": 0.4,
+     "w": 3.5,
+     "h": 2.9,
+     "transom_fraction": 0.0,
+     "privacy_fraction": 0.0
+    },
+    {
+     "id": "ud-door",
+     "kind": "door",
+     "u": 17.4,
+     "v": 0.0,
+     "w": 1.1,
+     "h": 2.4,
+     "leaf_count": 1,
+     "operation": "hinged",
+     "glazed": true
+    }
+   ],
+   "awnings": [
+    {
+     "kind": "flat_canopy",
+     "u0": 17.4,
+     "u1": 19.43,
+     "v": 4.0,
+     "depth_m": 1.5,
+     "drop_m": 0.25,
+     "valance_h": 0.25,
+     "colour": "#2c3030",
+     "stripe": null,
+     "valance_text": null,
+     "text_colour": "#f2f2ea",
+     "font": "Arial, sans-serif",
+     "sides": false,
+     "id": "sf-united-liquor-deli-w4:awn0"
+    }
+   ],
+   "extra_signs": [
+    {
+     "id": "ud-deli-board",
+     "kind": "board",
+     "u": 4.1,
+     "v": 2.5,
+     "w": 2.8,
+     "h": 1.1,
+     "offset": 0,
+     "thick": 0.04,
+     "bg": "#3a3e3e",
+     "edge_colour": "#555a5a",
+     "layers": [
+      {
+       "type": "text",
+       "text": "DELI",
+       "x": 0.5,
+       "y": 0.5,
+       "size": 0.45,
+       "fill": "#f2f2ea",
+       "font": "Arial, sans-serif",
+       "weight": 700
+      }
+     ]
+    },
+    {
+     "id": "ud-vinyl-1",
+     "kind": "window_vinyl",
+     "u": 8.4,
+     "v": 0.4,
+     "w": 2.6,
+     "h": 1.0,
+     "offset": 0,
+     "thick": 0,
+     "bg": "#1f5a35",
+     "edge_colour": "#1f5a35",
+     "layers": [
+      {
+       "type": "text",
+       "text": "FINE WINES",
+       "x": 0.5,
+       "y": 0.3,
+       "size": 0.28,
+       "fill": "#f2f2ea",
+       "font": "Georgia, serif",
+       "weight": 700
+      },
+      {
+       "type": "text",
+       "text": "IMPORTED BEERS",
+       "x": 0.5,
+       "y": 0.7,
+       "size": 0.28,
+       "fill": "#f2f2ea",
+       "font": "Georgia, serif",
+       "weight": 700
+      }
+     ]
+    },
+    {
+     "id": "ud-vinyl-2",
+     "kind": "window_vinyl",
+     "u": 11.0,
+     "v": 0.4,
+     "w": 2.6,
+     "h": 1.0,
+     "offset": 0,
+     "thick": 0,
+     "bg": "#1f5a35",
+     "edge_colour": "#1f5a35",
+     "layers": [
+      {
+       "type": "text",
+       "text": "GOURMET",
+       "x": 0.5,
+       "y": 0.3,
+       "size": 0.28,
+       "fill": "#f2f2ea",
+       "font": "Georgia, serif",
+       "weight": 700
+      },
+      {
+       "type": "text",
+       "text": "FOODS & CHEESES",
+       "x": 0.5,
+       "y": 0.7,
+       "size": 0.28,
+       "fill": "#f2f2ea",
+       "font": "Georgia, serif",
+       "weight": 700
+      }
+     ]
+    },
+    {
+     "id": "ud-corner-board",
+     "kind": "board",
+     "u": 17.0,
+     "v": 4.3,
+     "w": 2.4,
+     "h": 0.8,
+     "offset": 0.3,
+     "thick": 0.15,
+     "bg": "#1f5a35",
+     "edge_colour": "#e8e4c8",
+     "layers": [
+      {
+       "type": "rect",
+       "x": 0.5,
+       "y": 0.3,
+       "w": 0.95,
+       "h": 0.45,
+       "fill": "#f2efd8"
+      },
+      {
+       "type": "text",
+       "text": "UNITED LIQUOR",
+       "x": 0.5,
+       "y": 0.3,
+       "size": 0.35,
+       "fill": "#1f5a35",
+       "font": "Arial, sans-serif",
+       "weight": 700
+      },
+      {
+       "type": "text",
+       "text": "& DELI",
+       "x": 0.5,
+       "y": 0.75,
+       "size": 0.28,
+       "fill": "#e8c040",
+       "font": "Arial, sans-serif",
+       "weight": 700
+      }
+     ]
+    }
+   ],
+   "signs": [],
+   "lights": [],
+   "edge": 4,
+   "evidence": {
+    "kind": "observed",
+    "frames": [
+     "1010604456439757",
+     "204494344820896",
+     "2957436987913400",
+     "3277970145788214",
+     "545521080282016",
+     "934970584002486"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+    "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
   }
@@ -2331,6 +2752,102 @@
    "height": 2448,
    "position_source": "sfm",
    "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "3277970145788214",
+   "slot": "wall4:sign",
+   "captured_at": "2022-06-08T17:01:38+00:00",
+   "camera_type": "spherical",
+   "x": 17.008,
+   "y": -6.798,
+   "z": 2.0,
+   "heading": 348.79,
+   "hfov": 360.0,
+   "width": 4096,
+   "height": 2048,
+   "position_source": "sfm",
+   "wall": 4,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "1010604456439757",
+   "slot": "wall4:elevation",
+   "captured_at": "2021-08-04T15:57:30+00:00",
+   "camera_type": "spherical",
+   "x": 17.37,
+   "y": -7.42,
+   "z": 2.0,
+   "heading": 346.83,
+   "hfov": 360.0,
+   "width": 5760,
+   "height": 2880,
+   "position_source": "sfm",
+   "wall": 4,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "2972114223149918",
+   "slot": "wall4:oblique-left",
+   "captured_at": "2026-10-05T10:19:18+00:00",
+   "camera_type": "perspective",
+   "x": 15.195,
+   "y": -21.589,
+   "z": 2.0,
+   "heading": 349.15,
+   "hfov": 94.14,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "wall": 4,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "1282509600654323",
+   "slot": "wall4:oblique-right",
+   "captured_at": "2026-10-05T10:19:13+00:00",
+   "camera_type": "perspective",
+   "x": 9.704,
+   "y": 8.976,
+   "z": 2.0,
+   "heading": 170.67,
+   "hfov": 82.33,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "wall": 4,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "2957436987913400",
+   "slot": "wall4:extra",
+   "captured_at": "2015-08-16T08:40:59+00:00",
+   "camera_type": "perspective",
+   "x": 9.917,
+   "y": 16.407,
+   "z": 2.0,
+   "heading": 172.21,
+   "hfov": 70.32,
+   "width": 3264,
+   "height": 2448,
+   "position_source": "sfm",
+   "wall": 4,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
+  },
+  {
+   "frame_id": "309005110699679",
+   "slot": "wall4:extra",
+   "captured_at": "2018-07-16T01:21:07+00:00",
+   "camera_type": "perspective",
+   "x": 23.539,
+   "y": -43.704,
+   "z": 2.0,
+   "heading": 351.08,
+   "hfov": 54.3,
+   "width": 1920,
+   "height": 1080,
+   "position_source": "sfm",
+   "wall": 4,
+   "licence": "CC BY-SA 4.0 (c) Mapillary contributors"
   }
  ],
  "facts": {
@@ -2388,7 +2905,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2402,7 +2919,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2416,7 +2933,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2430,7 +2947,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2444,7 +2961,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2458,7 +2975,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2472,7 +2989,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2486,7 +3003,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2500,7 +3017,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2514,7 +3031,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2528,7 +3045,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2542,7 +3059,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2556,7 +3073,7 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
@@ -2570,50 +3087,190 @@
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 5, 1 clean views + metric elevation",
    "confidence": 0.4,
    "read_by": "claude-opus-5-5"
   },
   "storefronts": {
    "kind": "observed",
    "frames": [
-    "1234074963729718",
+    "1010604456439757",
     "204494344820896",
-    "4729465624044595",
-    "517589702851285",
+    "2957436987913400",
+    "3277970145788214",
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
-   "confidence": 0.4,
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
    "read_by": "claude-opus-5-5"
   },
   "seating": {
    "kind": "observed",
    "frames": [
-    "1234074963729718",
+    "1010604456439757",
     "204494344820896",
-    "4729465624044595",
-    "517589702851285",
+    "2957436987913400",
+    "3277970145788214",
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
-   "confidence": 0.4,
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
    "read_by": "claude-opus-5-5"
   },
   "street_objects": {
    "kind": "observed",
    "frames": [
-    "1234074963729718",
+    "1010604456439757",
     "204494344820896",
-    "4729465624044595",
-    "517589702851285",
+    "2957436987913400",
+    "3277970145788214",
     "545521080282016",
     "934970584002486"
    ],
-   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
-   "confidence": 0.4,
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.material": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.colour": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.trim_colour": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.openings": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.pilasters": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.friezes": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.belts": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.bands": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.balconies": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
+   "read_by": "claude-opus-5-5"
+  },
+  "walls.4.ornaments": {
+   "kind": "observed",
+   "frames": [
+    "1010604456439757",
+    "204494344820896",
+    "2957436987913400",
+    "3277970145788214",
+    "545521080282016",
+    "934970584002486"
+   ],
+   "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 4, 2 clean views + metric elevation",
+   "confidence": 0.5,
    "read_by": "claude-opus-5-5"
   }
  },
@@ -2647,7 +3304,37 @@
    "colour": "#7a7a76",
    "edge": 5,
    "id": "opus-stre-5-2"
+  },
+  {
+   "id": "tree-div",
+   "kind": "tree",
+   "u": 16.0,
+   "w": 5.5,
+   "r": 3.5,
+   "trunk_h": 3.0,
+   "colour": "#3e5230",
+   "edge": 4
+  },
+  {
+   "id": "meter-1",
+   "kind": "pole",
+   "u": 4.0,
+   "w": 0.15,
+   "r": 0.05,
+   "trunk_h": 1.3,
+   "colour": "#7a7a76",
+   "edge": 4
+  },
+  {
+   "id": "meter-2",
+   "kind": "pole",
+   "u": 13.6,
+   "w": 0.15,
+   "r": 0.05,
+   "trunk_h": 1.3,
+   "colour": "#7a7a76",
+   "edge": 4
   }
  ],
- "observations_applied": 17
+ "observations_applied": 30
 }

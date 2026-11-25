@@ -87,7 +87,8 @@ def eligible(area: str = "marina-union", kinds: str = "restaurant") -> tuple[lis
         reasons[why] = reasons.get(why, 0) + 1
     reviewed = [json.loads(p.read_text())["business_id"] for p in (LAB / "models").glob("*.json")
                 if p.stem in ("tacolicious", "super-duper-burgers", "balboa-cafe", "a16", "dragon-well")]
-    biz = sorted(biz, key=lambda z: z["id"] not in reviewed)
+    # reviewed first, then restaurants: a wall shared with a shop stays the restaurant's (its reading is cached)
+    biz = sorted(biz, key=lambda z: (z["id"] not in reviewed, business_type(z)["render"] != "restaurant"))
     for z in biz:
         # recomputed, not read from the sweep: the stored type predates the category fix
         if not wanted(z, kinds):

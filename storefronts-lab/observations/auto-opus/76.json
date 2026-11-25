@@ -1,0 +1,935 @@
+{
+ "model": "76",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 2: 2 views; wall 1: 3 views",
+ "notes": "The rectified grid shows the neighbouring building (Michelin billboard), not this station, so the overlay cannot be checked against it; placements come from photos 2-3. Kiosk openings were read through pumps and cars and are approximate. The freestanding pump canopy (top about 4.9 m, matching LiDAR) is modelled as a flat canopy across the wall; it actually stands on posts several metres from the kiosk. | Wall 1 is the open long side of a fuel canopy, not an enclosed wall. The rectified grid only shows the smeared fascia, so I read it from photos 2 and 3. The fascia band runs about 4.1-4.9 m with an orange swoosh. The 76 disc sits at the right (Lombard) end. The two pump-island columns are re-measured from photo 2 at u 4.7 and 10.9. Photo 4 (2018) shows the older red/white livery; I used the 2021-22 white/orange one. Pumps are not in the vocabulary and are omitted. The tree and price pylon stand just beyond u=L.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 4.9,
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.3
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.0,
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.colour",
+   "value": "#e6e6e2",
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.trim_colour",
+   "value": "#c9cbca",
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-76",
+     "business_id": "mb-b9f280094c95",
+     "category": "shop",
+     "brand": null,
+     "name": "76",
+     "u0": 0,
+     "u1": 9.86,
+     "band_h": 3.3,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e6e6e2",
+      "accent": "#1f3f8a",
+      "frame": "#9a9c9b",
+      "base": "#bdbfbe",
+      "letter": "#ffffff",
+      "metal": "#a9acab",
+      "glass": "#4f5a5e"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "76:g0",
+       "kind": "window",
+       "u": 0.8,
+       "v": 0.4,
+       "w": 2.2,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.4
+      },
+      {
+       "id": "76:door",
+       "kind": "door",
+       "u": 3.5,
+       "v": 0.0,
+       "w": 1.2,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "76:g1",
+       "kind": "window",
+       "u": 5.1,
+       "v": 0.4,
+       "w": 2.6,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      }
+     ],
+     "awnings": [
+      {
+       "id": "76-canopy",
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 9.86,
+       "v": 4.9,
+       "depth_m": 4.0,
+       "drop_m": 0.9,
+       "valance_h": 0.9,
+       "colour": "#a7aaa9",
+       "stripe": "#d9521f",
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Helvetica, Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "76-foodmart",
+       "kind": "board",
+       "u": 1.0,
+       "v": 2.5,
+       "w": 3.0,
+       "h": 0.4,
+       "offset": 0.02,
+       "thick": 0.05,
+       "bg": "#1f3f8a",
+       "edge_colour": "#1f3f8a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Food Mart",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#ffffff",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "76-foodmart-2",
+       "kind": "board",
+       "u": 5.6,
+       "v": 2.5,
+       "w": 2.8,
+       "h": 0.4,
+       "offset": 0.02,
+       "thick": 0.05,
+       "bg": "#1f3f8a",
+       "edge_colour": "#1f3f8a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Food Mart",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#ffffff",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "76-disc",
+       "kind": "board",
+       "u": 4.4,
+       "v": 2.9,
+       "w": 0.6,
+       "h": 0.6,
+       "offset": 0.02,
+       "thick": 0.05,
+       "bg": "#ffffff",
+       "edge_colour": "#d9521f",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.5,
+         "r": 0.45,
+         "fill": "#d9521f"
+        },
+        {
+         "type": "text",
+         "text": "76",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.5,
+         "fill": "#1f3f8a",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 2,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1036899947140832",
+       "1199207977249476",
+       "240098455248197"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+      "confidence": 0.3,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "u": 6.5,
+     "w": 4.0,
+     "r": 3.0,
+     "trunk_h": 3.0,
+     "colour": "#4f6b3a",
+     "edge": 2
+    },
+    {
+     "id": "meter-1",
+     "kind": "pole",
+     "u": 5.5,
+     "w": 0.2,
+     "r": 0.05,
+     "trunk_h": 1.4,
+     "colour": "#8c8f8e",
+     "edge": 2
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1036899947140832",
+     "1199207977249476",
+     "240098455248197"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+    "confidence": 0.3,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "metal_panel",
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#f2f2f0",
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#e8742c",
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [
+    {
+     "u": [
+      4.7,
+      10.9
+     ],
+     "w": 0.45,
+     "v0": 0.0,
+     "v1": 4.1,
+     "depth": 0.3,
+     "colour": "#d9dbdc",
+     "groove_colour": "#b9bcbd",
+     "top": "flat",
+     "steps": 0,
+     "step_h": 0.0,
+     "flutes": 0,
+     "id": "w1:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [
+    {
+     "v": 4.6,
+     "h": 0.09,
+     "colour": "#e8742c",
+     "depth": 0.02,
+     "id": "w1:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [
+    {
+     "v0": 4.1,
+     "v1": 4.9,
+     "colour": "#f2f2f0",
+     "material": "metal_panel",
+     "id": "w1:ban0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-76",
+     "business_id": "mb-b9f280094c95",
+     "category": "shop",
+     "brand": null,
+     "name": "76",
+     "u0": 0,
+     "u1": 9.86,
+     "band_h": 3.3,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e6e6e2",
+      "accent": "#1f3f8a",
+      "frame": "#9a9c9b",
+      "base": "#bdbfbe",
+      "letter": "#ffffff",
+      "metal": "#a9acab",
+      "glass": "#4f5a5e"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "76:g0",
+       "kind": "window",
+       "u": 0.8,
+       "v": 0.4,
+       "w": 2.2,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.4
+      },
+      {
+       "id": "76:door",
+       "kind": "door",
+       "u": 3.5,
+       "v": 0.0,
+       "w": 1.2,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "76:g1",
+       "kind": "window",
+       "u": 5.1,
+       "v": 0.4,
+       "w": 2.6,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      }
+     ],
+     "awnings": [
+      {
+       "id": "76-canopy",
+       "kind": "flat_canopy",
+       "u0": 0.0,
+       "u1": 9.86,
+       "v": 4.9,
+       "depth_m": 4.0,
+       "drop_m": 0.9,
+       "valance_h": 0.9,
+       "colour": "#a7aaa9",
+       "stripe": "#d9521f",
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Helvetica, Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "76-foodmart",
+       "kind": "board",
+       "u": 1.0,
+       "v": 2.5,
+       "w": 3.0,
+       "h": 0.4,
+       "offset": 0.02,
+       "thick": 0.05,
+       "bg": "#1f3f8a",
+       "edge_colour": "#1f3f8a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Food Mart",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#ffffff",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "76-foodmart-2",
+       "kind": "board",
+       "u": 5.6,
+       "v": 2.5,
+       "w": 2.8,
+       "h": 0.4,
+       "offset": 0.02,
+       "thick": 0.05,
+       "bg": "#1f3f8a",
+       "edge_colour": "#1f3f8a",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Food Mart",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.7,
+         "fill": "#ffffff",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      },
+      {
+       "id": "76-disc",
+       "kind": "board",
+       "u": 4.4,
+       "v": 2.9,
+       "w": 0.6,
+       "h": 0.6,
+       "offset": 0.02,
+       "thick": 0.05,
+       "bg": "#ffffff",
+       "edge_colour": "#d9521f",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.5,
+         "r": 0.45,
+         "fill": "#d9521f"
+        },
+        {
+         "type": "text",
+         "text": "76",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.5,
+         "fill": "#1f3f8a",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 2,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1036899947140832",
+       "1199207977249476",
+       "240098455248197"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 2 clean views + metric elevation",
+      "confidence": 0.3,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-76-w1",
+     "business_id": "mb-b9f280094c95",
+     "category": "shop",
+     "brand": null,
+     "name": "76",
+     "u0": 0,
+     "u1": 15.44,
+     "band_h": 4.1,
+     "material": "metal_panel",
+     "palette": {
+      "wall": "#f2f2f0",
+      "accent": "#e8742c",
+      "frame": "#d9dbdc",
+      "base": "#9a9a96",
+      "letter": "#ffffff",
+      "metal": "#b9bcbd",
+      "glass": "#5a6a70"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "76-disc-divis",
+       "kind": "letters",
+       "u": 14.35,
+       "v": 4.15,
+       "w": 0.75,
+       "h": 0.75,
+       "offset": 0.02,
+       "thick": 0.06,
+       "bg": "#f2f2f0",
+       "edge_colour": "#f2f2f0",
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.5,
+         "y": 0.5,
+         "r": 0.48,
+         "fill": "#e8642c"
+        },
+        {
+         "type": "text",
+         "text": "76",
+         "x": 0.5,
+         "y": 0.52,
+         "size": 0.5,
+         "fill": "#ffffff",
+         "font": "\"Arial Black\", sans-serif",
+         "weight": 800
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1277777826010295",
+       "1351821855355144",
+       "240098455248197",
+       "459891921778906"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+      "confidence": 0.45,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "u": 6.5,
+     "w": 4.0,
+     "r": 3.0,
+     "trunk_h": 3.0,
+     "colour": "#4f6b3a",
+     "edge": 2
+    },
+    {
+     "id": "meter-1",
+     "kind": "pole",
+     "u": 5.5,
+     "w": 0.2,
+     "r": 0.05,
+     "trunk_h": 1.4,
+     "colour": "#8c8f8e",
+     "edge": 2
+    },
+    {
+     "id": "divis-tree",
+     "kind": "tree",
+     "u": 15.2,
+     "w": 4.0,
+     "r": 2.5,
+     "trunk_h": 3.0,
+     "colour": "#4f6b3a",
+     "edge": 1
+    },
+    {
+     "id": "76-price-pylon",
+     "kind": "pole",
+     "u": 15.4,
+     "w": 0.5,
+     "r": 0.2,
+     "trunk_h": 6.0,
+     "colour": "#9a9c9a",
+     "edge": 1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1277777826010295",
+     "1351821855355144",
+     "240098455248197",
+     "459891921778906"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.45,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

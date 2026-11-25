@@ -1,0 +1,455 @@
+{
+ "model": "urban-pet-hospital",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 3 views",
+ "notes": "The grid elevation looks compressed and shifted for this narrow front: the upper windows are about 2.2 m apart in photo 2 but about 1 m on the grid. The low annex with the white service door, smeared into grid u 0-2.6, is likely the separate 3.00 m street wall (wall 1). Positions and heights are scaled from the frontal photo using the 5.52 m width; the facade top is about 6.6 m. Colours are from the 2023 repaint. The neon sign inside the window is omitted.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.6,
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 3.5
+    },
+    {
+     "v": 3.5,
+     "h": 3.1
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.cornice",
+   "value": {
+    "h": 0.15,
+    "depth": 0.1,
+    "colour": "#f0efea",
+    "raise": 0
+   },
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.8,
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#5e6e80",
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#f0efea",
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "up-w1",
+     "kind": "window",
+     "u": 1.15,
+     "v": 3.8,
+     "w": 0.88,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#f0efea",
+     "pane_colour": "#3a4048",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "up-w1",
+     "kind": "window",
+     "u": 3.35,
+     "v": 3.8,
+     "w": 0.88,
+     "h": 1.4,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#f0efea",
+     "pane_colour": "#3a4048",
+     "depth": 0.1,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [
+    {
+     "v": 3.42,
+     "h": 0.1,
+     "colour": "#f0efea",
+     "depth": 0.12,
+     "id": "w3:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [
+    {
+     "shape": "rect",
+     "u": 0.6,
+     "v": 3.75,
+     "w": 0.52,
+     "h": 1.5,
+     "colour": "#f2f1ec",
+     "depth": 0.04,
+     "id": "w3:orn0"
+    },
+    {
+     "shape": "rect",
+     "u": 2.8,
+     "v": 3.75,
+     "w": 0.52,
+     "h": 1.5,
+     "colour": "#f2f1ec",
+     "depth": 0.04,
+     "id": "w3:orn1"
+    },
+    {
+     "shape": "rect",
+     "u": 2.05,
+     "v": 3.75,
+     "w": 0.52,
+     "h": 1.5,
+     "colour": "#f2f1ec",
+     "depth": 0.04,
+     "id": "w3:orn2"
+    },
+    {
+     "shape": "rect",
+     "u": 4.25,
+     "v": 3.75,
+     "w": 0.52,
+     "h": 1.5,
+     "colour": "#f2f1ec",
+     "depth": 0.04,
+     "id": "w3:orn3"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-urban-pet-hospital",
+     "business_id": "mb-7e5fc3d7cf73",
+     "category": "shop",
+     "brand": null,
+     "name": "Urban Pet Hospital",
+     "u0": 0,
+     "u1": 5.52,
+     "band_h": 3.45,
+     "material": "stucco",
+     "palette": {
+      "wall": "#5e6e80",
+      "accent": "#e8641e",
+      "frame": "#1c1d1f",
+      "base": "#5e6e80",
+      "letter": "#e8641e",
+      "metal": "#9a9fa3",
+      "glass": "#3c4650"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "upet-door",
+       "kind": "door",
+       "u": 0.5,
+       "v": 0.0,
+       "w": 0.95,
+       "h": 2.3,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "upet-win",
+       "kind": "window",
+       "u": 2.2,
+       "v": 0.55,
+       "w": 3.02,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "upet-letters",
+       "kind": "letters",
+       "u": 0.4,
+       "v": 2.7,
+       "w": 4.9,
+       "h": 0.6,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "disc",
+         "x": 0.06,
+         "y": 0.5,
+         "r": 0.4,
+         "fill": "#f4ece4"
+        },
+        {
+         "type": "text",
+         "text": "URBAN PET HOSPITAL",
+         "x": 0.56,
+         "y": 0.5,
+         "size": 0.75,
+         "fill": "#e8641e",
+         "font": "Impact, \"Arial Narrow\", sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1004443860094183",
+       "184359587789522",
+       "612137047439418",
+       "663675738648205"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1004443860094183",
+     "184359587789522",
+     "612137047439418",
+     "663675738648205"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 3 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

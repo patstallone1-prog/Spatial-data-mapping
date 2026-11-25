@@ -1,7 +1,7 @@
 {
  "model": "naan-n-curry",
- "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
- "notes": "The photo shows a predecessor tenant (Outlaw Kitchen), so I used the record name with a plain sign. The grid puts the corner pier at about u 4.5. The stretch from u 0 to 4.5 is a fenced gate area set off the wall plane, so I left it out. The record places Naan N Curry at u 0-3.8, which may be that corner. The stretch from u 15.5 to 19.6 is painted mural panels (not modelled as parts) with three small grey shed awnings and gooseneck lamps above. I folded it into the shopfront as an assumption.",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 3: 1 views; wall 2: 3 views",
+ "notes": "The photo shows a predecessor tenant (Outlaw Kitchen), so I used the record name with a plain sign. The grid puts the corner pier at about u 4.5. The stretch from u 0 to 4.5 is a fenced gate area set off the wall plane, so I left it out. The record places Naan N Curry at u 0-3.8, which may be that corner. The stretch from u 15.5 to 19.6 is painted mural panels (not modelled as parts) with three small grey shed awnings and gooseneck lamps above. I folded it into the shopfront as an assumption. | The photographed top of the facade is about 5.1-5.4 m (tower cap highest), not the LiDAR 6.3 m; I used the photographed height. The visible building spans grid u 0.3-7.4. The rest of the wall up to 9.68 is sidewalk and the corner signal pole, which is more than the ~1 m grid shift, so grid positions were kept. The left 0-1 m is hidden by the bus shelter and a fenced enclosure. Murals are omitted. The photographed signage reads 'Outlaw Kitchen', which is not the record tenant, so the sign uses the record name on a plain board.",
  "dropped": [],
  "observations": [
   {
@@ -13,7 +13,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -32,7 +32,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -51,7 +51,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -65,7 +65,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -79,7 +79,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -93,7 +93,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -107,7 +107,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -121,7 +121,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -168,7 +168,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -182,7 +182,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -196,7 +196,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -210,7 +210,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -224,7 +224,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -238,7 +238,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -423,7 +423,7 @@
        "1307450883455879",
        "2754887328136495"
       ],
-      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
       "confidence": 0.5,
       "read_by": "claude-opus-5-5"
      }
@@ -435,7 +435,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -449,7 +449,7 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }
@@ -463,7 +463,523 @@
      "1307450883455879",
      "2754887328136495"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 1 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.colour",
+   "value": "#8e8b87",
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.trim_colour",
+   "value": "#9a9692",
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.pilasters",
+   "value": [
+    {
+     "u": [
+      4.83,
+      7.05
+     ],
+     "w": 0.48,
+     "v0": 0.0,
+     "v1": 4.8,
+     "depth": 0.15,
+     "colour": "#94918d",
+     "groove_colour": "#7e7b77",
+     "top": "flat",
+     "flutes": 0,
+     "id": "w2:pil0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.belts",
+   "value": [
+    {
+     "v": 4.85,
+     "h": 0.15,
+     "colour": "#9a9692",
+     "depth": 0.1,
+     "id": "w2:bel0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.2.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-naan-n-curry",
+     "business_id": "mb-769892619006",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Naan N Curry",
+     "u0": 4.5,
+     "u1": 19.6,
+     "band_h": 3.8,
+     "material": "stucco",
+     "palette": {
+      "wall": "#4b4d50",
+      "accent": "#2a2a2b",
+      "frame": "#1e1f20",
+      "base": "#3c3e41",
+      "letter": "#f2f2f2",
+      "metal": "#8a8d90",
+      "glass": "#2c3236"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "nnc:g0",
+       "kind": "window",
+       "u": 5.8,
+       "v": 0.5,
+       "w": 2.4,
+       "h": 2.3,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0.3
+      },
+      {
+       "id": "nnc:door",
+       "kind": "door",
+       "u": 8.9,
+       "v": 0.0,
+       "w": 2.3,
+       "h": 2.8,
+       "leaf_count": 2,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "nnc:g1",
+       "kind": "window",
+       "u": 12.4,
+       "v": 0.8,
+       "w": 2.2,
+       "h": 2.0,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "nnc-canopy",
+       "kind": "flat_canopy",
+       "u0": 8.7,
+       "u1": 11.5,
+       "v": 3.1,
+       "depth_m": 0.6,
+       "drop_m": 0.2,
+       "valance_h": 0.2,
+       "colour": "#2e3032",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2f2f2",
+       "font": "Arial, sans-serif",
+       "sides": true
+      },
+      {
+       "id": "nnc-mural-awn-1",
+       "kind": "shed",
+       "u0": 15.8,
+       "u1": 16.9,
+       "v": 4.2,
+       "depth_m": 0.8,
+       "drop_m": 0.7,
+       "valance_h": 0.05,
+       "colour": "#55585b",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2f2f2",
+       "font": "Arial, sans-serif",
+       "sides": false
+      },
+      {
+       "id": "nnc-mural-awn-2",
+       "kind": "shed",
+       "u0": 17.0,
+       "u1": 18.1,
+       "v": 4.2,
+       "depth_m": 0.8,
+       "drop_m": 0.7,
+       "valance_h": 0.05,
+       "colour": "#55585b",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2f2f2",
+       "font": "Arial, sans-serif",
+       "sides": false
+      },
+      {
+       "id": "nnc-mural-awn-3",
+       "kind": "shed",
+       "u0": 18.2,
+       "u1": 19.4,
+       "v": 4.2,
+       "depth_m": 0.8,
+       "drop_m": 0.7,
+       "valance_h": 0.05,
+       "colour": "#55585b",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2f2f2",
+       "font": "Arial, sans-serif",
+       "sides": false
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "nnc-board",
+       "kind": "board",
+       "u": 5.8,
+       "v": 2.9,
+       "w": 2.4,
+       "h": 0.9,
+       "offset": 0.05,
+       "thick": 0.06,
+       "bg": "#2a2a2b",
+       "edge_colour": "#d8d8d8",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Naan N Curry",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.35,
+         "fill": "#f2f2f2",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 9.0,
+       "u1": 11.0,
+       "v": 4.3,
+       "w": 0.4
+      },
+      {
+       "kind": "gooseneck",
+       "u0": 12.6,
+       "u1": 14.4,
+       "v": 4.3,
+       "w": 0.4
+      },
+      {
+       "kind": "gooseneck",
+       "u0": 16.3,
+       "u1": 19.0,
+       "v": 4.5,
+       "w": 0.4
+      }
+     ],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1018293482043956",
+       "1307450883455879",
+       "2754887328136495"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 1 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-naan-n-curry-w2",
+     "business_id": "mb-769892619006",
+     "category": "restaurant",
+     "brand": null,
+     "name": "Naan N Curry",
+     "u0": 3.1,
+     "u1": 7.35,
+     "band_h": 2.9,
+     "material": "stucco",
+     "palette": {
+      "wall": "#8e8b87",
+      "accent": "#3a3634",
+      "frame": "#1e1e1e",
+      "base": "#7a7773",
+      "letter": "#f2eef0",
+      "metal": "#a0a0a0",
+      "glass": "#2c3134"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "nc-f:g0",
+       "kind": "window",
+       "u": 3.25,
+       "v": 0.3,
+       "w": 1.3,
+       "h": 1.75,
+       "transom_fraction": 0.2,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "nc-f:g1",
+       "kind": "window",
+       "u": 5.15,
+       "v": 0.3,
+       "w": 1.45,
+       "h": 1.5,
+       "transom_fraction": 0.15,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [
+      {
+       "id": "nc-f-awn",
+       "kind": "box",
+       "u0": 3.15,
+       "u1": 4.6,
+       "v": 2.9,
+       "depth_m": 0.5,
+       "drop_m": 0.85,
+       "valance_h": 0.0,
+       "colour": "#3a3836",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#f2eef0",
+       "font": "Helvetica, Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "nc-f-sign",
+       "kind": "board",
+       "u": 5.1,
+       "v": 1.85,
+       "w": 1.5,
+       "h": 0.75,
+       "offset": 0.1,
+       "thick": 0.12,
+       "bg": "#3a3634",
+       "edge_colour": "#2a2828",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Naan N Curry",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.35,
+         "fill": "#f2eef0",
+         "font": "Helvetica, Arial, sans-serif",
+         "weight": 600
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [
+      {
+       "kind": "gooseneck",
+       "u0": 3.75,
+       "u1": 4.05,
+       "v": 3.3,
+       "w": 0.3
+      }
+     ],
+     "edge": 2,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1330983427727818",
+       "248637277615407",
+       "455373070132689"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "fil-shelter",
+     "kind": "bus_shelter",
+     "u": 0.6,
+     "w": 2.5,
+     "colour": "#7a2a2a",
+     "edge": 2
+    },
+    {
+     "id": "fil-pole",
+     "kind": "pole",
+     "u": 9.2,
+     "w": 0.3,
+     "r": 0.15,
+     "colour": "#9aa09a",
+     "edge": 2
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1330983427727818",
+     "248637277615407",
+     "455373070132689"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 2, 3 clean views + metric elevation",
     "confidence": 0.5,
     "read_by": "claude-opus-5-5"
    }

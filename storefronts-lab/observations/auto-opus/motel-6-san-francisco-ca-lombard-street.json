@@ -1,0 +1,364 @@
+{
+ "model": "motel-6-san-francisco-ca-lombard-street",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 1: 3 views",
+ "notes": "The wall was dark grey in 2021 and painted white in the 2023 photo; the newer white is used. The visible top of the block is about 6 m. The 8.8 m LiDAR roof is the taller mass set back behind it. The street tree hides the upper wall. Between u 0 and 2.2 the grid shows the neighbour's lower storey, so this stretch is uncertain and nothing is placed there. The office doors face the parking lot and belong to another wall. The old TRAVEL INN / 2230 lettering is omitted because it predates the tenant.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.0,
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 6.0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.3,
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.colour",
+   "value": "#e4e2dc",
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.trim_colour",
+   "value": "#d6d4ce",
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.openings",
+   "value": [
+    {
+     "id": "w1:win0",
+     "kind": "window",
+     "u": 3.0,
+     "v": 1.45,
+     "w": 0.55,
+     "h": 0.75,
+     "shape": "rect",
+     "mullions": [
+      2,
+      1
+     ],
+     "frame_colour": "#3a3a3a",
+     "pane_colour": "#2e3236",
+     "depth": 0.1,
+     "sill": false
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.1.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-motel-6-san-francisco-ca-lombard-street",
+     "business_id": "mb-407b3c017a04",
+     "category": "shop",
+     "brand": null,
+     "name": "Motel 6 San Francisco- Ca \u2013 Lombard Street",
+     "u0": 0,
+     "u1": 7.72,
+     "band_h": 3.4,
+     "material": "stucco",
+     "palette": {
+      "wall": "#e4e2dc",
+      "accent": "#1f2fa0",
+      "frame": "#3a3a3a",
+      "base": "#d6d4ce",
+      "letter": "#ffffff",
+      "metal": "#9a9ea2",
+      "glass": "#2e3236"
+     },
+     "door_style": null,
+     "openings": [],
+     "awnings": [
+      {
+       "id": "m6-awn",
+       "kind": "dome",
+       "u0": 2.2,
+       "u1": 7.72,
+       "v": 3.35,
+       "depth_m": 0.9,
+       "drop_m": 0.95,
+       "valance_h": 0.35,
+       "colour": "#1f2fa0",
+       "stripe": null,
+       "valance_text": null,
+       "text_colour": "#ffffff",
+       "font": "Arial, sans-serif",
+       "sides": true
+      }
+     ],
+     "extra_signs": [
+      {
+       "id": "m6-blade",
+       "kind": "blade",
+       "u": 7.4,
+       "v": 3.7,
+       "w": 0.9,
+       "h": 1.3,
+       "offset": 0.25,
+       "thick": 0.2,
+       "bg": "#1f3a9a",
+       "edge_colour": "#16286e",
+       "layers": [
+        {
+         "type": "text",
+         "text": "Motel 6",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.2,
+         "fill": "#ffffff",
+         "font": "Arial, sans-serif",
+         "weight": 700
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 1,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "168335555887787",
+       "194737805880617",
+       "244368531488784",
+       "265858561625884"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+      "confidence": 0.5,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "tree-1",
+     "kind": "tree",
+     "edge": 1,
+     "u": 4.7,
+     "w": 6.0,
+     "r": 3.0,
+     "trunk_h": 3.2,
+     "colour": "#3f5a32"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "168335555887787",
+     "194737805880617",
+     "244368531488784",
+     "265858561625884"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 1, 3 clean views + metric elevation",
+    "confidence": 0.5,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}

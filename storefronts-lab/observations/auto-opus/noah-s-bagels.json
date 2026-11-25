@@ -1,6 +1,6 @@
 {
  "model": "noah-s-bagels",
- "read_by": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 0: 2 views",
  "notes": "Clerestory pane count is approximate (about 11). Shop-front glass divisions were read from photo 2 through reflections, and the door pair was shifted right to about 3.6-5.35 m. The parapet height is inferred from the grid top against the 5.0 m LiDAR roof.",
  "dropped": [],
  "observations": [
@@ -16,7 +16,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -38,7 +38,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -55,7 +55,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -72,7 +72,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -89,7 +89,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -106,7 +106,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -311,7 +311,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -328,7 +328,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -345,7 +345,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -370,7 +370,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -387,7 +387,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -404,7 +404,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -433,7 +433,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -544,7 +544,7 @@
        "609771066691036",
        "885058032667121"
       ],
-      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
       "confidence": 0.72,
       "read_by": "claude-opus-5-5"
      }
@@ -559,7 +559,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -576,7 +576,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }
@@ -604,7 +604,7 @@
      "609771066691036",
      "885058032667121"
     ],
-    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): 2 clean views + metric elevation",
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 2 clean views + metric elevation",
     "confidence": 0.72,
     "read_by": "claude-opus-5-5"
    }

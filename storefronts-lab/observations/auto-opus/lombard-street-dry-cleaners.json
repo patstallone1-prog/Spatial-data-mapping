@@ -1,0 +1,934 @@
+{
+ "model": "lombard-street-dry-cleaners",
+ "read_by": "kerbfront opus (claude-opus-5-5, effort medium): wall 0: 3 views; wall 3: 4 views",
+ "notes": "The rectified grid is shifted ~0.9 m toward u=0 (building left corner appears near u=-0.9 on the grid). All positions were measured from the true corners in photo 2 (~87.5 px/m), so the overlay looks offset but matches the photos. Facade top is ~6.2 m; LiDAR 6.7 m likely catches the rooftop vent or mast. No cornice. The sign 'Lombard Cleaners' is taken to be the record tenant. The wooden louvred box at the right of the sign is modelled as an ornament. | Wall includes the yellow two-storey stucco neighbour block (u 0-7.8), which cannot be coloured separately; the white one-storey block runs u 7.8-21.21. Door and window positions average photo 2 and photo 3 (fisheye). The grid is smeared by cars; the dark patch at u 12-13.7 is a car artifact, not an opening. No signage on this face; the yellow sign is on the Lombard front.",
+ "dropped": [],
+ "observations": [
+  {
+   "path": "height_m",
+   "value": 6.2,
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "floors",
+   "value": [
+    {
+     "v": 0,
+     "h": 6.2
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "roof.parapet_h",
+   "value": 0.4,
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.colour",
+   "value": "#f1f0ec",
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.trim_colour",
+   "value": "#2f4a9a",
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.openings",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.0.ornaments",
+   "value": [
+    {
+     "shape": "rect",
+     "u": 8.72,
+     "v": 3.45,
+     "w": 0.65,
+     "h": 0.62,
+     "colour": "#8a6c52",
+     "depth": 0.06,
+     "id": "w0:orn0"
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-lombard-street-dry-cleaners",
+     "business_id": "mb-6c154a84bc46",
+     "category": "shop",
+     "brand": null,
+     "name": "Lombard Street Dry Cleaners",
+     "u0": 0,
+     "u1": 9.71,
+     "band_h": 3.0,
+     "material": "stucco",
+     "palette": {
+      "wall": "#f1f0ec",
+      "accent": "#2f4a9a",
+      "frame": "#2f4a9a",
+      "base": "#ecebe6",
+      "letter": "#2f4466",
+      "metal": "#a9adb0",
+      "glass": "#3a4048"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lc:g0",
+       "kind": "window",
+       "u": 0.1,
+       "v": 0.82,
+       "w": 1.75,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:door",
+       "kind": "door",
+       "u": 2.1,
+       "v": 0.05,
+       "w": 0.98,
+       "h": 2.15,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "lc:side",
+       "kind": "window",
+       "u": 3.12,
+       "v": 0.05,
+       "w": 0.45,
+       "h": 2.7,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:transom",
+       "kind": "window",
+       "u": 2.1,
+       "v": 2.3,
+       "w": 0.98,
+       "h": 0.45,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:g1",
+       "kind": "window",
+       "u": 3.72,
+       "v": 0.82,
+       "w": 1.58,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:g2",
+       "kind": "window",
+       "u": 5.5,
+       "v": 0.82,
+       "w": 1.9,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:g3",
+       "kind": "window",
+       "u": 7.58,
+       "v": 0.82,
+       "w": 1.88,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "lc-script",
+       "kind": "letters",
+       "u": 2.23,
+       "v": 3.6,
+       "w": 6.45,
+       "h": 1.05,
+       "offset": 0,
+       "thick": 0.02,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "Lombard Cleaners",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#2f4466",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "lc-sub",
+       "kind": "letters",
+       "u": 3.14,
+       "v": 3.18,
+       "w": 4.75,
+       "h": 0.3,
+       "offset": 0,
+       "thick": 0.01,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "PICK-UP & DELIVERY   922-0766",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#2f4466",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 500
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "177623428478484",
+       "381394517503422",
+       "607480674565472",
+       "752896873081310"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+      "confidence": 0.75,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "signal-pole",
+     "kind": "pole",
+     "u": 0.55,
+     "w": 0.3,
+     "r": 0.1,
+     "trunk_h": 4.0,
+     "colour": "#7a7d78",
+     "edge": 0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "177623428478484",
+     "381394517503422",
+     "607480674565472",
+     "752896873081310"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+    "confidence": 0.75,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.material",
+   "value": "stucco",
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.colour",
+   "value": "#f4f4f2",
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.trim_colour",
+   "value": "#2a3f9a",
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.openings",
+   "value": [
+    {
+     "id": "w3:arch-door",
+     "kind": "door",
+     "u": 8.0,
+     "v": 0.3,
+     "w": 1.05,
+     "h": 2.4,
+     "shape": "arched",
+     "colour": "#6b4a2e",
+     "glazed": false
+    },
+    {
+     "id": "w3:grille-door",
+     "kind": "door",
+     "u": 11.3,
+     "v": 0.5,
+     "w": 1.0,
+     "h": 2.1,
+     "shape": "rect",
+     "colour": "#1e2a5a",
+     "glazed": true
+    },
+    {
+     "id": "w3:yellow-1f",
+     "kind": "window",
+     "u": 2.0,
+     "v": 3.2,
+     "w": 4.3,
+     "h": 1.6,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#e8e4d8",
+     "pane_colour": "#9aa0a0",
+     "depth": 0.1,
+     "sill": true
+    },
+    {
+     "id": "w3:yellow-2f",
+     "kind": "window",
+     "u": 2.0,
+     "v": 6.3,
+     "w": 4.3,
+     "h": 1.5,
+     "shape": "rect",
+     "mullions": [
+      3,
+      1
+     ],
+     "frame_colour": "#e8e4d8",
+     "pane_colour": "#9aa0a0",
+     "depth": 0.1,
+     "sill": true
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.pilasters",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.friezes",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.belts",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.bands",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.balconies",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "walls.3.ornaments",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "storefronts",
+   "value": [
+    {
+     "id": "sf-lombard-street-dry-cleaners",
+     "business_id": "mb-6c154a84bc46",
+     "category": "shop",
+     "brand": null,
+     "name": "Lombard Street Dry Cleaners",
+     "u0": 0,
+     "u1": 9.71,
+     "band_h": 3.0,
+     "material": "stucco",
+     "palette": {
+      "wall": "#f1f0ec",
+      "accent": "#2f4a9a",
+      "frame": "#2f4a9a",
+      "base": "#ecebe6",
+      "letter": "#2f4466",
+      "metal": "#a9adb0",
+      "glass": "#3a4048"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lc:g0",
+       "kind": "window",
+       "u": 0.1,
+       "v": 0.82,
+       "w": 1.75,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:door",
+       "kind": "door",
+       "u": 2.1,
+       "v": 0.05,
+       "w": 0.98,
+       "h": 2.15,
+       "leaf_count": 1,
+       "operation": "hinged",
+       "glazed": true
+      },
+      {
+       "id": "lc:side",
+       "kind": "window",
+       "u": 3.12,
+       "v": 0.05,
+       "w": 0.45,
+       "h": 2.7,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:transom",
+       "kind": "window",
+       "u": 2.1,
+       "v": 2.3,
+       "w": 0.98,
+       "h": 0.45,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:g1",
+       "kind": "window",
+       "u": 3.72,
+       "v": 0.82,
+       "w": 1.58,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:g2",
+       "kind": "window",
+       "u": 5.5,
+       "v": 0.82,
+       "w": 1.9,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lc:g3",
+       "kind": "window",
+       "u": 7.58,
+       "v": 0.82,
+       "w": 1.88,
+       "h": 1.95,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [
+      {
+       "id": "lc-script",
+       "kind": "letters",
+       "u": 2.23,
+       "v": 3.6,
+       "w": 6.45,
+       "h": 1.05,
+       "offset": 0,
+       "thick": 0.02,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "Lombard Cleaners",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#2f4466",
+         "font": "\"Brush Script MT\", cursive",
+         "weight": 400
+        }
+       ]
+      },
+      {
+       "id": "lc-sub",
+       "kind": "letters",
+       "u": 3.14,
+       "v": 3.18,
+       "w": 4.75,
+       "h": 0.3,
+       "offset": 0,
+       "thick": 0.01,
+       "bg": null,
+       "edge_colour": null,
+       "layers": [
+        {
+         "type": "text",
+         "text": "PICK-UP & DELIVERY   922-0766",
+         "x": 0.5,
+         "y": 0.5,
+         "size": 0.9,
+         "fill": "#2f4466",
+         "font": "Futura, \"Trebuchet MS\", sans-serif",
+         "weight": 500
+        }
+       ]
+      }
+     ],
+     "signs": [],
+     "lights": [],
+     "edge": 0,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "177623428478484",
+       "381394517503422",
+       "607480674565472",
+       "752896873081310"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 0, 3 clean views + metric elevation",
+      "confidence": 0.75,
+      "read_by": "claude-opus-5-5"
+     }
+    },
+    {
+     "id": "sf-lombard-street-dry-cleaners-w3",
+     "business_id": "mb-6c154a84bc46",
+     "category": "shop",
+     "brand": null,
+     "name": "Lombard Street Dry Cleaners",
+     "u0": 15.9,
+     "u1": 21.21,
+     "band_h": 3.2,
+     "material": "stucco",
+     "palette": {
+      "wall": "#f4f4f2",
+      "accent": "#2a3f9a",
+      "frame": "#2a3f9a",
+      "base": "#f4f4f2",
+      "letter": "#1a1a1a",
+      "metal": "#a5aaa7",
+      "glass": "#5a6670"
+     },
+     "door_style": null,
+     "openings": [
+      {
+       "id": "lsdc-oct:g0",
+       "kind": "window",
+       "u": 16.1,
+       "v": 0.9,
+       "w": 2.9,
+       "h": 2.05,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      },
+      {
+       "id": "lsdc-oct:g1",
+       "kind": "window",
+       "u": 19.1,
+       "v": 0.9,
+       "w": 1.85,
+       "h": 2.05,
+       "transom_fraction": 0.0,
+       "privacy_fraction": 0
+      }
+     ],
+     "awnings": [],
+     "extra_signs": [],
+     "signs": [],
+     "lights": [],
+     "edge": 3,
+     "evidence": {
+      "kind": "observed",
+      "frames": [
+       "1261600901143903",
+       "1926414097510124",
+       "4140416576080420",
+       "879376186567952",
+       "970583147635979"
+      ],
+      "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+      "confidence": 0.55,
+      "read_by": "claude-opus-5-5"
+     }
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "seating",
+   "value": [],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  },
+  {
+   "path": "street_objects",
+   "value": [
+    {
+     "id": "signal-pole",
+     "kind": "pole",
+     "u": 0.55,
+     "w": 0.3,
+     "r": 0.1,
+     "trunk_h": 4.0,
+     "colour": "#7a7d78",
+     "edge": 0
+    }
+   ],
+   "evidence": {
+    "frames": [
+     "1261600901143903",
+     "1926414097510124",
+     "4140416576080420",
+     "879376186567952",
+     "970583147635979"
+    ],
+    "how": "kerbfront opus (claude-opus-5-5, effort medium, checked): wall 3, 4 clean views + metric elevation",
+    "confidence": 0.55,
+    "read_by": "claude-opus-5-5"
+   }
+  }
+ ]
+}
