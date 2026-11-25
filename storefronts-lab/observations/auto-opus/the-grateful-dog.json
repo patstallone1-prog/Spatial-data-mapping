@@ -142,8 +142,9 @@
      "material": "wood_siding",
      "colour": "#c6a98d",
      "trim_colour": "#efebe3",
-     "v": 4.75,
-     "h": 2.3
+     "v": 4.6,
+     "h": 2.3499999999999996,
+     "projection_from": "photos"
     },
     {
      "id": "win-right",

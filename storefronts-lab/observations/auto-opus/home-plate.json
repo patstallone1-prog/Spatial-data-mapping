@@ -128,11 +128,31 @@
    "path": "walls.1.openings",
    "value": [
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 0.05,
      "w": 1.7,
      "v0": 3.15,
+     "v1": 5.43,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#bba98a",
+     "trim_colour": "#ece8de",
+     "v": 3.6,
+     "h": 1.37,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 0.05,
+     "w": 1.7,
+     "v0": 5.43,
      "v1": 7.7,
      "projection": 0.6,
      "front_share": 0.55,
@@ -149,15 +169,36 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 3.9,
-     "h": 3.5500000000000007
+     "v": 5.88,
+     "h": 1.37,
+     "projection_from": "photos"
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 2.65,
      "w": 1.7,
      "v0": 3.15,
+     "v1": 5.43,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#bba98a",
+     "trim_colour": "#ece8de",
+     "v": 3.6,
+     "h": 1.37,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 2.65,
+     "w": 1.7,
+     "v0": 5.43,
      "v1": 7.7,
      "projection": 0.6,
      "front_share": 0.55,
@@ -174,15 +215,36 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 3.9,
-     "h": 3.5500000000000007
+     "v": 5.88,
+     "h": 1.37,
+     "projection_from": "photos"
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 5.25,
      "w": 1.7,
      "v0": 3.15,
+     "v1": 5.43,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#bba98a",
+     "trim_colour": "#ece8de",
+     "v": 3.6,
+     "h": 1.37,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 5.25,
+     "w": 1.7,
+     "v0": 5.43,
      "v1": 7.7,
      "projection": 0.6,
      "front_share": 0.55,
@@ -199,8 +261,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 3.9,
-     "h": 3.5500000000000007
+     "v": 5.88,
+     "h": 1.37,
+     "projection_from": "photos"
     },
     {
      "id": "top",

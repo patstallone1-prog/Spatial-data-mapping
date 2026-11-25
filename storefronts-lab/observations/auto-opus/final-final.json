@@ -149,8 +149,9 @@
      "material": "wood_siding",
      "colour": "#5f6267",
      "trim_colour": "#f0efea",
-     "v": 4.25,
-     "h": 2.2
+     "v": 4.1,
+     "h": 2.25,
+     "projection_from": "photos"
     },
     {
      "id": "bay-right",
@@ -168,8 +169,9 @@
      "material": "wood_siding",
      "colour": "#5f6267",
      "trim_colour": "#f0efea",
-     "v": 4.25,
-     "h": 2.2
+     "v": 4.1,
+     "h": 2.25,
+     "projection_from": "photos"
     },
     {
      "id": "oct1",
@@ -707,8 +709,9 @@
      "material": "stucco",
      "colour": "#3b3e43",
      "trim_colour": "#ecebe5",
-     "v": 5.25,
-     "h": 1.7000000000000002
+     "v": 5.1,
+     "h": 1.7500000000000002,
+     "projection_from": "photos"
     },
     {
      "id": "up-w1",
@@ -743,8 +746,9 @@
      "material": "stucco",
      "colour": "#3b3e43",
      "trim_colour": "#ecebe5",
-     "v": 5.25,
-     "h": 1.7999999999999998
+     "v": 5.1,
+     "h": 1.8499999999999999,
+     "projection_from": "photos"
     }
    ],
    "evidence": {

@@ -82,6 +82,188 @@
    "h": 3.8
   }
  ],
+ "outline": [
+  [
+   -6.079,
+   -20.953
+  ],
+  [
+   -8.951,
+   -3.763
+  ],
+  [
+   -9.374,
+   -1.006
+  ],
+  [
+   -6.083,
+   -0.496
+  ],
+  [
+   -6.08,
+   -0.497
+  ],
+  [
+   -6.004,
+   -0.994
+  ],
+  [
+   -5.547,
+   -0.918
+  ],
+  [
+   -4.949,
+   0.036
+  ],
+  [
+   -3.333,
+   0.219
+  ],
+  [
+   -3.325,
+   0.218
+  ],
+  [
+   -2.516,
+   -0.417
+  ],
+  [
+   2.516,
+   0.416
+  ],
+  [
+   3.033,
+   1.242
+  ],
+  [
+   4.649,
+   1.424
+  ],
+  [
+   4.657,
+   1.423
+  ],
+  [
+   5.344,
+   0.885
+  ],
+  [
+   6.921,
+   1.146
+  ],
+  [
+   7.489,
+   2.053
+  ],
+  [
+   9.107,
+   2.236
+  ],
+  [
+   9.114,
+   2.236
+  ],
+  [
+   9.879,
+   1.635
+  ],
+  [
+   15.124,
+   2.503
+  ],
+  [
+   15.597,
+   3.259
+  ],
+  [
+   17.214,
+   3.442
+  ],
+  [
+   17.221,
+   3.441
+  ],
+  [
+   17.843,
+   2.953
+  ],
+  [
+   19.239,
+   3.185
+  ],
+  [
+   19.247,
+   3.184
+  ],
+  [
+   19.46,
+   1.887
+  ],
+  [
+   20.135,
+   1.442
+  ],
+  [
+   20.401,
+   -0.35
+  ],
+  [
+   19.969,
+   -1.225
+  ],
+  [
+   21.757,
+   -12.142
+  ],
+  [
+   22.38,
+   -12.552
+  ],
+  [
+   22.646,
+   -14.343
+  ],
+  [
+   22.25,
+   -15.147
+  ],
+  [
+   22.388,
+   -15.994
+  ],
+  [
+   14.001,
+   -17.488
+  ],
+  [
+   9.558,
+   -18.224
+  ],
+  [
+   9.55,
+   -18.223
+  ],
+  [
+   8.216,
+   -10.078
+  ],
+  [
+   4.225,
+   -10.739
+  ],
+  [
+   5.559,
+   -18.886
+  ],
+  [
+   -3.047,
+   -20.31
+  ],
+  [
+   -3.021,
+   -20.48
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#b8bdbb",
@@ -270,11 +452,51 @@
    ],
    "openings": [
     {
-     "id": "bay-l",
+     "id": "bay-l-f0",
      "kind": "bay",
      "u": 0.0,
      "w": 2.45,
      "v0": 4.1,
+     "v1": 6.73,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#ebeae5",
+     "trim_colour": "#e2e1dc",
+     "v": 4.63,
+     "h": 1.58,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-l-f1",
+     "kind": "bay",
+     "u": 0.0,
+     "w": 2.45,
+     "v0": 6.73,
+     "v1": 9.37,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#ebeae5",
+     "trim_colour": "#e2e1dc",
+     "v": 7.26,
+     "h": 1.58,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-l-f2",
+     "kind": "bay",
+     "u": 0.0,
+     "w": 2.45,
+     "v0": 9.37,
      "v1": 12.0,
      "projection": 0.6,
      "front_share": 0.55,
@@ -291,8 +513,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.85,
-     "h": 6.9
+     "v": 9.89,
+     "h": 1.58,
+     "projection_from": "photos"
     },
     {
      "id": "r1-pair",
@@ -560,11 +783,51 @@
    "belts": [],
    "openings": [
     {
-     "id": "bay-left",
+     "id": "bay-left-f0",
      "kind": "bay",
      "u": 3.2,
      "w": 3.2,
      "v0": 4.1,
+     "v1": 6.77,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f2f1ec",
+     "trim_colour": "#f2f1ec",
+     "v": 4.63,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f1",
+     "kind": "bay",
+     "u": 3.2,
+     "w": 3.2,
+     "v0": 6.77,
+     "v1": 9.43,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f2f1ec",
+     "trim_colour": "#f2f1ec",
+     "v": 7.3,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f2",
+     "kind": "bay",
+     "u": 3.2,
+     "w": 3.2,
+     "v0": 9.43,
      "v1": 12.1,
      "projection": 0.6,
      "front_share": 0.55,
@@ -581,15 +844,56 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.85,
-     "h": 7.0
+     "v": 9.97,
+     "h": 1.6,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-mid",
+     "id": "bay-mid-f0",
      "kind": "bay",
      "u": 15.4,
      "w": 3.4,
      "v0": 4.1,
+     "v1": 6.77,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f2f1ec",
+     "trim_colour": "#f2f1ec",
+     "v": 4.63,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-mid-f1",
+     "kind": "bay",
+     "u": 15.4,
+     "w": 3.4,
+     "v0": 6.77,
+     "v1": 9.43,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f2f1ec",
+     "trim_colour": "#f2f1ec",
+     "v": 7.3,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-mid-f2",
+     "kind": "bay",
+     "u": 15.4,
+     "w": 3.4,
+     "v0": 9.43,
      "v1": 12.1,
      "projection": 0.6,
      "front_share": 0.55,
@@ -606,15 +910,56 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.85,
-     "h": 7.0
+     "v": 9.97,
+     "h": 1.6,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-right",
+     "id": "bay-right-f0",
      "kind": "bay",
      "u": 23.2,
      "w": 3.6,
      "v0": 4.1,
+     "v1": 6.83,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f2f1ec",
+     "trim_colour": "#f2f1ec",
+     "v": 4.65,
+     "h": 1.64,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-right-f1",
+     "kind": "bay",
+     "u": 23.2,
+     "w": 3.6,
+     "v0": 6.83,
+     "v1": 9.57,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f2f1ec",
+     "trim_colour": "#f2f1ec",
+     "v": 7.38,
+     "h": 1.64,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-right-f2",
+     "kind": "bay",
+     "u": 23.2,
+     "w": 3.6,
+     "v0": 9.57,
      "v1": 12.3,
      "projection": 0.7,
      "front_share": 0.55,
@@ -631,8 +976,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.85,
-     "h": 7.200000000000001
+     "v": 10.11,
+     "h": 1.64,
+     "projection_from": "photos"
     },
     {
      "id": "f2-a",

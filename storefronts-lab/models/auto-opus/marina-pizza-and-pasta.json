@@ -82,6 +82,60 @@
    "h": 2.7
   }
  ],
+ "outline": [
+  [
+   4.038,
+   0.534
+  ],
+  [
+   8.731,
+   -26.108
+  ],
+  [
+   -0.203,
+   -27.409
+  ],
+  [
+   -1.454,
+   -18.558
+  ],
+  [
+   -1.945,
+   -15.078
+  ],
+  [
+   -2.522,
+   -11.072
+  ],
+  [
+   1.011,
+   -10.55
+  ],
+  [
+   0.583,
+   -7.568
+  ],
+  [
+   -2.946,
+   -8.089
+  ],
+  [
+   -2.951,
+   -8.088
+  ],
+  [
+   -4.038,
+   -0.533
+  ],
+  [
+   3.999,
+   0.747
+  ],
+  [
+   4.005,
+   0.747
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#dbe1d8",
@@ -526,11 +580,31 @@
      "sill": false
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 3.5,
      "w": 4.5,
      "v0": 3.9,
+     "v1": 6.9,
+     "projection": 0.6,
+     "front_share": 0.7,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#b8ad9f",
+     "trim_colour": "#ece8df",
+     "v": 4.5,
+     "h": 1.8,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 3.5,
+     "w": 4.5,
+     "v0": 6.9,
      "v1": 9.9,
      "projection": 0.6,
      "front_share": 0.7,
@@ -541,8 +615,9 @@
      "material": "wood_siding",
      "colour": "#b8ad9f",
      "trim_colour": "#ece8df",
-     "v": 4.65,
-     "h": 5.0
+     "v": 7.5,
+     "h": 1.8,
+     "projection_from": "photos"
     }
    ],
    "evidence": {
@@ -1604,7 +1679,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -1616,7 +1691,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

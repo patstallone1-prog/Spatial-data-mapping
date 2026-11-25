@@ -138,8 +138,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.25,
-     "h": 2.4000000000000004
+     "v": 5.1,
+     "h": 2.45,
+     "projection_from": "photos"
     },
     {
      "id": "bay2",
@@ -163,8 +164,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.25,
-     "h": 2.4000000000000004
+     "v": 5.1,
+     "h": 2.45,
+     "projection_from": "photos"
     },
     {
      "id": "f3-sl",

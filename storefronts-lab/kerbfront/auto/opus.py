@@ -43,7 +43,7 @@ from ..config import LAB, OUT
 MODEL = "claude-opus-5-5"
 EFFORT = "medium"
 MAX_TOKENS = 32000
-PROMPT_VERSION = "opus-wall/3"
+PROMPT_VERSION = "opus-wall/3"  # SYSTEM is not in the cache key: answers so far are reprocessed free
 #: USD per million tokens (Opus 5.5): input, output, cache read, 5-minute cache write
 PRICE = {"in": 4.0, "out": 20.0, "cache_read": 0.20, "cache_write": 5.0}
 DIR = OUT / "opus"
@@ -98,9 +98,12 @@ Vocabulary (only these values are drawn; anything else is dropped):
     glazing grid|diamond with lattice_m, frame_colour, pane_colour, depth (reveal: how far the glass sits
     behind the wall face, 0.05-0.35 m), sill true/false
   * door (a street door that is not a shop's, e.g. to the flats above): u, v, w, h, shape, colour, glazed
-  * bay: a projecting bay window. u, w, v0 (bottom), v1 (top), projection (m out from the wall),
-    front_share (share of w that is the flat front, the rest are angled sides), mullions, material, colour,
-    trim_colour, cap {h, colour, crest_h, crest_w} when it has a hood or crest
+  * bay: a projecting bay window, ONE FLOOR of it: u, w, v0 (bottom of that floor's bay), v1 (top),
+    v and h (that floor's window inside it), projection (m out from the wall: always give it, judged
+    from the angled photographs and the bay's side windows, typically 0.5-0.9), front_share (share of w
+    that is the flat front, the rest are angled sides; 1.0 for a square box bay), mullions, material,
+    colour, trim_colour, cap {h, colour, crest_h, crest_w} on the top floor when it has a hood or crest.
+    A bay rising through three floors is three bays, one per floor, same u and w.
 - pilasters: {u: [centres], w, v0, v1, depth, colour, groove_colour, top: flat|stepped, steps, step_h, flutes}
 - friezes (a band with a repeated motif): {v, h, colour, motif fan|chevron|diamond|dentil|quarter_round|wave,
   motif_colour, spacing, depth}  (motif fan|chevron|diamond|dentil|quarter_round)
@@ -531,6 +534,44 @@ def expand(items, L: float) -> list:
     return out
 
 
+def bays(openings: list[dict], base: dict, e: int, floor_h: float = 3.0) -> list[dict]:
+    """Bays as the studio draws them: one per floor, each with its own window, and a depth.
+
+    A bay given once over several floors (v0..v1 two or three storeys, one window the whole
+    height) is drawn as one tall dark pane; it becomes a bay per floor, its window set in each
+    floor as in the first. A bay with no projection read from the photographs takes the depth
+    the LiDAR outline shows there (:func:`kerbfront.model.bay_depth`), else 0.6 m; which one is
+    kept in ``projection_from``."""
+    from ..model import bay_depth
+    out = []
+    for o in openings:
+        if o.get("kind") != "bay":
+            out.append(o)
+            continue
+        if o.get("projection") is None:
+            d = bay_depth(base, e, o["u"], o["w"]) if base.get("outline") else None
+            o = {**o, "projection": d if d is not None else 0.6,
+                 "projection_from": "lidar outline" if d is not None else "default"}
+        else:
+            o = {**o, "projection_from": o.get("projection_from") or "photos"}
+        span = o["v1"] - o["v0"]
+        n = int(round(span / floor_h))
+        if n < 2:
+            out.append(o)
+            continue
+        sh = span / n
+        if o["h"] > 1.5 * sh:  # one window the whole height: set one in each floor
+            off, h = 0.2 * sh, 0.6 * sh
+        else:  # the window given is the first floor's: the same in each
+            off, h = max(0.1, o["v"] - o["v0"]), min(o["h"], sh - 0.2)
+        for i in range(n):
+            v0 = o["v0"] + i * sh
+            out.append({**o, "id": f"{o['id']}-f{i}" if o.get("id") else None, "v0": round(v0, 2),
+                        "v1": round(v0 + sh, 2), "v": round(v0 + off, 2), "h": round(h, 2),
+                        **({"cap": o["cap"]} if o.get("cap") and i == n - 1 else {"cap": None})})
+    return [{k: v for k, v in x.items() if v is not None or k not in ("id", "cap")} for x in out]
+
+
 def sanitize(ans: dict, base: dict, e: int) -> dict:
     """The answer clamped to the wall and the vocabulary; parts that cannot be drawn are dropped
     and counted in ``dropped``."""
@@ -557,8 +598,9 @@ def sanitize(ans: dict, base: dict, e: int) -> dict:
             v0, v1 = _num(o.get("v0"), 0, H + 1), _num(o.get("v1"), 0, H + 2)
             if None in (u, w, v0, v1) or v1 <= v0:
                 return None
-            o = {**o, "u": u, "w": w, "v0": v0, "v1": v1, "v": o.get("v", v0 + 0.75), "h": o.get("h", v1 - v0 - 1.0),
-                 "projection": _num(o.get("projection"), 0.1, 1.5, 0.6), "front_share": _num(o.get("front_share"), 0.2, 1.0, 0.6)}
+            o = {**o, "u": u, "w": w, "v0": v0, "v1": v1, "v": _num(o.get("v"), v0, v1, v0 + 0.6),
+                 "h": _num(o.get("h"), 0.3, v1 - v0, max(0.5, v1 - v0 - 0.95)),
+                 "projection": _num(o.get("projection"), 0.1, 1.5), "front_share": _num(o.get("front_share"), 0.2, 1.0, 0.6)}
             if o.get("material") not in MATERIALS:
                 o.pop("material", None)
             return _colours(o)
@@ -616,9 +658,11 @@ def sanitize(ans: dict, base: dict, e: int) -> dict:
         return _colours(out)
 
     wa = ans.get("wall") or {}
+    upper = [f["h"] for f in (ans.get("floors") or base.get("floors") or [])[1:] if isinstance(f, dict) and f.get("h")]
+    floor_h = float(np.median(upper)) if upper else 3.0
     wall = {"material": wa.get("material") if wa.get("material") in MATERIALS else None,
             "colour": _col(wa.get("colour")), "trim_colour": _col(wa.get("trim_colour")),
-            "openings": keep("opening", wa.get("openings"), opening),
+            "openings": bays(keep("opening", wa.get("openings"), opening), base, e, floor_h),
             "pilasters": keep("pilaster", wa.get("pilasters"), pilaster),
             "friezes": keep("frieze", wa.get("friezes"), lambda b: band(b, True)),
             "belts": keep("belt", wa.get("belts"), band),

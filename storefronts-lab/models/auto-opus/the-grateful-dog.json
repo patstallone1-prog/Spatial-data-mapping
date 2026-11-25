@@ -58,6 +58,52 @@
    "h": 4.0
   }
  ],
+ "outline": [
+  [
+   -0.069,
+   -22.285
+  ],
+  [
+   -3.53,
+   -1.583
+  ],
+  [
+   -3.685,
+   -0.678
+  ],
+  [
+   3.685,
+   0.678
+  ],
+  [
+   3.688,
+   0.678
+  ],
+  [
+   3.857,
+   -0.333
+  ],
+  [
+   8.567,
+   -29.062
+  ],
+  [
+   0.775,
+   -30.306
+  ],
+  [
+   -0.121,
+   -24.577
+  ],
+  [
+   0.3,
+   -24.508
+  ],
+  [
+   0.29,
+   -24.469
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#bec0be",
@@ -131,8 +177,9 @@
      "material": "wood_siding",
      "colour": "#c6a98d",
      "trim_colour": "#efebe3",
-     "v": 4.75,
-     "h": 2.3
+     "v": 4.6,
+     "h": 2.3499999999999996,
+     "projection_from": "photos"
     },
     {
      "id": "win-right",
@@ -1242,7 +1289,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -1254,7 +1301,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

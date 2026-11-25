@@ -141,8 +141,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 3.75,
-     "h": 0.9000000000000004
+     "v": 3.6,
+     "h": 0.9500000000000004,
+     "projection_from": "photos"
     },
     {
      "id": "w4:triple",
@@ -505,11 +506,31 @@
      "glazed": false
     },
     {
-     "id": "bay-left",
+     "id": "bay-left-f0",
      "kind": "bay",
      "u": 0.0,
      "w": 3.2,
      "v0": 2.6,
+     "v1": 4.6,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#6b7569",
+     "trim_colour": "#e6e4dc",
+     "v": 3.0,
+     "h": 1.2,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f1",
+     "kind": "bay",
+     "u": 0.0,
+     "w": 3.2,
+     "v0": 4.6,
      "v1": 6.6,
      "projection": 0.6,
      "front_share": 0.55,
@@ -520,8 +541,9 @@
      "material": "wood_siding",
      "colour": "#6b7569",
      "trim_colour": "#e6e4dc",
-     "v": 3.35,
-     "h": 2.9999999999999996
+     "v": 5.0,
+     "h": 1.2,
+     "projection_from": "photos"
     },
     {
      "id": "bay-corner",
@@ -545,8 +567,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 3.45,
-     "h": 0.5999999999999996
+     "v": 3.3000000000000003,
+     "h": 0.6499999999999997,
+     "projection_from": "photos"
     },
     {
      "id": "w-corner",
@@ -994,8 +1017,9 @@
      "material": "wood_siding",
      "colour": "#a89f8f",
      "trim_colour": "#ece9e0",
-     "v": 3.65,
-     "h": 1.3000000000000003
+     "v": 3.5,
+     "h": 1.3500000000000003,
+     "projection_from": "photos"
     },
     {
      "id": "bay-lo",
@@ -1013,8 +1037,9 @@
      "material": "wood_siding",
      "colour": "#a89f8f",
      "trim_colour": "#ece9e0",
-     "v": 3.65,
-     "h": 1.3000000000000003
+     "v": 3.5,
+     "h": 1.3500000000000003,
+     "projection_from": "photos"
     },
     {
      "id": "bay-hi",
@@ -1032,8 +1057,9 @@
      "material": "wood_siding",
      "colour": "#a89f8f",
      "trim_colour": "#ece9e0",
-     "v": 6.15,
-     "h": 1.0
+     "v": 6.0,
+     "h": 1.05,
+     "projection_from": "photos"
     },
     {
      "id": "bay-hi",
@@ -1051,8 +1077,9 @@
      "material": "wood_siding",
      "colour": "#a89f8f",
      "trim_colour": "#ece9e0",
-     "v": 6.15,
-     "h": 1.0
+     "v": 6.0,
+     "h": 1.05,
+     "projection_from": "photos"
     },
     {
      "id": "d-black",

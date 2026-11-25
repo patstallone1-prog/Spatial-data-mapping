@@ -151,11 +151,31 @@
      "sill": true
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 2.2,
      "w": 3.7,
      "v0": 3.4,
+     "v1": 6.35,
+     "projection": 0.6,
+     "front_share": 0.47,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#a9aa86",
+     "trim_colour": "#f2f0e8",
+     "v": 3.99,
+     "h": 1.77,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 2.2,
+     "w": 3.7,
+     "v0": 6.35,
      "v1": 9.3,
      "projection": 0.6,
      "front_share": 0.47,
@@ -172,8 +192,9 @@
       "crest_h": 0.3,
       "crest_w": 3.7
      },
-     "v": 4.15,
-     "h": 4.9
+     "v": 6.94,
+     "h": 1.77,
+     "projection_from": "photos"
     },
     {
      "id": "arch-r",

@@ -182,8 +182,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 3.85,
-     "h": 1.4999999999999996
+     "v": 3.7,
+     "h": 1.5499999999999996,
+     "projection_from": "photos"
     },
     {
      "id": "d-flats",
@@ -722,8 +723,9 @@
      "material": "wood_siding",
      "colour": "#a9b89c",
      "trim_colour": "#e6e8dc",
-     "v": 5.35,
-     "h": 2.0
+     "v": 5.199999999999999,
+     "h": 2.05,
+     "projection_from": "photos"
     },
     {
      "id": "bay-east",
@@ -741,8 +743,9 @@
      "material": "wood_siding",
      "colour": "#a9b89c",
      "trim_colour": "#e6e8dc",
-     "v": 5.95,
-     "h": 1.5
+     "v": 5.8,
+     "h": 1.55,
+     "projection_from": "photos"
     }
    ],
    "evidence": {

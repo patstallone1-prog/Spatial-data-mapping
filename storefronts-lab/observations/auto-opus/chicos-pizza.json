@@ -138,11 +138,31 @@
    "path": "walls.4.openings",
    "value": [
     {
-     "id": "bay-L",
+     "id": "bay-L-f0",
      "kind": "bay",
      "u": 0.7,
      "w": 2.25,
      "v0": 4.15,
+     "v1": 6.88,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#76735e",
+     "trim_colour": "#e3dbad",
+     "v": 4.7,
+     "h": 1.63,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-L-f1",
+     "kind": "bay",
+     "u": 0.7,
+     "w": 2.25,
+     "v0": 6.88,
      "v1": 9.6,
      "projection": 0.6,
      "front_share": 0.5,
@@ -159,15 +179,36 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.9,
-     "h": 4.449999999999999
+     "v": 7.42,
+     "h": 1.63,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-L",
+     "id": "bay-L-f0",
      "kind": "bay",
      "u": 4.0,
      "w": 2.25,
      "v0": 4.15,
+     "v1": 6.88,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#76735e",
+     "trim_colour": "#e3dbad",
+     "v": 4.7,
+     "h": 1.63,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-L-f1",
+     "kind": "bay",
+     "u": 4.0,
+     "w": 2.25,
+     "v0": 6.88,
      "v1": 9.6,
      "projection": 0.6,
      "front_share": 0.5,
@@ -184,8 +225,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.9,
-     "h": 4.449999999999999
+     "v": 7.42,
+     "h": 1.63,
+     "projection_from": "photos"
     },
     {
      "id": "arch-entry",

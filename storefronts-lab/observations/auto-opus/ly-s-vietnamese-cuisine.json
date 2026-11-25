@@ -542,8 +542,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.25,
-     "h": 2.0
+     "v": 5.1,
+     "h": 2.05,
+     "projection_from": "photos"
     }
    ],
    "evidence": {

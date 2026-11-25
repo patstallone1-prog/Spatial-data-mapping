@@ -138,11 +138,31 @@
    "path": "walls.9.openings",
    "value": [
     {
-     "id": "bay-corner",
+     "id": "bay-corner-f0",
      "kind": "bay",
      "u": 0.0,
      "w": 3.1,
      "v0": 5.3,
+     "v1": 10.1,
+     "projection": 0.75,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "painted_wood",
+     "colour": "#e6dcc4",
+     "trim_colour": "#8e9ca6",
+     "v": 6.26,
+     "h": 2.88,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-corner-f1",
+     "kind": "bay",
+     "u": 0.0,
+     "w": 3.1,
+     "v0": 10.1,
      "v1": 14.9,
      "projection": 0.75,
      "front_share": 0.55,
@@ -159,15 +179,36 @@
       "crest_h": 0.9,
       "crest_w": 2.2
      },
-     "v": 6.05,
-     "h": 8.600000000000001
+     "v": 11.06,
+     "h": 2.88,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-mid",
+     "id": "bay-mid-f0",
      "kind": "bay",
      "u": 11.2,
      "w": 4.5,
      "v0": 5.3,
+     "v1": 9.95,
+     "projection": 0.75,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "painted_wood",
+     "colour": "#e6dcc4",
+     "trim_colour": "#8e9ca6",
+     "v": 6.23,
+     "h": 2.79,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-mid-f1",
+     "kind": "bay",
+     "u": 11.2,
+     "w": 4.5,
+     "v0": 9.95,
      "v1": 14.6,
      "projection": 0.75,
      "front_share": 0.55,
@@ -184,8 +225,9 @@
       "crest_h": 1.0,
       "crest_w": 3.0
      },
-     "v": 6.05,
-     "h": 8.3
+     "v": 10.88,
+     "h": 2.79,
+     "projection_from": "photos"
     },
     {
      "id": "w-f2-a",
@@ -985,11 +1027,31 @@
    "path": "walls.8.openings",
    "value": [
     {
-     "id": "bayL",
+     "id": "bayL-f0",
      "kind": "bay",
      "u": 0.45,
      "w": 3.0,
      "v0": 4.3,
+     "v1": 7.45,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "painted_wood",
+     "colour": "#eee8da",
+     "trim_colour": "#9fadb0",
+     "v": 4.93,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 0.45,
+     "w": 3.0,
+     "v0": 7.45,
      "v1": 10.6,
      "projection": 0.7,
      "front_share": 0.5,
@@ -1006,15 +1068,56 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.05,
-     "h": 5.3
+     "v": 8.08,
+     "h": 1.89,
+     "projection_from": "photos"
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 7.5,
      "w": 3.64,
      "v0": 4.4,
+     "v1": 7.27,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "painted_wood",
+     "colour": "#eee8da",
+     "trim_colour": "#9fadb0",
+     "v": 4.97,
+     "h": 1.72,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 7.5,
+     "w": 3.64,
+     "v0": 7.27,
+     "v1": 10.13,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "painted_wood",
+     "colour": "#eee8da",
+     "trim_colour": "#9fadb0",
+     "v": 7.84,
+     "h": 1.72,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f2",
+     "kind": "bay",
+     "u": 7.5,
+     "w": 3.64,
+     "v0": 10.13,
      "v1": 13.0,
      "projection": 0.7,
      "front_share": 0.5,
@@ -1031,8 +1134,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.15,
-     "h": 7.6
+     "v": 10.71,
+     "h": 1.72,
+     "projection_from": "photos"
     },
     {
      "id": "c1",

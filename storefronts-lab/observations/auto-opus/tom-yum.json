@@ -162,8 +162,9 @@
      "material": "wood_siding",
      "colour": "#a7b2c3",
      "trim_colour": "#f0eee6",
-     "v": 4.35,
-     "h": 1.9999999999999996
+     "v": 4.2,
+     "h": 2.05,
+     "projection_from": "photos"
     },
     {
      "id": "bay-green",
@@ -181,8 +182,9 @@
      "material": "wood_siding",
      "colour": "#a9ac8a",
      "trim_colour": "#f0eee6",
-     "v": 4.35,
-     "h": 1.6999999999999997
+     "v": 4.2,
+     "h": 1.7499999999999998,
+     "projection_from": "photos"
     },
     {
      "id": "d-2412a",

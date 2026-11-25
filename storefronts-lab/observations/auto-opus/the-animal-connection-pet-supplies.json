@@ -601,11 +601,51 @@
      "sill": true
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 22.2,
      "w": 3.3,
      "v0": 4.0,
+     "v1": 6.67,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#f1f1ee",
+     "trim_colour": "#f1f1ee",
+     "v": 4.53,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 22.2,
+     "w": 3.3,
+     "v0": 6.67,
+     "v1": 9.33,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#f1f1ee",
+     "trim_colour": "#f1f1ee",
+     "v": 7.2,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f2",
+     "kind": "bay",
+     "u": 22.2,
+     "w": 3.3,
+     "v0": 9.33,
      "v1": 12.0,
      "projection": 0.7,
      "front_share": 0.5,
@@ -622,8 +662,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.75,
-     "h": 7.0
+     "v": 9.87,
+     "h": 1.6,
+     "projection_from": "photos"
     },
     {
      "id": "door-flats",
@@ -1133,11 +1174,51 @@
    "path": "walls.4.openings",
    "value": [
     {
-     "id": "bay-corner",
+     "id": "bay-corner-f0",
      "kind": "bay",
      "u": 0.8,
      "w": 2.8,
      "v0": 4.3,
+     "v1": 6.97,
+     "projection": 0.55,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#ebe8e1",
+     "trim_colour": "#e9e6df",
+     "v": 4.83,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-corner-f1",
+     "kind": "bay",
+     "u": 0.8,
+     "w": 2.8,
+     "v0": 6.97,
+     "v1": 9.63,
+     "projection": 0.55,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#ebe8e1",
+     "trim_colour": "#e9e6df",
+     "v": 7.5,
+     "h": 1.6,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-corner-f2",
+     "kind": "bay",
+     "u": 0.8,
+     "w": 2.8,
+     "v0": 9.63,
      "v1": 12.3,
      "projection": 0.55,
      "front_share": 0.5,
@@ -1154,8 +1235,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.05,
-     "h": 7.0
+     "v": 10.17,
+     "h": 1.6,
+     "projection_from": "photos"
     },
     {
      "id": "f2-pair",

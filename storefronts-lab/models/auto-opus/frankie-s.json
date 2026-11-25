@@ -86,6 +86,244 @@
    "h": 3.4
   }
  ],
+ "outline": [
+  [
+   -5.784,
+   -24.013
+  ],
+  [
+   -6.84,
+   -16.71
+  ],
+  [
+   -6.105,
+   -15.741
+  ],
+  [
+   -6.563,
+   -12.07
+  ],
+  [
+   -7.606,
+   -11.414
+  ],
+  [
+   -8.512,
+   -5.065
+  ],
+  [
+   -5.472,
+   -4.524
+  ],
+  [
+   -5.627,
+   -3.617
+  ],
+  [
+   -8.653,
+   -4.096
+  ],
+  [
+   -10.431,
+   6.635
+  ],
+  [
+   -9.633,
+   6.758
+  ],
+  [
+   -2.349,
+   7.961
+  ],
+  [
+   -2.343,
+   7.96
+  ],
+  [
+   -2.32,
+   7.947
+  ],
+  [
+   -1.802,
+   8.087
+  ],
+  [
+   -1.796,
+   8.087
+  ],
+  [
+   -0.57,
+   7.236
+  ],
+  [
+   -0.367,
+   5.257
+  ],
+  [
+   -1.245,
+   4.309
+  ],
+  [
+   -1.117,
+   3.472
+  ],
+  [
+   -0.036,
+   2.9
+  ],
+  [
+   0.251,
+   0.928
+  ],
+  [
+   -0.187,
+   0.198
+  ],
+  [
+   -0.226,
+   0.1
+  ],
+  [
+   -0.246,
+   0.051
+  ],
+  [
+   0.036,
+   -2.9
+  ],
+  [
+   0.917,
+   -3.802
+  ],
+  [
+   1.19,
+   -5.532
+  ],
+  [
+   0.599,
+   -6.362
+  ],
+  [
+   0.835,
+   -8.09
+  ],
+  [
+   1.686,
+   -8.9
+  ],
+  [
+   1.926,
+   -10.574
+  ],
+  [
+   1.312,
+   -11.493
+  ],
+  [
+   1.697,
+   -13.744
+  ],
+  [
+   2.601,
+   -14.557
+  ],
+  [
+   2.781,
+   -16.336
+  ],
+  [
+   2.18,
+   -17.038
+  ],
+  [
+   2.607,
+   -20.078
+  ],
+  [
+   3.043,
+   -20.304
+  ],
+  [
+   3.368,
+   -20.594
+  ],
+  [
+   3.537,
+   -21.056
+  ],
+  [
+   3.732,
+   -21.699
+  ],
+  [
+   3.594,
+   -22.196
+  ],
+  [
+   3.368,
+   -22.651
+  ],
+  [
+   3.166,
+   -23.018
+  ],
+  [
+   2.764,
+   -23.408
+  ],
+  [
+   2.265,
+   -23.611
+  ],
+  [
+   1.666,
+   -23.701
+  ],
+  [
+   1.146,
+   -23.669
+  ],
+  [
+   1.14,
+   -23.668
+  ],
+  [
+   0.7,
+   -23.497
+  ],
+  [
+   0.224,
+   -23.299
+  ],
+  [
+   -1.858,
+   -23.628
+  ],
+  [
+   -2.292,
+   -24.443
+  ],
+  [
+   -4.341,
+   -24.606
+  ],
+  [
+   -4.347,
+   -24.605
+  ],
+  [
+   -5.079,
+   -24.032
+  ],
+  [
+   -5.699,
+   -24.129
+  ],
+  [
+   -5.705,
+   -24.128
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#eaf1ed",
@@ -181,11 +419,31 @@
    ],
    "openings": [
     {
-     "id": "corner-bay",
+     "id": "corner-bay-f0",
      "kind": "bay",
      "u": 0.0,
      "w": 2.6,
      "v0": 4.1,
+     "v1": 7.25,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#e2d6bc",
+     "trim_colour": "#f2ede2",
+     "v": 4.73,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "corner-bay-f1",
+     "kind": "bay",
+     "u": 0.0,
+     "w": 2.6,
+     "v0": 7.25,
      "v1": 10.4,
      "projection": 0.7,
      "front_share": 0.5,
@@ -196,15 +454,36 @@
      "material": "stucco",
      "colour": "#e2d6bc",
      "trim_colour": "#f2ede2",
-     "v": 4.85,
-     "h": 5.300000000000001
+     "v": 7.88,
+     "h": 1.89,
+     "projection_from": "photos"
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 5.7,
      "w": 3.0,
      "v0": 4.1,
+     "v1": 7.25,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#e2d6bc",
+     "trim_colour": "#f2ede2",
+     "v": 4.73,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 5.7,
+     "w": 3.0,
+     "v0": 7.25,
      "v1": 10.4,
      "projection": 0.7,
      "front_share": 0.55,
@@ -215,15 +494,36 @@
      "material": "stucco",
      "colour": "#e2d6bc",
      "trim_colour": "#f2ede2",
-     "v": 4.85,
-     "h": 5.300000000000001
+     "v": 7.88,
+     "h": 1.89,
+     "projection_from": "photos"
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 10.7,
      "w": 3.0,
      "v0": 4.1,
+     "v1": 7.25,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#e2d6bc",
+     "trim_colour": "#f2ede2",
+     "v": 4.73,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 10.7,
+     "w": 3.0,
+     "v0": 7.25,
      "v1": 10.4,
      "projection": 0.7,
      "front_share": 0.55,
@@ -234,15 +534,36 @@
      "material": "stucco",
      "colour": "#e2d6bc",
      "trim_colour": "#f2ede2",
-     "v": 4.85,
-     "h": 5.300000000000001
+     "v": 7.88,
+     "h": 1.89,
+     "projection_from": "photos"
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 15.7,
      "w": 3.0,
      "v0": 4.1,
+     "v1": 7.25,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#e2d6bc",
+     "trim_colour": "#f2ede2",
+     "v": 4.73,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 15.7,
+     "w": 3.0,
+     "v0": 7.25,
      "v1": 10.4,
      "projection": 0.7,
      "front_share": 0.55,
@@ -253,15 +574,36 @@
      "material": "stucco",
      "colour": "#e2d6bc",
      "trim_colour": "#f2ede2",
-     "v": 4.85,
-     "h": 5.300000000000001
+     "v": 7.88,
+     "h": 1.89,
+     "projection_from": "photos"
     },
     {
-     "id": "bay",
+     "id": "bay-f0",
      "kind": "bay",
      "u": 20.7,
      "w": 3.0,
      "v0": 4.1,
+     "v1": 7.25,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#e2d6bc",
+     "trim_colour": "#f2ede2",
+     "v": 4.73,
+     "h": 1.89,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-f1",
+     "kind": "bay",
+     "u": 20.7,
+     "w": 3.0,
+     "v0": 7.25,
      "v1": 10.4,
      "projection": 0.7,
      "front_share": 0.55,
@@ -272,8 +614,9 @@
      "material": "stucco",
      "colour": "#e2d6bc",
      "trim_colour": "#f2ede2",
-     "v": 4.85,
-     "h": 5.300000000000001
+     "v": 7.88,
+     "h": 1.89,
+     "projection_from": "photos"
     },
     {
      "id": "small-2f",
@@ -683,11 +1026,31 @@
    ],
    "openings": [
     {
-     "id": "w9:bayL",
+     "id": "w9:bayL-f0",
      "kind": "bay",
      "u": 1.4,
      "w": 3.0,
      "v0": 3.6,
+     "v1": 6.9,
+     "projection": 0.45,
+     "front_share": 0.6,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#d9cbb0",
+     "trim_colour": "#ece4d4",
+     "v": 4.26,
+     "h": 1.98,
+     "projection_from": "photos"
+    },
+    {
+     "id": "w9:bayL-f1",
+     "kind": "bay",
+     "u": 1.4,
+     "w": 3.0,
+     "v0": 6.9,
      "v1": 10.2,
      "projection": 0.45,
      "front_share": 0.6,
@@ -698,15 +1061,36 @@
      "material": "stucco",
      "colour": "#d9cbb0",
      "trim_colour": "#ece4d4",
-     "v": 4.35,
-     "h": 5.6
+     "v": 7.56,
+     "h": 1.98,
+     "projection_from": "photos"
     },
     {
-     "id": "w9:turret",
+     "id": "w9:turret-f0",
      "kind": "bay",
      "u": 6.0,
      "w": 2.3,
      "v0": 3.6,
+     "v1": 7.0,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#d9cbb0",
+     "trim_colour": "#ece4d4",
+     "v": 4.28,
+     "h": 2.04,
+     "projection_from": "photos"
+    },
+    {
+     "id": "w9:turret-f1",
+     "kind": "bay",
+     "u": 6.0,
+     "w": 2.3,
+     "v0": 7.0,
      "v1": 10.4,
      "projection": 0.6,
      "front_share": 0.5,
@@ -723,8 +1107,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.35,
-     "h": 5.800000000000001
+     "v": 7.68,
+     "h": 2.04,
+     "projection_from": "photos"
     }
    ],
    "evidence": {
@@ -1808,7 +2193,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -1820,7 +2205,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

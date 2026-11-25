@@ -106,6 +106,144 @@
    "h": 3.3
   }
  ],
+ "outline": [
+  [
+   0.868,
+   -7.933
+  ],
+  [
+   -8.999,
+   -9.278
+  ],
+  [
+   -9.18,
+   -7.536
+  ],
+  [
+   -16.24,
+   -8.666
+  ],
+  [
+   -16.047,
+   -10.522
+  ],
+  [
+   -22.006,
+   -11.477
+  ],
+  [
+   -26.009,
+   -11.985
+  ],
+  [
+   -26.083,
+   -11.469
+  ],
+  [
+   -26.818,
+   -10.911
+  ],
+  [
+   -27.097,
+   -9.418
+  ],
+  [
+   -26.501,
+   -8.584
+  ],
+  [
+   -27.712,
+   -0.23
+  ],
+  [
+   -28.557,
+   0.413
+  ],
+  [
+   -28.837,
+   1.905
+  ],
+  [
+   -28.159,
+   2.854
+  ],
+  [
+   -28.215,
+   3.233
+  ],
+  [
+   -18.474,
+   4.852
+  ],
+  [
+   -18.469,
+   4.851
+  ],
+  [
+   -18.178,
+   3.047
+  ],
+  [
+   -11.144,
+   4.217
+  ],
+  [
+   -11.436,
+   6.023
+  ],
+  [
+   -1.237,
+   7.719
+  ],
+  [
+   -1.232,
+   7.718
+  ],
+  [
+   -1.002,
+   6.273
+  ],
+  [
+   -1.165,
+   7.405
+  ],
+  [
+   -1.161,
+   7.404
+  ],
+  [
+   -0.152,
+   6.621
+  ],
+  [
+   0.113,
+   5.125
+  ],
+  [
+   -0.651,
+   4.079
+  ],
+  [
+   0.651,
+   -4.08
+  ],
+  [
+   1.475,
+   -4.719
+  ],
+  [
+   1.74,
+   -6.214
+  ],
+  [
+   1.126,
+   -7.054
+  ],
+  [
+   1.256,
+   -7.871
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#364766",
@@ -137,11 +275,51 @@
    "belts": [],
    "openings": [
     {
-     "id": "bayL",
+     "id": "bayL-f0",
      "kind": "bay",
      "u": 0.4,
      "w": 3.2,
      "v0": 2.9,
+     "v1": 5.67,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 3.45,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 0.4,
+     "w": 3.2,
+     "v0": 5.67,
+     "v1": 8.43,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 6.22,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f2",
+     "kind": "bay",
+     "u": 0.4,
+     "w": 3.2,
+     "v0": 8.43,
      "v1": 11.2,
      "projection": 0.7,
      "front_share": 0.5,
@@ -152,15 +330,56 @@
      "material": "stucco",
      "colour": "#8fb978",
      "trim_colour": "#f2f0ea",
-     "v": 3.65,
-     "h": 7.299999999999999
+     "v": 8.99,
+     "h": 1.66,
+     "projection_from": "photos"
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 10.6,
      "w": 3.4,
      "v0": 2.9,
+     "v1": 5.67,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 3.45,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 10.6,
+     "w": 3.4,
+     "v0": 5.67,
+     "v1": 8.43,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 6.22,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f2",
+     "kind": "bay",
+     "u": 10.6,
+     "w": 3.4,
+     "v0": 8.43,
      "v1": 11.2,
      "projection": 0.7,
      "front_share": 0.5,
@@ -171,8 +390,9 @@
      "material": "stucco",
      "colour": "#8fb978",
      "trim_colour": "#f2f0ea",
-     "v": 3.65,
-     "h": 7.299999999999999
+     "v": 8.99,
+     "h": 1.66,
+     "projection_from": "photos"
     },
     {
      "id": "midL",
@@ -2075,7 +2295,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -2087,7 +2307,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

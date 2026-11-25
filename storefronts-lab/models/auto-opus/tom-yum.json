@@ -58,6 +58,84 @@
    "h": 4.2
   }
  ],
+ "outline": [
+  [
+   -6.045,
+   2.551
+  ],
+  [
+   -9.633,
+   24.711
+  ],
+  [
+   -9.63,
+   24.711
+  ],
+  [
+   -10.575,
+   30.433
+  ],
+  [
+   -3.217,
+   31.682
+  ],
+  [
+   -0.881,
+   18.284
+  ],
+  [
+   2.242,
+   1.379
+  ],
+  [
+   1.674,
+   1.349
+  ],
+  [
+   1.668,
+   1.349
+  ],
+  [
+   1.632,
+   1.448
+  ],
+  [
+   0.943,
+   0.175
+  ],
+  [
+   -0.943,
+   -0.175
+  ],
+  [
+   -0.948,
+   -0.175
+  ],
+  [
+   -1.619,
+   0.568
+  ],
+  [
+   -2.625,
+   0.428
+  ],
+  [
+   -3.063,
+   -0.479
+  ],
+  [
+   -4.626,
+   -0.791
+  ],
+  [
+   -4.63,
+   -0.79
+  ],
+  [
+   -5.635,
+   0.141
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#d9dcd3",
@@ -295,8 +373,9 @@
      "material": "wood_siding",
      "colour": "#a7b2c3",
      "trim_colour": "#f0eee6",
-     "v": 4.35,
-     "h": 1.9999999999999996
+     "v": 4.2,
+     "h": 2.05,
+     "projection_from": "photos"
     },
     {
      "id": "bay-green",
@@ -314,8 +393,9 @@
      "material": "wood_siding",
      "colour": "#a9ac8a",
      "trim_colour": "#f0eee6",
-     "v": 4.35,
-     "h": 1.6999999999999997
+     "v": 4.2,
+     "h": 1.7499999999999998,
+     "projection_from": "photos"
     },
     {
      "id": "d-2412a",
@@ -993,7 +1073,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -1005,7 +1085,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

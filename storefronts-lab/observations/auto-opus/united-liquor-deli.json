@@ -149,11 +149,51 @@
    "path": "walls.5.openings",
    "value": [
     {
-     "id": "bay-corner",
+     "id": "bay-corner-f0",
      "kind": "bay",
      "u": 3.0,
      "w": 3.4,
      "v0": 4.6,
+     "v1": 7.2,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f1efe9",
+     "trim_colour": "#3a3532",
+     "v": 5.12,
+     "h": 1.56,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-corner-f1",
+     "kind": "bay",
+     "u": 3.0,
+     "w": 3.4,
+     "v0": 7.2,
+     "v1": 9.8,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f1efe9",
+     "trim_colour": "#3a3532",
+     "v": 7.72,
+     "h": 1.56,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-corner-f2",
+     "kind": "bay",
+     "u": 3.0,
+     "w": 3.4,
+     "v0": 9.8,
      "v1": 12.4,
      "projection": 0.7,
      "front_share": 0.55,
@@ -170,15 +210,56 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.35,
-     "h": 6.800000000000001
+     "v": 10.32,
+     "h": 1.56,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-mid",
+     "id": "bay-mid-f0",
      "kind": "bay",
      "u": 17.0,
      "w": 3.2,
      "v0": 4.6,
+     "v1": 7.2,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f1efe9",
+     "trim_colour": "#3a3532",
+     "v": 5.12,
+     "h": 1.56,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-mid-f1",
+     "kind": "bay",
+     "u": 17.0,
+     "w": 3.2,
+     "v0": 7.2,
+     "v1": 9.8,
+     "projection": 0.7,
+     "front_share": 0.55,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#f1efe9",
+     "trim_colour": "#3a3532",
+     "v": 7.72,
+     "h": 1.56,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-mid-f2",
+     "kind": "bay",
+     "u": 17.0,
+     "w": 3.2,
+     "v0": 9.8,
      "v1": 12.4,
      "projection": 0.7,
      "front_share": 0.55,
@@ -195,8 +276,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.35,
-     "h": 6.800000000000001
+     "v": 10.32,
+     "h": 1.56,
+     "projection_from": "photos"
     },
     {
      "id": "w-left",
@@ -1311,11 +1393,51 @@
    "path": "walls.4.openings",
    "value": [
     {
-     "id": "bay-left",
+     "id": "bay-left-f0",
      "kind": "bay",
      "u": 1.0,
      "w": 2.8,
      "v0": 4.6,
+     "v1": 7.43,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#ecebe6",
+     "trim_colour": "#e4e3de",
+     "v": 5.17,
+     "h": 1.7,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f1",
+     "kind": "bay",
+     "u": 1.0,
+     "w": 2.8,
+     "v0": 7.43,
+     "v1": 10.27,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#ecebe6",
+     "trim_colour": "#e4e3de",
+     "v": 8.0,
+     "h": 1.7,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f2",
+     "kind": "bay",
+     "u": 1.0,
+     "w": 2.8,
+     "v0": 10.27,
      "v1": 13.1,
      "projection": 0.6,
      "front_share": 0.5,
@@ -1332,8 +1454,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.35,
-     "h": 7.5
+     "v": 10.83,
+     "h": 1.7,
+     "projection_from": "photos"
     },
     {
      "id": "w-pair-f2",

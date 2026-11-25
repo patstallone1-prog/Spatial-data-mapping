@@ -142,11 +142,51 @@
    "path": "walls.0.openings",
    "value": [
     {
-     "id": "bayL",
+     "id": "bayL-f0",
      "kind": "bay",
      "u": 0.4,
      "w": 3.2,
      "v0": 2.9,
+     "v1": 5.67,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 3.45,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 0.4,
+     "w": 3.2,
+     "v0": 5.67,
+     "v1": 8.43,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 6.22,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f2",
+     "kind": "bay",
+     "u": 0.4,
+     "w": 3.2,
+     "v0": 8.43,
      "v1": 11.2,
      "projection": 0.7,
      "front_share": 0.5,
@@ -157,15 +197,56 @@
      "material": "stucco",
      "colour": "#8fb978",
      "trim_colour": "#f2f0ea",
-     "v": 3.65,
-     "h": 7.299999999999999
+     "v": 8.99,
+     "h": 1.66,
+     "projection_from": "photos"
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 10.6,
      "w": 3.4,
      "v0": 2.9,
+     "v1": 5.67,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 3.45,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 10.6,
+     "w": 3.4,
+     "v0": 5.67,
+     "v1": 8.43,
+     "projection": 0.7,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      4
+     ],
+     "material": "stucco",
+     "colour": "#8fb978",
+     "trim_colour": "#f2f0ea",
+     "v": 6.22,
+     "h": 1.66,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f2",
+     "kind": "bay",
+     "u": 10.6,
+     "w": 3.4,
+     "v0": 8.43,
      "v1": 11.2,
      "projection": 0.7,
      "front_share": 0.5,
@@ -176,8 +257,9 @@
      "material": "stucco",
      "colour": "#8fb978",
      "trim_colour": "#f2f0ea",
-     "v": 3.65,
-     "h": 7.299999999999999
+     "v": 8.99,
+     "h": 1.66,
+     "projection_from": "photos"
     },
     {
      "id": "midL",

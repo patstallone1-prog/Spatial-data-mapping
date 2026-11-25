@@ -148,8 +148,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.65,
-     "h": 0.6999999999999997
+     "v": 4.5,
+     "h": 0.7499999999999998,
+     "projection_from": "photos"
     },
     {
      "id": "w-1",
@@ -218,9 +219,9 @@
      "material": "wood_siding",
      "colour": "#6c6e6c",
      "trim_colour": "#e6e4dc",
-     "cap": null,
-     "v": 3.75,
-     "h": 0.9000000000000004
+     "v": 3.6,
+     "h": 0.9500000000000004,
+     "projection_from": "photos"
     }
    ],
    "evidence": {
@@ -642,8 +643,9 @@
      "material": "wood_siding",
      "colour": "#7d8576",
      "trim_colour": "#e8e6df",
-     "v": 3.95,
-     "h": 2.0
+     "v": 3.8000000000000003,
+     "h": 2.05,
+     "projection_from": "photos"
     },
     {
      "id": "w0:bay",
@@ -667,8 +669,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 3.95,
-     "h": 0.7000000000000002
+     "v": 3.8000000000000003,
+     "h": 0.7500000000000002,
+     "projection_from": "photos"
     },
     {
      "id": "w0:w1",
@@ -1277,8 +1280,9 @@
      "material": "wood_siding",
      "colour": "#a89f8c",
      "trim_colour": "#e8e6df",
-     "v": 3.95,
-     "h": 1.0
+     "v": 3.8000000000000003,
+     "h": 1.05,
+     "projection_from": "photos"
     }
    ],
    "evidence": {

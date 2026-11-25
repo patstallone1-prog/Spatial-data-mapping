@@ -122,3 +122,23 @@ def test_a_shop_with_nothing_seen_is_kept_but_not_drawn():
     sf = next(row for row in O.to_observations(base, 1, r, [], "t") if row["path"] == "storefronts")["value"]
     mine = next(s for s in sf if s["id"] == "sf-t")
     assert mine["visible"] is False and mine["business_id"] == "mb-1"
+
+
+def test_a_bay_over_three_floors_becomes_three_with_a_depth():
+    base = _base()
+    ans = {"height_m": 13.0, "floors": [{"v": 0, "h": 3.6}, {"v": 3.6, "h": 3.0}, {"v": 6.6, "h": 3.0}],
+           "wall": {"openings": [{"kind": "bay", "u": 2, "w": 3, "v0": 3.6, "v1": 12.6, "v": 4.0, "h": 8.0,
+                                  "projection": 0.7, "cap": {"h": 0.3}}]}}
+    o = O.sanitize(ans, base, 1)["wall"]["openings"]
+    assert [x["v0"] for x in o] == [3.6, 6.6, 9.6] and all(abs(x["h"] - 1.8) < 1e-9 for x in o)
+    assert [bool(x.get("cap")) for x in o] == [False, False, True]
+    assert all(x["projection"] == 0.7 and x["projection_from"] == "photos" for x in o)
+
+
+def test_bay_depth_reads_the_lidar_outline():
+    from kerbfront.model import bay_depth
+    # wall 0 runs (0,0)->(20,0) on a counter-clockwise ring: outward is -y; a 0.7 m bay at u 10-13
+    m = {"footprint": [[0, 0], [20, 0], [20, 10], [0, 10]],
+         "outline": [[0, 0], [10, 0], [10, -0.7], [13, -0.7], [13, 0], [20, 0], [20, 10], [0, 10]]}
+    assert bay_depth(m, 0, 10, 3) == 0.7
+    assert bay_depth(m, 0, 2, 3) is None

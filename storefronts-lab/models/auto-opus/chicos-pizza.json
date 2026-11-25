@@ -70,6 +70,52 @@
    "h": 3.1
   }
  ],
+ "outline": [
+  [
+   3.727,
+   0.724
+  ],
+  [
+   3.766,
+   0.475
+  ],
+  [
+   -3.724,
+   -0.725
+  ],
+  [
+   -3.727,
+   -0.724
+  ],
+  [
+   -5.197,
+   8.537
+  ],
+  [
+   -3.545,
+   8.803
+  ],
+  [
+   -4.703,
+   16.105
+  ],
+  [
+   -6.352,
+   15.84
+  ],
+  [
+   -6.356,
+   15.841
+  ],
+  [
+   -7.697,
+   24.29
+  ],
+  [
+   -0.276,
+   25.479
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#f8fef2",
@@ -404,11 +450,31 @@
    ],
    "openings": [
     {
-     "id": "bay-L",
+     "id": "bay-L-f0",
      "kind": "bay",
      "u": 0.7,
      "w": 2.25,
      "v0": 4.15,
+     "v1": 6.88,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#76735e",
+     "trim_colour": "#e3dbad",
+     "v": 4.7,
+     "h": 1.63,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-L-f1",
+     "kind": "bay",
+     "u": 0.7,
+     "w": 2.25,
+     "v0": 6.88,
      "v1": 9.6,
      "projection": 0.6,
      "front_share": 0.5,
@@ -425,15 +491,36 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.9,
-     "h": 4.449999999999999
+     "v": 7.42,
+     "h": 1.63,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-L",
+     "id": "bay-L-f0",
      "kind": "bay",
      "u": 4.0,
      "w": 2.25,
      "v0": 4.15,
+     "v1": 6.88,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#76735e",
+     "trim_colour": "#e3dbad",
+     "v": 4.7,
+     "h": 1.63,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-L-f1",
+     "kind": "bay",
+     "u": 4.0,
+     "w": 2.25,
+     "v0": 6.88,
      "v1": 9.6,
      "projection": 0.6,
      "front_share": 0.5,
@@ -450,8 +537,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.9,
-     "h": 4.449999999999999
+     "v": 7.42,
+     "h": 1.63,
+     "projection_from": "photos"
     },
     {
      "id": "arch-entry",
@@ -1394,7 +1482,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -1406,7 +1494,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

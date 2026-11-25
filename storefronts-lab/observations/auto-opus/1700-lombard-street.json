@@ -165,8 +165,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.25,
-     "h": 4.4
+     "v": 4.1,
+     "h": 4.45,
+     "projection_from": "photos"
     },
     {
      "id": "w7:bayR",
@@ -190,8 +191,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.25,
-     "h": 2.0
+     "v": 4.1,
+     "h": 2.05,
+     "projection_from": "photos"
     }
    ],
    "evidence": {
@@ -533,8 +535,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 5.35,
-     "h": 4.300000000000001
+     "v": 5.199999999999999,
+     "h": 4.3500000000000005,
+     "projection_from": "photos"
     },
     {
      "id": "w0:up1",
@@ -1031,8 +1034,9 @@
      "material": "stucco",
      "colour": "#8a8a60",
      "trim_colour": "#e8e4d6",
-     "v": 3.75,
-     "h": 2.2
+     "v": 3.6,
+     "h": 2.25,
+     "projection_from": "photos"
     },
     {
      "id": "w4:bayR",
@@ -1050,8 +1054,9 @@
      "material": "stucco",
      "colour": "#8a8a60",
      "trim_colour": "#e8e4d6",
-     "v": 3.75,
-     "h": 2.2
+     "v": 3.6,
+     "h": 2.25,
+     "projection_from": "photos"
     }
    ],
    "evidence": {

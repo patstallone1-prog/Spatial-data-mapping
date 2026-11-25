@@ -218,8 +218,9 @@
      "material": "stucco",
      "colour": "#7d7966",
      "trim_colour": "#ece9e0",
-     "v": 7.65,
-     "h": 0.5999999999999996
+     "v": 7.5,
+     "h": 0.6499999999999997,
+     "projection_from": "photos"
     },
     {
      "id": "f3:right",

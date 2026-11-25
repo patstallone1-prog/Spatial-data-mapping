@@ -226,11 +226,31 @@
      "sill": true
     },
     {
-     "id": "corner-bay",
+     "id": "corner-bay-f0",
      "kind": "bay",
      "u": 7.2,
      "w": 1.81,
      "v0": 4.9,
+     "v1": 8.1,
+     "projection": 0.45,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#cdb495",
+     "trim_colour": "#efe9dd",
+     "v": 5.54,
+     "h": 1.92,
+     "projection_from": "photos"
+    },
+    {
+     "id": "corner-bay-f1",
+     "kind": "bay",
+     "u": 7.2,
+     "w": 1.81,
+     "v0": 8.1,
      "v1": 11.3,
      "projection": 0.45,
      "front_share": 0.5,
@@ -241,8 +261,9 @@
      "material": "stucco",
      "colour": "#cdb495",
      "trim_colour": "#efe9dd",
-     "v": 5.65,
-     "h": 5.4
+     "v": 8.74,
+     "h": 1.92,
+     "projection_from": "photos"
     },
     {
      "id": "w0:flatdoor",
@@ -646,11 +667,31 @@
    "path": "walls.1.openings",
    "value": [
     {
-     "id": "corner-bay",
+     "id": "corner-bay-f0",
      "kind": "bay",
      "u": -0.1,
      "w": 1.6,
      "v0": 3.3,
+     "v1": 6.25,
+     "projection": 0.5,
+     "front_share": 0.5,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#dcbc8c",
+     "trim_colour": "#efe9dc",
+     "v": 3.89,
+     "h": 1.77,
+     "projection_from": "photos"
+    },
+    {
+     "id": "corner-bay-f1",
+     "kind": "bay",
+     "u": -0.1,
+     "w": 1.6,
+     "v0": 6.25,
      "v1": 9.2,
      "projection": 0.5,
      "front_share": 0.5,
@@ -661,8 +702,9 @@
      "material": "stucco",
      "colour": "#dcbc8c",
      "trim_colour": "#efe9dc",
-     "v": 4.05,
-     "h": 4.8999999999999995
+     "v": 6.84,
+     "h": 1.77,
+     "projection_from": "photos"
     },
     {
      "id": "w3-corner",
@@ -908,11 +950,31 @@
      "sill": false
     },
     {
-     "id": "vic-bay",
+     "id": "vic-bay-f0",
      "kind": "bay",
      "u": 17.6,
      "w": 3.2,
      "v0": 3.2,
+     "v1": 5.9,
+     "projection": 0.6,
+     "front_share": 0.55,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "wood_siding",
+     "colour": "#b9bbb6",
+     "trim_colour": "#e9e8e2",
+     "v": 3.74,
+     "h": 1.62,
+     "projection_from": "photos"
+    },
+    {
+     "id": "vic-bay-f1",
+     "kind": "bay",
+     "u": 17.6,
+     "w": 3.2,
+     "v0": 5.9,
      "v1": 8.6,
      "projection": 0.6,
      "front_share": 0.55,
@@ -923,8 +985,9 @@
      "material": "wood_siding",
      "colour": "#b9bbb6",
      "trim_colour": "#e9e8e2",
-     "v": 3.95,
-     "h": 4.3999999999999995
+     "v": 6.44,
+     "h": 1.62,
+     "projection_from": "photos"
     }
    ],
    "evidence": {

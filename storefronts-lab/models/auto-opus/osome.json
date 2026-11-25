@@ -66,6 +66,56 @@
    "h": 3.8
   }
  ],
+ "outline": [
+  [
+   -0.039,
+   -5.307
+  ],
+  [
+   -27.323,
+   -10.081
+  ],
+  [
+   -28.416,
+   -2.785
+  ],
+  [
+   -16.136,
+   -0.839
+  ],
+  [
+   -1.185,
+   1.52
+  ],
+  [
+   -1.151,
+   1.027
+  ],
+  [
+   -0.173,
+   0.865
+  ],
+  [
+   0.173,
+   -0.866
+  ],
+  [
+   -0.534,
+   -1.375
+  ],
+  [
+   -0.303,
+   -2.319
+  ],
+  [
+   0.557,
+   -2.715
+  ],
+  [
+   0.746,
+   -4.642
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#9094a2",
@@ -105,11 +155,31 @@
    ],
    "openings": [
     {
-     "id": "bay-left",
+     "id": "bay-left-f0",
      "kind": "bay",
      "u": 0.1,
      "w": 2.1,
      "v0": 3.4,
+     "v1": 7.0,
+     "projection": 0.6,
+     "front_share": 0.45,
+     "mullions": [
+      1,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#ece9e1",
+     "trim_colour": "#7a2e2a",
+     "v": 4.12,
+     "h": 2.16,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f1",
+     "kind": "bay",
+     "u": 0.1,
+     "w": 2.1,
+     "v0": 7.0,
      "v1": 10.6,
      "projection": 0.6,
      "front_share": 0.45,
@@ -120,8 +190,9 @@
      "material": "stucco",
      "colour": "#ece9e1",
      "trim_colour": "#7a2e2a",
-     "v": 4.15,
-     "h": 6.199999999999999
+     "v": 7.72,
+     "h": 2.16,
+     "projection_from": "photos"
     },
     {
      "id": "bay-f2",
@@ -1345,7 +1416,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -1357,7 +1428,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

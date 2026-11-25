@@ -78,6 +78,104 @@
    "h": 2.4
   }
  ],
+ "outline": [
+  [
+   -2.19,
+   -7.836
+  ],
+  [
+   -2.193,
+   -7.836
+  ],
+  [
+   -11.528,
+   -9.284
+  ],
+  [
+   -11.776,
+   -7.732
+  ],
+  [
+   -26.655,
+   -10.137
+  ],
+  [
+   -26.661,
+   -10.137
+  ],
+  [
+   -26.873,
+   -8.809
+  ],
+  [
+   -27.818,
+   -8.955
+  ],
+  [
+   -27.822,
+   -8.955
+  ],
+  [
+   -28.596,
+   -3.912
+  ],
+  [
+   -27.68,
+   -3.77
+  ],
+  [
+   -27.936,
+   -2.168
+  ],
+  [
+   -27.748,
+   -2.138
+  ],
+  [
+   -28.474,
+   2.338
+  ],
+  [
+   -28.949,
+   2.261
+  ],
+  [
+   -29.07,
+   3.024
+  ],
+  [
+   -24.107,
+   3.825
+  ],
+  [
+   -24.047,
+   3.445
+  ],
+  [
+   -6.057,
+   6.606
+  ],
+  [
+   -6.084,
+   6.768
+  ],
+  [
+   -1.21,
+   7.584
+  ],
+  [
+   1.211,
+   -7.584
+  ],
+  [
+   0.498,
+   -7.692
+  ],
+  [
+   0.453,
+   -7.4
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#9fa8b1",
@@ -117,11 +215,51 @@
    ],
    "openings": [
     {
-     "id": "bay-left",
+     "id": "bay-left-f0",
      "kind": "bay",
      "u": 6.4,
      "w": 3.5,
      "v0": 5.3,
+     "v1": 8.0,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a09a84",
+     "trim_colour": "#e6e0c4",
+     "v": 5.84,
+     "h": 1.62,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f1",
+     "kind": "bay",
+     "u": 6.4,
+     "w": 3.5,
+     "v0": 8.0,
+     "v1": 10.7,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a09a84",
+     "trim_colour": "#e6e0c4",
+     "v": 8.54,
+     "h": 1.62,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-left-f2",
+     "kind": "bay",
+     "u": 6.4,
+     "w": 3.5,
+     "v0": 10.7,
      "v1": 13.4,
      "projection": 0.6,
      "front_share": 0.6,
@@ -138,15 +276,56 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 6.05,
-     "h": 7.100000000000001
+     "v": 11.24,
+     "h": 1.62,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-centre",
+     "id": "bay-centre-f0",
      "kind": "bay",
      "u": 13.0,
      "w": 3.2,
      "v0": 5.3,
+     "v1": 7.87,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a09a84",
+     "trim_colour": "#e6e0c4",
+     "v": 5.81,
+     "h": 1.54,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-centre-f1",
+     "kind": "bay",
+     "u": 13.0,
+     "w": 3.2,
+     "v0": 7.87,
+     "v1": 10.43,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a09a84",
+     "trim_colour": "#e6e0c4",
+     "v": 8.38,
+     "h": 1.54,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-centre-f2",
+     "kind": "bay",
+     "u": 13.0,
+     "w": 3.2,
+     "v0": 10.43,
      "v1": 13.0,
      "projection": 0.6,
      "front_share": 0.6,
@@ -163,15 +342,56 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 6.05,
-     "h": 6.7
+     "v": 10.95,
+     "h": 1.54,
+     "projection_from": "photos"
     },
     {
-     "id": "bay-right",
+     "id": "bay-right-f0",
      "kind": "bay",
      "u": 24.4,
      "w": 3.4,
      "v0": 5.3,
+     "v1": 8.0,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a09a84",
+     "trim_colour": "#e6e0c4",
+     "v": 5.84,
+     "h": 1.62,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-right-f1",
+     "kind": "bay",
+     "u": 24.4,
+     "w": 3.4,
+     "v0": 8.0,
+     "v1": 10.7,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a09a84",
+     "trim_colour": "#e6e0c4",
+     "v": 8.54,
+     "h": 1.62,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bay-right-f2",
+     "kind": "bay",
+     "u": 24.4,
+     "w": 3.4,
+     "v0": 10.7,
      "v1": 13.4,
      "projection": 0.6,
      "front_share": 0.6,
@@ -188,8 +408,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 6.05,
-     "h": 7.100000000000001
+     "v": 11.24,
+     "h": 1.62,
+     "projection_from": "photos"
     },
     {
      "id": "f2-left",
@@ -1727,11 +1948,51 @@
    ],
    "openings": [
     {
-     "id": "bayL",
+     "id": "bayL-f0",
      "kind": "bay",
      "u": 2.5,
      "w": 3.0,
      "v0": 4.2,
+     "v1": 6.67,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#b3ad93",
+     "trim_colour": "#f0ece0",
+     "v": 4.69,
+     "h": 1.48,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 2.5,
+     "w": 3.0,
+     "v0": 6.67,
+     "v1": 9.13,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#b3ad93",
+     "trim_colour": "#f0ece0",
+     "v": 7.16,
+     "h": 1.48,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f2",
+     "kind": "bay",
+     "u": 2.5,
+     "w": 3.0,
+     "v0": 9.13,
      "v1": 11.6,
      "projection": 0.6,
      "front_share": 0.5,
@@ -1748,15 +2009,56 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.95,
-     "h": 6.3999999999999995
+     "v": 9.63,
+     "h": 1.48,
+     "projection_from": "photos"
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 10.1,
      "w": 3.0,
      "v0": 4.2,
+     "v1": 6.67,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#b3ad93",
+     "trim_colour": "#f0ece0",
+     "v": 4.69,
+     "h": 1.48,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 10.1,
+     "w": 3.0,
+     "v0": 6.67,
+     "v1": 9.13,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#b3ad93",
+     "trim_colour": "#f0ece0",
+     "v": 7.16,
+     "h": 1.48,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f2",
+     "kind": "bay",
+     "u": 10.1,
+     "w": 3.0,
+     "v0": 9.13,
      "v1": 11.6,
      "projection": 0.6,
      "front_share": 0.5,
@@ -1773,8 +2075,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.95,
-     "h": 6.3999999999999995
+     "v": 9.63,
+     "h": 1.48,
+     "projection_from": "photos"
     },
     {
      "id": "c2a",
@@ -2999,7 +3302,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -3011,7 +3314,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

@@ -152,8 +152,9 @@
       "crest_h": 0.45,
       "crest_w": 1.6
      },
-     "v": 3.35,
-     "h": 2.1
+     "v": 3.2,
+     "h": 2.1500000000000004,
+     "projection_from": "photos"
     },
     {
      "id": "wL3",
@@ -173,11 +174,31 @@
      "sill": true
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 2.7,
      "w": 2.3,
      "v0": 2.6,
+     "v1": 5.8,
+     "projection": 0.6,
+     "front_share": 0.6,
+     "mullions": [
+      2,
+      2
+     ],
+     "material": "wood_siding",
+     "colour": "#e8dcb8",
+     "trim_colour": "#f4eedb",
+     "v": 3.24,
+     "h": 1.92,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 2.7,
+     "w": 2.3,
+     "v0": 5.8,
      "v1": 9.0,
      "projection": 0.6,
      "front_share": 0.6,
@@ -194,8 +215,9 @@
       "crest_h": 1.3,
       "crest_w": 2.4
      },
-     "v": 3.35,
-     "h": 5.4
+     "v": 6.44,
+     "h": 1.92,
+     "projection_from": "photos"
     }
    ],
    "evidence": {

@@ -149,8 +149,9 @@
      "material": "stucco",
      "colour": "#d8b98c",
      "trim_colour": "#f2efe8",
-     "v": 5.05,
-     "h": 2.25
+     "v": 4.8999999999999995,
+     "h": 2.3,
+     "projection_from": "photos"
     },
     {
      "id": "bay2",
@@ -168,8 +169,9 @@
      "material": "stucco",
      "colour": "#d8b98c",
      "trim_colour": "#f2efe8",
-     "v": 5.05,
-     "h": 2.25
+     "v": 4.8999999999999995,
+     "h": 2.3,
+     "projection_from": "photos"
     },
     {
      "id": "w1",

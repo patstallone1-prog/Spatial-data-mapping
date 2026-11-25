@@ -131,11 +131,31 @@
    "path": "walls.5.openings",
    "value": [
     {
-     "id": "bayL",
+     "id": "bayL-f0",
      "kind": "bay",
      "u": 0.35,
      "w": 2.6,
      "v0": 3.35,
+     "v1": 6.33,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#8b908c",
+     "trim_colour": "#f1efe9",
+     "v": 3.95,
+     "h": 1.79,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 0.35,
+     "w": 2.6,
+     "v0": 6.33,
      "v1": 9.3,
      "projection": 0.6,
      "front_share": 0.5,
@@ -152,15 +172,36 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.1,
-     "h": 4.950000000000001
+     "v": 6.92,
+     "h": 1.79,
+     "projection_from": "photos"
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 4.4,
      "w": 2.6,
      "v0": 3.35,
+     "v1": 6.33,
+     "projection": 0.6,
+     "front_share": 0.5,
+     "mullions": [
+      3,
+      2
+     ],
+     "material": "stucco",
+     "colour": "#8b908c",
+     "trim_colour": "#f1efe9",
+     "v": 3.95,
+     "h": 1.79,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 4.4,
+     "w": 2.6,
+     "v0": 6.33,
      "v1": 9.3,
      "projection": 0.6,
      "front_share": 0.5,
@@ -177,8 +218,9 @@
       "crest_h": 0,
       "crest_w": 0
      },
-     "v": 4.1,
-     "h": 4.950000000000001
+     "v": 6.92,
+     "h": 1.79,
+     "projection_from": "photos"
     },
     {
      "id": "door-arch",

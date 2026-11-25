@@ -66,6 +66,72 @@
    "h": 3.2
   }
  ],
+ "outline": [
+  [
+   1.886,
+   12.349
+  ],
+  [
+   3.803,
+   1.331
+  ],
+  [
+   3.922,
+   0.597
+  ],
+  [
+   -3.917,
+   -0.598
+  ],
+  [
+   -3.922,
+   -0.597
+  ],
+  [
+   -4.085,
+   0.287
+  ],
+  [
+   -6.356,
+   15.554
+  ],
+  [
+   -6.777,
+   18.523
+  ],
+  [
+   -6.157,
+   19.414
+  ],
+  [
+   -3.414,
+   19.869
+  ],
+  [
+   -3.409,
+   19.868
+  ],
+  [
+   -2.53,
+   19.005
+  ],
+  [
+   0.867,
+   19.532
+  ],
+  [
+   0.873,
+   19.531
+  ],
+  [
+   1.864,
+   13.072
+  ],
+  [
+   1.774,
+   13.058
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#9a9b9b",
@@ -124,11 +190,31 @@
    ],
    "openings": [
     {
-     "id": "bayL",
+     "id": "bayL-f0",
      "kind": "bay",
      "u": 0.25,
      "w": 2.5,
      "v0": 5.9,
+     "v1": 8.95,
+     "projection": 0.55,
+     "front_share": 1.0,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9b4e6",
+     "trim_colour": "#5a5fb0",
+     "v": 6.51,
+     "h": 1.83,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 0.25,
+     "w": 2.5,
+     "v0": 8.95,
      "v1": 12.0,
      "projection": 0.55,
      "front_share": 1.0,
@@ -139,15 +225,36 @@
      "material": "stucco",
      "colour": "#a9b4e6",
      "trim_colour": "#5a5fb0",
-     "v": 6.65,
-     "h": 5.1
+     "v": 9.56,
+     "h": 1.83,
+     "projection_from": "photos"
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 3.25,
      "w": 3.35,
      "v0": 5.9,
+     "v1": 8.95,
+     "projection": 0.55,
+     "front_share": 1.0,
+     "mullions": [
+      2,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9b4e6",
+     "trim_colour": "#5a5fb0",
+     "v": 6.51,
+     "h": 1.83,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 3.25,
+     "w": 3.35,
+     "v0": 8.95,
      "v1": 12.0,
      "projection": 0.55,
      "front_share": 1.0,
@@ -158,8 +265,9 @@
      "material": "stucco",
      "colour": "#a9b4e6",
      "trim_colour": "#5a5fb0",
-     "v": 6.65,
-     "h": 5.1
+     "v": 9.56,
+     "h": 1.83,
+     "projection_from": "photos"
     },
     {
      "id": "wL3",
@@ -1474,7 +1582,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -1486,7 +1594,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {

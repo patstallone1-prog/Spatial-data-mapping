@@ -135,11 +135,51 @@
    "path": "walls.8.openings",
    "value": [
     {
-     "id": "bayL",
+     "id": "bayL-f0",
      "kind": "bay",
      "u": 0.55,
      "w": 2.5,
      "v0": 2.5,
+     "v1": 5.07,
+     "projection": 0.55,
+     "front_share": 0.6,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9b4c6",
+     "trim_colour": "#e6e8ea",
+     "v": 3.01,
+     "h": 1.54,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f1",
+     "kind": "bay",
+     "u": 0.55,
+     "w": 2.5,
+     "v0": 5.07,
+     "v1": 7.63,
+     "projection": 0.55,
+     "front_share": 0.6,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9b4c6",
+     "trim_colour": "#e6e8ea",
+     "v": 5.58,
+     "h": 1.54,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayL-f2",
+     "kind": "bay",
+     "u": 0.55,
+     "w": 2.5,
+     "v0": 7.63,
      "v1": 10.2,
      "projection": 0.55,
      "front_share": 0.6,
@@ -156,15 +196,56 @@
       "crest_h": 0.5,
       "crest_w": 2.5
      },
-     "v": 3.25,
-     "h": 6.699999999999999
+     "v": 8.15,
+     "h": 1.54,
+     "projection_from": "photos"
     },
     {
-     "id": "bayR",
+     "id": "bayR-f0",
      "kind": "bay",
      "u": 9.55,
      "w": 2.45,
      "v0": 2.5,
+     "v1": 5.07,
+     "projection": 0.55,
+     "front_share": 0.6,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9b4c6",
+     "trim_colour": "#e6e8ea",
+     "v": 3.01,
+     "h": 1.54,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f1",
+     "kind": "bay",
+     "u": 9.55,
+     "w": 2.45,
+     "v0": 5.07,
+     "v1": 7.63,
+     "projection": 0.55,
+     "front_share": 0.6,
+     "mullions": [
+      1,
+      1
+     ],
+     "material": "stucco",
+     "colour": "#a9b4c6",
+     "trim_colour": "#e6e8ea",
+     "v": 5.58,
+     "h": 1.54,
+     "projection_from": "photos"
+    },
+    {
+     "id": "bayR-f2",
+     "kind": "bay",
+     "u": 9.55,
+     "w": 2.45,
+     "v0": 7.63,
      "v1": 10.2,
      "projection": 0.55,
      "front_share": 0.6,
@@ -181,8 +262,9 @@
       "crest_h": 0.5,
       "crest_w": 2.45
      },
-     "v": 3.25,
-     "h": 6.699999999999999
+     "v": 8.15,
+     "h": 1.54,
+     "projection_from": "photos"
     },
     {
      "id": "c1a",

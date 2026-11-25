@@ -47,6 +47,40 @@
    "h": 4.5
   }
  ],
+ "outline": [
+  [
+   -7.798,
+   8.745
+  ],
+  [
+   5.899,
+   10.938
+  ],
+  [
+   5.903,
+   10.938
+  ],
+  [
+   7.437,
+   1.262
+  ],
+  [
+   -6.262,
+   -0.929
+  ],
+  [
+   -7.438,
+   -1.262
+  ],
+  [
+   -8.494,
+   5.425
+  ],
+  [
+   -7.307,
+   5.652
+  ]
+ ],
  "roof": {
   "shape": "flat",
   "colour": "#f9fff5",
@@ -818,7 +852,7 @@
   "app": {
    "dataset": "kerbside-app",
    "ref": "origin/main",
-   "commit": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e",
+   "commit": "1967149d041d057eb137ee8ebf21266cccbcce70",
    "files": [
     "docs/city/rules.json",
     "docs/sf-corridor-3d.json",
@@ -830,7 +864,7 @@
     "docs/storefront-exteriors.json"
    ]
   },
-  "engine": "a824d7350a8ac7dca980465dc6df7a3e4c5d710e"
+  "engine": "1967149d041d057eb137ee8ebf21266cccbcce70"
  },
  "edits": [],
  "evidence": {
