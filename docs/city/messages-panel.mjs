@@ -115,9 +115,11 @@ export function messagesPanel(api) {
   //: Clicking one of the city's people while the messages are open: a conversation with them.
   //: ``who``: {id, name, title, role, tone}; ``body``: what the server is sent with each line (their sheet).
   const talks = new Map();
-  function npc(who, body = {}) {
+  //: ``opening``: what they say first (strings, and {link, run} for a link in it: a waiter's menu).
+  function npc(who, body = {}, { opening = null } = {}) {
     open("npc");
     if (!talks.has(who.id)) talks.set(who.id, {});
+    if (opening?.length) { const t = talks.get(who.id); t.log ||= []; t.log.push({ from: "npc", text: opening.map((x) => (typeof x === "string" ? x : x.link)).join(""), parts: opening }); }
     if (talks.size > 30) talks.delete(talks.keys().next().value);
     ui.npc = { who, body };
     draw(true);

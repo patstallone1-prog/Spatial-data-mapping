@@ -41,38 +41,38 @@
     "optics is how a material meets light: roughness (0 a mirror, 1 chalk), specular (the share mirrored head on, from its refractive index or the bare metal), albedo (the share of visible light, 400-700 nm, scattered back: grass and asphalt about a tenth, concrete a third) and albedo_range (what examples of it on a street span; a painted material's is as wide as paint's, black to white). A drawn surface outside its range is tinted into it. Published values for the material as it stands on a street, not measurements of these objects."
   ],
   "materials": {
-    "asphalt":        {"name": "Asphalt",               "density_kg_m3": 2300, "friction": {"static": 0.80, "dynamic": 0.70, "wet": 0.55}, "restitution": 0.20, "hardness": "hard",   "sound": "asphalt",  "flammable": false, "conducts_electricity": false, "failure": "cracks and potholes; never breaks through", "optics": {"roughness": 0.92, "specular": 0.04, "albedo": 0.09, "metal": false, "basis": "aged road asphalt; bitumen n 1.6 under worn aggregate", "albedo_range": [0.05, 0.15]}},
-    "concrete":       {"name": "Concrete",              "density_kg_m3": 2400, "friction": {"static": 0.75, "dynamic": 0.65, "wet": 0.50}, "restitution": 0.15, "hardness": "hard",   "sound": "concrete", "flammable": false, "conducts_electricity": false, "failure": "cracks, then spalls into chunks; reinforcing bar holds the pieces", "optics": {"roughness": 0.88, "specular": 0.04, "albedo": 0.32, "metal": false, "basis": "broom-finished, weathered", "albedo_range": [0.22, 0.45]}},
-    "paint_marking":  {"name": "Road paint",            "density_kg_m3": 1600, "friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.35}, "restitution": 0.20, "hardness": "hard",   "sound": "asphalt",  "flammable": false, "conducts_electricity": false, "failure": "wears away; a coating, not an object", "optics": {"roughness": 0.6, "specular": 0.05, "albedo": 0.6, "metal": false, "basis": "thermoplastic with glass beads", "albedo_range": [0.3, 0.8]}},
-    "tactile_polymer":{"name": "Tactile warning pad",   "density_kg_m3": 1800, "friction": {"static": 0.85, "dynamic": 0.75, "wet": 0.65}, "restitution": 0.20, "hardness": "hard",   "sound": "concrete", "flammable": false, "conducts_electricity": false, "failure": "domes chip off", "optics": {"roughness": 0.55, "specular": 0.045, "albedo": 0.4, "metal": false, "basis": "moulded polymer, n 1.54", "albedo_range": [0.2, 0.6]}},
-    "masonry":        {"name": "Brick and stone masonry","density_kg_m3": 1900, "friction": {"static": 0.70, "dynamic": 0.60, "wet": 0.50}, "restitution": 0.10, "hardness": "hard",   "sound": "stone",    "flammable": false, "conducts_electricity": false, "failure": "mortar joints crack, then the wall crumbles into bricks and blocks", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.22, "metal": false, "basis": "fired brick and cut stone", "albedo_range": [0.1, 0.4]}},
-    "building_shell": {"name": "Building envelope (stucco over timber or concrete frame)", "density_kg_m3": 300, "friction": {"static": 0.70, "dynamic": 0.60, "wet": 0.45}, "restitution": 0.05, "hardness": "hard", "sound": "stucco", "flammable": true, "conducts_electricity": false, "failure": "cladding cracks and falls away; the frame holds until structural collapse", "optics": {"roughness": 0.9, "specular": 0.04, "albedo": 0.45, "metal": false, "basis": "painted stucco", "albedo_range": [0.05, 0.8]}},
-    "lumber":         {"name": "Sawn and painted wood", "density_kg_m3": 550,  "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.40}, "restitution": 0.30, "hardness": "medium", "sound": "wood",     "flammable": true,  "conducts_electricity": false, "failure": "splinters along the grain; boards snap at knots and fixings", "optics": {"roughness": 0.6, "specular": 0.045, "albedo": 0.35, "metal": false, "basis": "painted or sealed wood", "albedo_range": [0.05, 0.8]}},
-    "green_wood":     {"name": "Living wood",           "density_kg_m3": 900,  "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.40}, "restitution": 0.25, "hardness": "medium", "sound": "bark",     "flammable": true,  "conducts_electricity": true,  "failure": "bends, then snaps with a long splintered break; roots can tear out of the soil", "optics": {"roughness": 0.95, "specular": 0.035, "albedo": 0.09, "metal": false, "basis": "bark", "albedo_range": [0.05, 0.16]}},
-    "deadwood":       {"name": "Decaying wood",         "density_kg_m3": 400,  "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.20}, "restitution": 0.15, "hardness": "soft",   "sound": "bark",     "flammable": true,  "conducts_electricity": false, "failure": "crumbles and breaks into soft punky chunks; slick with moss when wet", "optics": {"roughness": 0.95, "specular": 0.03, "albedo": 0.14, "metal": false, "basis": "weathered wood", "albedo_range": [0.08, 0.3]}},
-    "steel":          {"name": "Painted or galvanised steel", "density_kg_m3": 7850, "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.30}, "restitution": 0.40, "hardness": "hard", "sound": "metal",   "flammable": false, "conducts_electricity": true,  "failure": "bends and buckles (ductile); welds and base bolts shear at the extreme", "optics": {"roughness": 0.45, "specular": 0.05, "albedo": 0.3, "metal": false, "basis": "painted or powder-coated: the coat, not the metal, meets the light", "albedo_range": [0.04, 0.8]}},
-    "aluminium":      {"name": "Aluminium",             "density_kg_m3": 2700, "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.30}, "restitution": 0.35, "hardness": "hard",   "sound": "metal_thin","flammable": false, "conducts_electricity": true,  "failure": "dents, folds and tears at the fixings", "optics": {"roughness": 0.35, "specular": 0.91, "metal": true, "basis": "bare metal: mirrors nine tenths head on", "albedo": null}},
-    "cast_iron":      {"name": "Cast iron",             "density_kg_m3": 7200, "friction": {"static": 0.50, "dynamic": 0.45, "wet": 0.25}, "restitution": 0.30, "hardness": "hard",   "sound": "metal",    "flammable": false, "conducts_electricity": true,  "failure": "brittle: cracks and snaps clean with little bending", "optics": {"roughness": 0.6, "specular": 0.05, "albedo": 0.06, "metal": false, "basis": "painted black", "albedo_range": [0.03, 0.3]}},
-    "glass":          {"name": "Glass",                 "density_kg_m3": 2500, "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.15}, "restitution": 0.50, "hardness": "hard",   "sound": "glass",    "flammable": false, "conducts_electricity": false, "failure": "shatters: annealed into shards, tempered into small cubes", "optics": {"roughness": 0.03, "specular": 0.043, "metal": false, "basis": "float glass, n 1.52", "albedo": null}},
-    "plastic":        {"name": "Plastic and composite", "density_kg_m3": 1100, "friction": {"static": 0.50, "dynamic": 0.40, "wet": 0.25}, "restitution": 0.45, "hardness": "medium", "sound": "plastic",  "flammable": true,  "conducts_electricity": false, "failure": "cracks and deforms; melts in fire", "optics": {"roughness": 0.4, "specular": 0.045, "albedo": 0.35, "metal": false, "basis": "moulded, n 1.5-1.55", "albedo_range": [0.04, 0.8]}},
-    "fabric":         {"name": "Canvas and fabric",     "density_kg_m3": 400,  "friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.45}, "restitution": 0.05, "hardness": "soft",   "sound": "fabric",   "flammable": true,  "conducts_electricity": false, "failure": "tears and sags off its frame", "optics": {"roughness": 0.95, "specular": 0.04, "albedo": 0.35, "metal": false, "basis": "woven canvas", "albedo_range": [0.04, 0.8]}},
-    "soil":           {"name": "Soil",                  "density_kg_m3": 1500, "friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.30}, "restitution": 0.05, "hardness": "soft",   "sound": "dirt",     "flammable": false, "conducts_electricity": false, "failure": "deforms and can be dug; turns to mud when wet", "optics": {"roughness": 0.98, "specular": 0.03, "albedo": 0.14, "metal": false, "basis": "dry bare soil", "albedo_range": [0.08, 0.22]}},
-    "turf":           {"name": "Grass turf",            "density_kg_m3": 1300, "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.35}, "restitution": 0.10, "hardness": "soft",   "sound": "grass",    "flammable": true,  "conducts_electricity": false, "failure": "tears up in divots; regrows", "optics": {"roughness": 0.75, "specular": 0.035, "albedo": 0.1, "metal": false, "basis": "grass blades: a waxy cuticle, n 1.45", "albedo_range": [0.06, 0.16]}},
-    "forest_duff":    {"name": "Leaf litter and duff",  "density_kg_m3": 600,  "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.30}, "restitution": 0.05, "hardness": "soft",   "sound": "leaves",   "flammable": true,  "conducts_electricity": false, "failure": "scuffs and compacts underfoot", "optics": {"roughness": 0.97, "specular": 0.03, "albedo": 0.08, "metal": false, "basis": "leaf litter", "albedo_range": [0.05, 0.14]}},
-    "sand":           {"name": "Sand",                  "density_kg_m3": 1600, "friction": {"static": 0.55, "dynamic": 0.50, "wet": 0.60}, "restitution": 0.02, "hardness": "soft",   "sound": "sand",     "flammable": false, "conducts_electricity": false, "failure": "shifts and slumps; firmer when wet", "optics": {"roughness": 0.95, "specular": 0.04, "albedo": 0.35, "metal": false, "basis": "dry quartz sand", "albedo_range": [0.25, 0.45]}},
-    "gravel":         {"name": "Gravel and compacted trail","density_kg_m3": 1800,"friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.45}, "restitution": 0.05, "hardness": "medium", "sound": "gravel",   "flammable": false, "conducts_electricity": false, "failure": "scatters and ruts", "optics": {"roughness": 0.92, "specular": 0.04, "albedo": 0.25, "metal": false, "basis": "crushed stone", "albedo_range": [0.15, 0.35]}},
-    "rock":           {"name": "Rock",                  "density_kg_m3": 2650, "friction": {"static": 0.75, "dynamic": 0.65, "wet": 0.45}, "restitution": 0.25, "hardness": "hard",   "sound": "stone",    "flammable": false, "conducts_electricity": false, "failure": "fractures along its bedding into angular pieces", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.22, "metal": false, "basis": "weathered rock", "albedo_range": [0.1, 0.35]}},
-    "rubber_surface": {"name": "Poured rubber and acrylic court", "density_kg_m3": 1100, "friction": {"static": 0.90, "dynamic": 0.80, "wet": 0.60}, "restitution": 0.55, "hardness": "medium", "sound": "rubber", "flammable": true, "conducts_electricity": false, "failure": "tears and peels", "optics": {"roughness": 0.85, "specular": 0.042, "albedo": 0.2, "metal": false, "basis": "poured rubber, n 1.52", "albedo_range": [0.05, 0.35]}},
-    "foliage":        {"name": "Leaves and soft stems", "density_kg_m3": 250,  "friction": {"static": 0.50, "dynamic": 0.40, "wet": 0.30}, "restitution": 0.05, "hardness": "soft",   "sound": "foliage",  "flammable": true,  "conducts_electricity": false, "failure": "bends, flattens and tears; regrows", "optics": {"roughness": 0.5, "specular": 0.04, "albedo": 0.08, "metal": false, "basis": "leaf cuticle: glossy on its upper face", "albedo_range": [0.04, 0.14]}},
-    "water":          {"name": "Water",                 "density_kg_m3": 1000, "friction": {"static": 0.00, "dynamic": 0.00, "wet": 0.00}, "restitution": 0.00, "hardness": "fluid",  "sound": "water",    "flammable": false, "conducts_electricity": true,  "failure": "none: displaced, never broken", "optics": {"roughness": 0.05, "specular": 0.02, "albedo": 0.05, "metal": false, "basis": "n 1.333", "albedo_range": [0.02, 0.1]}},
-    "plasterboard":   {"name": "Plasterboard and paint","density_kg_m3": 700,  "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.40}, "restitution": 0.05, "hardness": "medium", "sound": "plaster",  "flammable": false, "conducts_electricity": false, "failure": "punches through and crumbles to powder; studs behind hold", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.7, "metal": false, "basis": "matt emulsion", "albedo_range": [0.2, 0.85]}},
-    "carpet":         {"name": "Carpet",                "density_kg_m3": 300,  "friction": {"static": 0.85, "dynamic": 0.75, "wet": 0.60}, "restitution": 0.05, "hardness": "soft",   "sound": "carpet",   "flammable": true,  "conducts_electricity": false, "failure": "tears and frays", "optics": {"roughness": 1.0, "specular": 0.04, "albedo": 0.3, "metal": false, "basis": "pile", "albedo_range": [0.05, 0.6]}},
-    "conductor":      {"name": "Overhead conductor (aluminium/steel cable)", "density_kg_m3": 2700, "friction": {"static": 0.40, "dynamic": 0.30, "wet": 0.20}, "restitution": 0.20, "hardness": "hard", "sound": "metal_thin", "flammable": false, "conducts_electricity": true, "failure": "snaps under load and falls live to the ground", "optics": {"roughness": 0.6, "specular": 0.9, "metal": true, "basis": "weathered aluminium strand", "albedo": null}},
-    "chrome":         {"name": "Chrome plate and polished alloy", "density_kg_m3": 2700, "friction": {"static": 0.45, "dynamic": 0.35, "wet": 0.20}, "restitution": 0.35, "hardness": "hard", "sound": "metal_thin", "flammable": false, "conducts_electricity": true, "failure": "dents and scratches; plating flakes off at the dent", "optics": {"roughness": 0.18, "specular": 0.6, "metal": true, "basis": "a car's brightwork and alloy wheels: chrome over plastic or a lacquered alloy, mirrors more than half head on", "albedo": null}},
-    "tyre_rubber":    {"name": "Tyre rubber",           "density_kg_m3": 1150, "friction": {"static": 1.00, "dynamic": 0.80, "wet": 0.55}, "restitution": 0.60, "hardness": "medium", "sound": "rubber", "flammable": true, "conducts_electricity": false, "failure": "punctures and tears; the sidewall bulges and splits", "optics": {"roughness": 0.8, "specular": 0.04, "albedo": 0.04, "metal": false, "basis": "carbon-black rubber, n about 1.5: the darkest thing on the street", "albedo_range": [0.02, 0.12]}},
-    "upholstery":     {"name": "Seat cloth, vinyl and leather", "density_kg_m3": 450, "friction": {"static": 0.70, "dynamic": 0.60, "wet": 0.50}, "restitution": 0.10, "hardness": "soft", "sound": "fabric", "flammable": true, "conducts_electricity": false, "failure": "tears and splits at the seams; the foam shows", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.15, "metal": false, "basis": "a car's seats, door cards and dashboard: woven cloth to semi-gloss vinyl", "albedo_range": [0.03, 0.6]}},
-    "lens":           {"name": "Lamp lens (polycarbonate)", "density_kg_m3": 1200, "friction": {"static": 0.50, "dynamic": 0.40, "wet": 0.20}, "restitution": 0.50, "hardness": "medium", "sound": "plastic", "flammable": true, "conducts_electricity": false, "failure": "cracks and shatters into large pieces", "optics": {"roughness": 0.05, "specular": 0.051, "metal": false, "basis": "moulded polycarbonate, n 1.585, clear or dyed red and amber", "albedo": null}},
-    "none":           {"name": "No physical material (a marker or a view-only proxy)", "density_kg_m3": 0, "friction": {"static": 0.0, "dynamic": 0.0, "wet": 0.0}, "restitution": 0.0, "hardness": "none", "sound": "none", "flammable": false, "conducts_electricity": false, "failure": "none"}
+    "asphalt":        {"name": "Asphalt",               "density_kg_m3": 2300, "friction": {"static": 0.80, "dynamic": 0.70, "wet": 0.55}, "restitution": 0.20, "hardness": "hard",   "sound": "asphalt",  "flammable": false, "conducts_electricity": false, "failure": "cracks and potholes; never breaks through", "optics": {"roughness": 0.92, "specular": 0.04, "albedo": 0.09, "metal": false, "basis": "aged road asphalt; bitumen n 1.6 under worn aggregate", "albedo_range": [0.05, 0.15]}, "mechanics": "asphalt"},
+    "concrete":       {"name": "Concrete",              "density_kg_m3": 2400, "friction": {"static": 0.75, "dynamic": 0.65, "wet": 0.50}, "restitution": 0.15, "hardness": "hard",   "sound": "concrete", "flammable": false, "conducts_electricity": false, "failure": "cracks, then spalls into chunks; reinforcing bar holds the pieces", "optics": {"roughness": 0.88, "specular": 0.04, "albedo": 0.32, "metal": false, "basis": "broom-finished, weathered", "albedo_range": [0.22, 0.45]}, "mechanics": "concrete"},
+    "paint_marking":  {"name": "Road paint",            "density_kg_m3": 1600, "friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.35}, "restitution": 0.20, "hardness": "hard",   "sound": "asphalt",  "flammable": false, "conducts_electricity": false, "failure": "wears away; a coating, not an object", "optics": {"roughness": 0.6, "specular": 0.05, "albedo": 0.6, "metal": false, "basis": "thermoplastic with glass beads", "albedo_range": [0.3, 0.8]}, "mechanics": "thermoplastic_paint"},
+    "tactile_polymer":{"name": "Tactile warning pad",   "density_kg_m3": 1800, "friction": {"static": 0.85, "dynamic": 0.75, "wet": 0.65}, "restitution": 0.20, "hardness": "hard",   "sound": "concrete", "flammable": false, "conducts_electricity": false, "failure": "domes chip off", "optics": {"roughness": 0.55, "specular": 0.045, "albedo": 0.4, "metal": false, "basis": "moulded polymer, n 1.54", "albedo_range": [0.2, 0.6]}, "mechanics": "polymer_concrete"},
+    "masonry":        {"name": "Brick and stone masonry","density_kg_m3": 1900, "friction": {"static": 0.70, "dynamic": 0.60, "wet": 0.50}, "restitution": 0.10, "hardness": "hard",   "sound": "stone",    "flammable": false, "conducts_electricity": false, "failure": "mortar joints crack, then the wall crumbles into bricks and blocks", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.22, "metal": false, "basis": "fired brick and cut stone", "albedo_range": [0.1, 0.4]}, "mechanics": "clay_brick"},
+    "building_shell": {"name": "Building envelope (stucco over timber or concrete frame)", "density_kg_m3": 300, "friction": {"static": 0.70, "dynamic": 0.60, "wet": 0.45}, "restitution": 0.05, "hardness": "hard", "sound": "stucco", "flammable": true, "conducts_electricity": false, "failure": "cladding cracks and falls away; the frame holds until structural collapse", "optics": {"roughness": 0.9, "specular": 0.04, "albedo": 0.45, "metal": false, "basis": "painted stucco", "albedo_range": [0.05, 0.8]}, "mechanics": "stucco"},
+    "lumber":         {"name": "Sawn and painted wood", "density_kg_m3": 550,  "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.40}, "restitution": 0.30, "hardness": "medium", "sound": "wood",     "flammable": true,  "conducts_electricity": false, "failure": "splinters along the grain; boards snap at knots and fixings", "optics": {"roughness": 0.6, "specular": 0.045, "albedo": 0.35, "metal": false, "basis": "painted or sealed wood", "albedo_range": [0.05, 0.8]}, "mechanics": "douglas_fir_dry"},
+    "green_wood":     {"name": "Living wood",           "density_kg_m3": 900,  "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.40}, "restitution": 0.25, "hardness": "medium", "sound": "bark",     "flammable": true,  "conducts_electricity": true,  "failure": "bends, then snaps with a long splintered break; roots can tear out of the soil", "optics": {"roughness": 0.95, "specular": 0.035, "albedo": 0.09, "metal": false, "basis": "bark", "albedo_range": [0.05, 0.16]}, "mechanics": "sycamore_green"},
+    "deadwood":       {"name": "Decaying wood",         "density_kg_m3": 400,  "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.20}, "restitution": 0.15, "hardness": "soft",   "sound": "bark",     "flammable": true,  "conducts_electricity": false, "failure": "crumbles and breaks into soft punky chunks; slick with moss when wet", "optics": {"roughness": 0.95, "specular": 0.03, "albedo": 0.14, "metal": false, "basis": "weathered wood", "albedo_range": [0.08, 0.3]}, "mechanics": "decayed_softwood"},
+    "steel":          {"name": "Painted or galvanised steel", "density_kg_m3": 7850, "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.30}, "restitution": 0.40, "hardness": "hard", "sound": "metal",   "flammable": false, "conducts_electricity": true,  "failure": "bends and buckles (ductile); welds and base bolts shear at the extreme", "optics": {"roughness": 0.45, "specular": 0.05, "albedo": 0.3, "metal": false, "basis": "painted or powder-coated: the coat, not the metal, meets the light", "albedo_range": [0.04, 0.8]}, "mechanics": "mild_steel"},
+    "aluminium":      {"name": "Aluminium",             "density_kg_m3": 2700, "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.30}, "restitution": 0.35, "hardness": "hard",   "sound": "metal_thin","flammable": false, "conducts_electricity": true,  "failure": "dents, folds and tears at the fixings", "optics": {"roughness": 0.35, "specular": 0.91, "metal": true, "basis": "bare metal: mirrors nine tenths head on", "albedo": null}, "mechanics": "aluminium_6061"},
+    "cast_iron":      {"name": "Cast iron",             "density_kg_m3": 7200, "friction": {"static": 0.50, "dynamic": 0.45, "wet": 0.25}, "restitution": 0.30, "hardness": "hard",   "sound": "metal",    "flammable": false, "conducts_electricity": true,  "failure": "brittle: cracks and snaps clean with little bending", "optics": {"roughness": 0.6, "specular": 0.05, "albedo": 0.06, "metal": false, "basis": "painted black", "albedo_range": [0.03, 0.3]}, "mechanics": "grey_cast_iron"},
+    "glass":          {"name": "Glass",                 "density_kg_m3": 2500, "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.15}, "restitution": 0.50, "hardness": "hard",   "sound": "glass",    "flammable": false, "conducts_electricity": false, "failure": "shatters: annealed into shards, tempered into small cubes", "optics": {"roughness": 0.03, "specular": 0.043, "metal": false, "basis": "float glass, n 1.52", "albedo": null}, "mechanics": "glass_annealed"},
+    "plastic":        {"name": "Plastic and composite", "density_kg_m3": 1100, "friction": {"static": 0.50, "dynamic": 0.40, "wet": 0.25}, "restitution": 0.45, "hardness": "medium", "sound": "plastic",  "flammable": true,  "conducts_electricity": false, "failure": "cracks and deforms; melts in fire", "optics": {"roughness": 0.4, "specular": 0.045, "albedo": 0.35, "metal": false, "basis": "moulded, n 1.5-1.55", "albedo_range": [0.04, 0.8]}, "mechanics": "polypropylene"},
+    "fabric":         {"name": "Canvas and fabric",     "density_kg_m3": 400,  "friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.45}, "restitution": 0.05, "hardness": "soft",   "sound": "fabric",   "flammable": true,  "conducts_electricity": false, "failure": "tears and sags off its frame", "optics": {"roughness": 0.95, "specular": 0.04, "albedo": 0.35, "metal": false, "basis": "woven canvas", "albedo_range": [0.04, 0.8]}, "mechanics": "cotton_canvas"},
+    "soil":           {"name": "Soil",                  "density_kg_m3": 1500, "friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.30}, "restitution": 0.05, "hardness": "soft",   "sound": "dirt",     "flammable": false, "conducts_electricity": false, "failure": "deforms and can be dug; turns to mud when wet", "optics": {"roughness": 0.98, "specular": 0.03, "albedo": 0.14, "metal": false, "basis": "dry bare soil", "albedo_range": [0.08, 0.22]}, "mechanics": "soil_loam"},
+    "turf":           {"name": "Grass turf",            "density_kg_m3": 1300, "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.35}, "restitution": 0.10, "hardness": "soft",   "sound": "grass",    "flammable": true,  "conducts_electricity": false, "failure": "tears up in divots; regrows", "optics": {"roughness": 0.75, "specular": 0.035, "albedo": 0.1, "metal": false, "basis": "grass blades: a waxy cuticle, n 1.45", "albedo_range": [0.06, 0.16]}, "mechanics": "turf"},
+    "forest_duff":    {"name": "Leaf litter and duff",  "density_kg_m3": 600,  "friction": {"static": 0.55, "dynamic": 0.45, "wet": 0.30}, "restitution": 0.05, "hardness": "soft",   "sound": "leaves",   "flammable": true,  "conducts_electricity": false, "failure": "scuffs and compacts underfoot", "optics": {"roughness": 0.97, "specular": 0.03, "albedo": 0.08, "metal": false, "basis": "leaf litter", "albedo_range": [0.05, 0.14]}, "mechanics": "forest_duff"},
+    "sand":           {"name": "Sand",                  "density_kg_m3": 1600, "friction": {"static": 0.55, "dynamic": 0.50, "wet": 0.60}, "restitution": 0.02, "hardness": "soft",   "sound": "sand",     "flammable": false, "conducts_electricity": false, "failure": "shifts and slumps; firmer when wet", "optics": {"roughness": 0.95, "specular": 0.04, "albedo": 0.35, "metal": false, "basis": "dry quartz sand", "albedo_range": [0.25, 0.45]}, "mechanics": "sand"},
+    "gravel":         {"name": "Gravel and compacted trail","density_kg_m3": 1800,"friction": {"static": 0.65, "dynamic": 0.55, "wet": 0.45}, "restitution": 0.05, "hardness": "medium", "sound": "gravel",   "flammable": false, "conducts_electricity": false, "failure": "scatters and ruts", "optics": {"roughness": 0.92, "specular": 0.04, "albedo": 0.25, "metal": false, "basis": "crushed stone", "albedo_range": [0.15, 0.35]}, "mechanics": "gravel"},
+    "rock":           {"name": "Rock",                  "density_kg_m3": 2650, "friction": {"static": 0.75, "dynamic": 0.65, "wet": 0.45}, "restitution": 0.25, "hardness": "hard",   "sound": "stone",    "flammable": false, "conducts_electricity": false, "failure": "fractures along its bedding into angular pieces", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.22, "metal": false, "basis": "weathered rock", "albedo_range": [0.1, 0.35]}, "mechanics": "granite"},
+    "rubber_surface": {"name": "Poured rubber and acrylic court", "density_kg_m3": 1100, "friction": {"static": 0.90, "dynamic": 0.80, "wet": 0.60}, "restitution": 0.55, "hardness": "medium", "sound": "rubber", "flammable": true, "conducts_electricity": false, "failure": "tears and peels", "optics": {"roughness": 0.85, "specular": 0.042, "albedo": 0.2, "metal": false, "basis": "poured rubber, n 1.52", "albedo_range": [0.05, 0.35]}, "mechanics": "poured_rubber"},
+    "foliage":        {"name": "Leaves and soft stems", "density_kg_m3": 250,  "friction": {"static": 0.50, "dynamic": 0.40, "wet": 0.30}, "restitution": 0.05, "hardness": "soft",   "sound": "foliage",  "flammable": true,  "conducts_electricity": false, "failure": "bends, flattens and tears; regrows", "optics": {"roughness": 0.5, "specular": 0.04, "albedo": 0.08, "metal": false, "basis": "leaf cuticle: glossy on its upper face", "albedo_range": [0.04, 0.14]}, "mechanics": "leaf"},
+    "water":          {"name": "Water",                 "density_kg_m3": 1000, "friction": {"static": 0.00, "dynamic": 0.00, "wet": 0.00}, "restitution": 0.00, "hardness": "fluid",  "sound": "water",    "flammable": false, "conducts_electricity": true,  "failure": "none: displaced, never broken", "optics": {"roughness": 0.05, "specular": 0.02, "albedo": 0.05, "metal": false, "basis": "n 1.333", "albedo_range": [0.02, 0.1]}, "mechanics": "water"},
+    "plasterboard":   {"name": "Plasterboard and paint","density_kg_m3": 700,  "friction": {"static": 0.60, "dynamic": 0.50, "wet": 0.40}, "restitution": 0.05, "hardness": "medium", "sound": "plaster",  "flammable": false, "conducts_electricity": false, "failure": "punches through and crumbles to powder; studs behind hold", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.7, "metal": false, "basis": "matt emulsion", "albedo_range": [0.2, 0.85]}, "mechanics": "plasterboard"},
+    "carpet":         {"name": "Carpet",                "density_kg_m3": 300,  "friction": {"static": 0.85, "dynamic": 0.75, "wet": 0.60}, "restitution": 0.05, "hardness": "soft",   "sound": "carpet",   "flammable": true,  "conducts_electricity": false, "failure": "tears and frays", "optics": {"roughness": 1.0, "specular": 0.04, "albedo": 0.3, "metal": false, "basis": "pile", "albedo_range": [0.05, 0.6]}, "mechanics": "carpet_pile"},
+    "conductor":      {"name": "Overhead conductor (aluminium/steel cable)", "density_kg_m3": 2700, "friction": {"static": 0.40, "dynamic": 0.30, "wet": 0.20}, "restitution": 0.20, "hardness": "hard", "sound": "metal_thin", "flammable": false, "conducts_electricity": true, "failure": "snaps under load and falls live to the ground", "optics": {"roughness": 0.6, "specular": 0.9, "metal": true, "basis": "weathered aluminium strand", "albedo": null}, "mechanics": "aluminium_conductor"},
+    "chrome":         {"name": "Chrome plate and polished alloy", "density_kg_m3": 2700, "friction": {"static": 0.45, "dynamic": 0.35, "wet": 0.20}, "restitution": 0.35, "hardness": "hard", "sound": "metal_thin", "flammable": false, "conducts_electricity": true, "failure": "dents and scratches; plating flakes off at the dent", "optics": {"roughness": 0.18, "specular": 0.6, "metal": true, "basis": "a car's brightwork and alloy wheels: chrome over plastic or a lacquered alloy, mirrors more than half head on", "albedo": null}, "mechanics": "chromed_steel"},
+    "tyre_rubber":    {"name": "Tyre rubber",           "density_kg_m3": 1150, "friction": {"static": 1.00, "dynamic": 0.80, "wet": 0.55}, "restitution": 0.60, "hardness": "medium", "sound": "rubber", "flammable": true, "conducts_electricity": false, "failure": "punctures and tears; the sidewall bulges and splits", "optics": {"roughness": 0.8, "specular": 0.04, "albedo": 0.04, "metal": false, "basis": "carbon-black rubber, n about 1.5: the darkest thing on the street", "albedo_range": [0.02, 0.12]}, "mechanics": "rubber_tread"},
+    "upholstery":     {"name": "Seat cloth, vinyl and leather", "density_kg_m3": 450, "friction": {"static": 0.70, "dynamic": 0.60, "wet": 0.50}, "restitution": 0.10, "hardness": "soft", "sound": "fabric", "flammable": true, "conducts_electricity": false, "failure": "tears and splits at the seams; the foam shows", "optics": {"roughness": 0.85, "specular": 0.04, "albedo": 0.15, "metal": false, "basis": "a car's seats, door cards and dashboard: woven cloth to semi-gloss vinyl", "albedo_range": [0.03, 0.6]}, "mechanics": "vinyl_upholstery"},
+    "lens":           {"name": "Lamp lens (polycarbonate)", "density_kg_m3": 1200, "friction": {"static": 0.50, "dynamic": 0.40, "wet": 0.20}, "restitution": 0.50, "hardness": "medium", "sound": "plastic", "flammable": true, "conducts_electricity": false, "failure": "cracks and shatters into large pieces", "optics": {"roughness": 0.05, "specular": 0.051, "metal": false, "basis": "moulded polycarbonate, n 1.585, clear or dyed red and amber", "albedo": null}, "mechanics": "polycarbonate"},
+    "none":           {"name": "No physical material (a marker or a view-only proxy)", "density_kg_m3": 0, "friction": {"static": 0.0, "dynamic": 0.0, "wet": 0.0}, "restitution": 0.0, "hardness": "none", "sound": "none", "flammable": false, "conducts_electricity": false, "failure": "none", "mechanics": null}
   },
   "claddings": {
     "about": "What a building's walls are clad in, per class the photographs read (docs/sf-corridor-materials.json walls). The engine's physics comes from the base material; the rest is the cladding's own.",
@@ -269,5 +269,2258 @@
       "nature_": "vegetation.wild_plant", "park:playground": "furniture.play_equipment", "park:picnic": "furniture.picnic_table", "park:": "ground.lawn", "ground:": "furniture.bollard", "furniture:": "furniture.bollard", "structure:": "furniture.cabinet"
     },
     "notes": "A name is looked up with any '|' suffix dropped and its first space read as ':' (the renderer writes both 'furniture street_light' and 'furniture:street_light'); a post named after its fence ('fence:chainlink_post') is that fence. An exact name wins, then the longest matching prefix. 'ground:*' and 'furniture:*' left over are small mapped objects the page drew without a kind of their own: they are solid at body height, as a bollard is."
+  },
+  "mechanics": {
+    "about": "How each material meets force: strength, hardness, toughness and stiffness from published tables (each substance lists its sources), and how a contact between two things plays out from those figures and the shapes that meet (docs/city/mechanics.mjs, docs/62-material-mechanics.md). A catalogue material names its substance in its own 'mechanics' field; finer substances (wood species, blade steels, tissue) are for held things and particular objects.",
+    "units": "SI in the field names: MPa, GPa, J/m2 (fracture energy), MPa m^0.5 (fracture toughness), HV (Vickers number: MPa = 9.807 HV), N (Janka side hardness: the force to sink an 11.28 mm ball half its diameter, so its pressure in MPa is the force / 100), kg/m3, metres. Wood strengths are along the grain unless named perpendicular.",
+    "sources": {
+      "usda_wood_handbook": "USDA Forest Products Laboratory, Wood Handbook: Wood as an Engineering Material (FPL-GTR-190, 2010), Table 5-3a/5-3b: specific gravity, MOE, MOR, compression parallel and perpendicular, shear, tension perpendicular and side (Janka) hardness, green and at 12% moisture",
+      "wood_elastic_ratios": "Wood Handbook ch. 5, Table 5-1: E_T/E_L about 0.04-0.08 and E_R/E_L about 0.07-0.11; an across-the-grain modulus of E_L/16 is used",
+      "wood_fracture": "Jeronimidis 1980 (Proc. R. Soc. B 208:447): work of fracture across the grain about 10^4 J/m2; Stanzl-Tschegg et al. 1995 (Wood Sci. Technol. 29:31) and Patton-Mallory & Cramer 1987: splitting along the grain 100-600 J/m2; both scaled here by specific gravity to the 1.5 power (Ashby, Gibson et al. 1985)",
+      "nds_withdrawal": "American Wood Council, National Design Specification (2018) 12.2.3: nail withdrawal W = 1380 G^2.5 D lb per inch of penetration (the residual grip of displaced wood on a steel shank)",
+      "felling": "Felling practice: a hinge of about a tenth of the diameter holds a tree until it tips (USDA Forest Service Saw Program; Dent, Professional Timber Falling 1974); trees are built with a bending safety factor of about 4 against storms (Mattheck 1994)",
+      "asm_metals": "ASM Handbook vol. 1-2 and MatWeb typical values: A36/1018 steel (yield 250 MPa, UTS 400-440, 120-130 HV, K_IC above 100 MPa m^0.5), 6061-T6 (276/310 MPa, 107 HV, K_IC 29), grey iron (UTS 200 MPa, 210 HV, K_IC 18), annealed copper (70/220 MPa, 50 HV)",
+      "blade_steels": "Hardened blade steels: X50CrMoV15/440C at HRC 56-58 (610-650 HV, yield about 1.8 GPa, K_IC 20-25 MPa m^0.5) and plain carbon axe steel at HRC 50-54 (510-560 HV, K_IC 40-50); Verhoeven, Steel Metallurgy for the Non-Metallurgist (ASM 2007); Landes 2006 (knife edge retention)",
+      "glass": "Soda-lime float glass: E 72 GPa, 550 HV, K_IC 0.75 MPa m^0.5 (Varshneya, Fundamentals of Inorganic Glasses 2006); characteristic bending strength 45 MPa for large areas (EN 572-1) and about 120 MPa for small highly stressed areas under short loads (Haldimann, Luible & Overend, Structural Use of Glass 2008); fully tempered surface compression 69-150 MPa (ASTM C1048, EN 12150) in a layer about a fifth of the thickness deep",
+      "ceramics": "Y-TZP zirconia (1250 HV, K_IC 6-10, flexural 900-1200 MPa) and WC-Co carbide (1500-1700 HV, K_IC 10-12, flexural 2000+ MPa); Munz & Fett, Ceramics (Springer 1999); glazed stoneware after Ashby",
+      "rock": "Granite (E 50-70 GPa, UCS 130-250 MPa, tensile 7-25, K_IC 1-2.5) and sandstone (E 10-30, UCS 20-170, tensile 2-8, K_IC 0.3-1.2): Goodman, Introduction to Rock Mechanics (1989); Jaeger, Cook & Zimmerman (2007); Atkinson 1984 (fracture toughness)",
+      "concrete_masonry": "Concrete: f'c 25-40 MPa, tensile about 10% of that, E 25-35 GPa, fracture energy 75-150 N/m (ACI 318; fib Model Code 2010); clay brick: compressive 20-60 MPa, E 10-20 GPa (Hendry, Structural Masonry); quartz aggregate about 1100 HV",
+      "ice": "Petrovic 2003 (J. Mater. Sci. 38:1): ice E 9-10 GPa, K_IC 0.05-0.15 MPa m^0.5, tensile 0.7-3.1 MPa, compressive 5-25 MPa; indentation hardness 30-100 MPa between 0 and -20 C (Barnes, Tabor & Walker 1971, Proc. R. Soc. A 324:127)",
+      "tissue": "Skin: tensile 17-28 MPa at failure strains of 0.3-0.7 and tangent modulus 50-100 MPa (Annaidh et al. 2012, J. Mech. Behav. Biomed. Mater. 5:139); cutting toughness 1.5-5 kJ/m2 (Pereira et al. 1997; Shergold & Fleck 2004, Proc. R. Soc. A 460:3037); fat and muscle moduli 1-100 kPa (McKee et al. 2011); meat toughness 1-4 kJ/m2 (Purslow 1985)",
+      "bone": "Cortical bone: E 15-20 GPa, UTS 100-150 MPa, compressive 170-200, K_IC 2-6 MPa m^0.5, hardness 0.4-0.7 GPa (Currey, Bones 2002; Zioupos & Currey 1998)",
+      "food": "Apple and potato flesh: moduli 2-6 MPa, failure strains 0.1-0.25, fracture toughness 100-300 J/m2 (Vincent 1990; Khan & Vincent 1993, J. Texture Stud. 24:423)",
+      "polymers": "Ashby, Materials Selection in Mechanical Design (4th ed. 2011) property data: polypropylene, polycarbonate, LDPE film, natural and filled rubbers; tearing energy of filled rubber 10-50 kJ/m2 (Rivlin & Thomas 1953; Gent 2001)",
+      "sheets": "Cotton duck canvas tensile 30-60 MPa, failure strain about 0.15, cutting toughness 2-5 kJ/m2; paper 30-80 MPa at strain 0.02-0.05, tearing energy 2-10 kJ/m2 (Niskanen, Paper Physics 2012); corrugated board after the same",
+      "soils": "Soil cone index 0.5-3 MPa moist loam, under 1 MPa for turf and sand (ASAE S313; Bengough & Mullins 1990); soil moduli 5-50 MPa",
+      "friction_pavement": "Rubber on pavement: dry 0.7-0.9, wet 0.4-0.6 (FHWA, Guide for Pavement Friction 2009); rubber on wet smooth glass 0.1-0.3; rubber on ice 0.1-0.2 cold and 0.02-0.07 near melting (Persson 2000, Sliding Friction; Hayhoe & Shapley 1989)",
+      "friction_skin": "Skin friction on smooth and rough surfaces 0.3-1.5, rising with adhesion on smooth surfaces and falling once wet (Derler & Gerhardt 2012, Tribol. Lett. 45:1); chalk dries sweat and raises friction on rock (Amca et al. 2012, J. Sports Sci. 30:669)",
+      "friction_climbing": "Sticky climbing rubber on dry granite and sandstone about 0.9-1.3; slab (friction) climbing in such rubber to about 40-45 degrees on dry rock",
+      "finger_strength": "Maximum two-handed hang force on a 20-23 mm edge: about 0.5-0.65 body weight for non-climbers, 0.9-1.1 for intermediate and 1.3-1.6 for elite climbers; the force falls with edge depth roughly as its square root (Baláš et al. 2012, Eur. J. Sport Sci. 12:16; Amca et al. 2012; Bourne et al. 2011)",
+      "gecko": "Hawkes et al. 2015 (J. R. Soc. Interface 12:20140675): gecko-type dry adhesive tiles of about 140 cm2 a hand let a 70 kg person climb vertical glass; such adhesives need smooth surfaces",
+      "stab": "Stab energies 20-115 J, with body-armour test energies of 24, 33 and 43 J (Horsfall et al. 1999; HOSDB Body Armour Standard 2007); a sharp knife point pierces skin at about 10-50 N (Knight 1975; O'Callaghan et al. 1999, Int. J. Legal Med. 112:236; Ankersen et al. 1999)",
+      "edge_radius": "Edge radii: razor blades 0.1-0.3 µm, sharp kitchen knives 0.3-1 µm, dull 2-10 µm; cutting force rising about linearly with edge radius in soft solids (McCarthy et al. 2007, J. Mater. Process. Technol. 189:25; Schuldt et al. 2016)",
+      "cutting": "Atkins 2009, The Science and Engineering of Cutting: cutting force per unit length = fracture toughness + bluntness + wedge (plastic) + friction terms; slicing lowers the push force by about 1/(1+xi^2)^0.5 for a slice/push ratio xi",
+      "indentation": "Johnson 1985, Contact Mechanics: Hertz contact, yield at a mean pressure about 1.1 Y, fully plastic at the hardness (about 3 Y); Lawn, Evans & Marshall 1980 (J. Am. Ceram. Soc. 63:574): radial crack length c from K_IC = chi P / c^1.5, chi = 0.016 (E/H)^0.5",
+      "plates": "Roark's Formulas for Stress and Strain (8th ed.), Table 11.2: circular plates under central load and the equivalent contact radius r' = (1.6 r^2 + t^2)^0.5 - 0.675 t; point impedance of a thin plate Z = 8 (D rho h)^0.5 (Cremer & Heckl, Structure-Borne Sound)",
+      "tool_geometry": "Tool geometry: chef's knives about 15-20 degrees a side at the edge on a flat grind 2-2.5 mm thick, tip radius 0.1-0.5 mm (forensic measurements: O'Callaghan et al. 1999); felling axe bits about 25-30 degrees at the edge and 20-25 mm thick 80-90 mm back; splitting mauls 35-45 degrees; swing energies from rules.json tools",
+      "soil_cutting": "McKyes 1985, Soil Cutting and Tillage (Elsevier), ch. 2-4, and Reece 1964 (Proc. Instn Mech. Engrs 179): a blade's draft F = w (gamma d^2 N_gamma + c d N_c + c_a d N_ca); typical cohesion 0-5 kPa for sand and duff, 10-20 kPa for moist loam, friction angles 25-42 degrees, soil-metal friction about two thirds of the internal angle; Terzaghi bearing factors N_q = e^(pi tan phi) tan^2(45 + phi/2); root cohesion 5-20 kPa in turf (Wu 1979; Gray & Sotir 1996)",
+      "push_strength": "Snook & Ciriello 1991 (Ergonomics 34:1197) and Chaffin, Andersson & Martin, Occupational Biomechanics: a standing adult's initial horizontal push about 300-500 N with good footing (sustained about 60% of it); a push is also capped by the shoes' friction on the ground times body weight; rolling resistance 0.010-0.015 for car tyres on asphalt (Gillespie, Fundamentals of Vehicle Dynamics), 0.02-0.04 for small hard casters",
+      "balance": "Hof, Gazendam & Sinke 2005 (J. Biomech. 38:1): the extrapolated centre of mass x + v sqrt(l/g) must stay within the base of support; a single recovery step handles about 1-1.5 m/s (Hsiao & Robinovitch 1999), beyond which a pushed person falls",
+      "nail_driving": "Euler buckling of a fixed-pinned column P = pi^2 E I / (0.7 L)^2 and the plastic moment of a round section M_p = sigma_y d^3 / 6 (Gere & Timoshenko, Mechanics of Materials), for the exposed length of a nail; common nail heads and lengths from ASTM F1667 (16d: 3.3 mm shank, 7.1 mm head, 89 mm long)",
+      "coating_films": "Wicks, Jones, Pappas & Wicks, Organic Coatings: Science and Technology, 4th ed. (Wiley 2017), ch. 4 (mechanical properties of films) and ch. 24-25 (architectural and automotive coatings): exterior acrylic latex films sit near or below their glass transition at room temperature (tensile 2-8 MPa, elongation 100-400 %, modulus 0.05-0.5 GPa); crosslinked alkyd and polyester enamels are glassy (modulus 1-4 GPa, tensile 20-50 MPa, elongation 2-10 %); free-film tensile figures by ASTM D2370",
+      "clearcoat_nanoindentation": "Automotive two-pack acrylic-urethane clearcoats by nanoindentation and scratch: modulus 3-5 GPa, hardness 0.15-0.3 GPa, cracking under a scratch tip at 3-5 % strain (Lin, Blackman & Matheson, Prog. Org. Coat. 40 (2000) 85-91; Jardret, Lucas, Oliver-Leblond & Oliver, J. Adhesion 2000)",
+      "coating_adhesion": "Pull-off adhesion by ASTM D4541 / ISO 4624: architectural latex over render and masonry 1-2 MPa (it parts in the render's own skin), alkyd over primed wood 2-4 MPa, polyester powder over pretreated steel and aluminium 8-15 MPa, an OEM car paint stack over its e-coat above 10 MPa; the pull-off figure is taken as the interface's shear strength too (shear adhesion runs at 1-2 times it)",
+      "coating_thickness": "Dry film thickness (ASTM D7091 gauges): two coats of exterior latex 75-100 um (about 40-50 um a coat), an alkyd primer and two gloss coats 100-120 um, a powder coat 60-80 um, an OEM car stack about 100 um (e-coat 20, primer 30, base 15, clear 40-50); hot thermoplastic road marking 3 mm",
+      "scratch_hardness": "Scratch hardness HSp = 8 P / (pi w^2), the load over the front half of the groove's circle (ASTM G171; Bowden & Tabor, The Friction and Lubrication of Solids, 1950): a sliding sphere bears only on its leading half, so its groove is the depth at which half its plastic contact carries the load",
+      "scratch_ratio": "One solid scratches another only if it is about 20 % harder than it (Tabor, 'Mohs's hardness scale: a physical interpretation', Proc. Phys. Soc. B 67 (1954) 249); for a gritty composite (render, concrete, brick) what must be out-hardened is its grit, not its binder",
+      "representative_strain": "Tabor's representative strain under a spherical indenter, e = 0.2 a / R (Tabor, The Hardness of Metals, 1951; Johnson, Contact Mechanics, 1985, s. 6.2): the strain a coat carried down with a dent is stretched to",
+      "confined_layer": "A thin plastic layer squeezed under a flat with sticking friction bears p = Y (1 + 2 a / (3 sqrt 3 t)), the slab solution for upsetting (Johnson & Mellor, Engineering Plasticity, 1973, ch. 11): a film thinner than its contact is held in by the faces either side and does not flow first",
+      "shear_lag": "A cracked brittle film on a substrate lifts off over the length its own stress can be carried by the interface: crack spacing lambda = pi sigma_f t / tau (Agrawal & Raj, Acta Metall. 37 (1989) 1265), so a flake runs half that either side of the crack",
+      "gypsum_board": "ASTM C1396: 1/2 in gypsum board must carry 107 lbf (476 N) at mid-span over 14 in on a 12 in wide sample (bearing edges parallel), a flexural stress of about 5 MPa for the paper-faced board -- three times its bare core's",
+      "beams": "Section strength and stiffness (Roark's Formulas for Stress and Strain, 8th ed., Tables 8.1 and 11.2): a beam on two supports loaded at mid-span F = 4 M / L, k = 48 E I / L^3; a post fixed at its foot and struck at a height F = M / L, k = 3 E I / L^3; elastic M = sigma Z (Z = b h^2 / 6, pi d^3 / 32, pi (D^4 - d^4) / (32 D)), fully plastic M = sigma_y Z_p (Z_p = b h^2 / 4, d^3 / 6, (D^3 - d^3) / 6); a plate under a central load sigma = 3 F / (2 pi t^2) ((1 + nu) ln(a / r0) + 1)"
+    },
+    "substances": {
+      "douglas_fir_green": {
+        "name": "Douglas-fir (Coast), green",
+        "family": "wood",
+        "density_kg_m3": 720,
+        "specific_gravity": 0.45,
+        "E_gpa": 10.8,
+        "E_perp_gpa": 0.675,
+        "nu": 0.37,
+        "uts_mpa": 53.0,
+        "grain": {
+          "compression_parallel_mpa": 26.1,
+          "compression_perp_mpa": 2.6,
+          "shear_parallel_mpa": 6.2,
+          "tension_perp_mpa": 2.1,
+          "side_hardness_n": 2200,
+          "toughness_along_j_m2": 250,
+          "toughness_across_j_m2": 8000
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.2,
+          "texture": 0.6,
+          "energy": 0.7
+        }
+      },
+      "douglas_fir_dry": {
+        "name": "Douglas-fir (Coast), 12% moisture",
+        "family": "wood",
+        "density_kg_m3": 530,
+        "specific_gravity": 0.48,
+        "E_gpa": 13.4,
+        "E_perp_gpa": 0.838,
+        "nu": 0.37,
+        "uts_mpa": 85.0,
+        "grain": {
+          "compression_parallel_mpa": 49.9,
+          "compression_perp_mpa": 5.5,
+          "shear_parallel_mpa": 7.8,
+          "tension_perp_mpa": 2.3,
+          "side_hardness_n": 3200,
+          "toughness_along_j_m2": 275,
+          "toughness_across_j_m2": 8813
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.3,
+          "energy": 0.7
+        }
+      },
+      "white_pine_green": {
+        "name": "Eastern white pine, green",
+        "family": "wood",
+        "density_kg_m3": 640,
+        "specific_gravity": 0.34,
+        "E_gpa": 6.8,
+        "E_perp_gpa": 0.425,
+        "nu": 0.37,
+        "uts_mpa": 34.0,
+        "grain": {
+          "compression_parallel_mpa": 16.8,
+          "compression_perp_mpa": 1.5,
+          "shear_parallel_mpa": 4.7,
+          "tension_perp_mpa": 1.7,
+          "side_hardness_n": 1300,
+          "toughness_along_j_m2": 164,
+          "toughness_across_j_m2": 5254
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.2,
+          "texture": 0.6,
+          "energy": 0.7
+        }
+      },
+      "white_pine_dry": {
+        "name": "Eastern white pine, 12% moisture",
+        "family": "wood",
+        "density_kg_m3": 400,
+        "specific_gravity": 0.35,
+        "E_gpa": 8.5,
+        "E_perp_gpa": 0.531,
+        "nu": 0.37,
+        "uts_mpa": 59.0,
+        "grain": {
+          "compression_parallel_mpa": 33.1,
+          "compression_perp_mpa": 3.0,
+          "shear_parallel_mpa": 6.2,
+          "tension_perp_mpa": 2.1,
+          "side_hardness_n": 1700,
+          "toughness_along_j_m2": 171,
+          "toughness_across_j_m2": 5487
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.3,
+          "energy": 0.7
+        }
+      },
+      "red_oak_green": {
+        "name": "Northern red oak, green",
+        "family": "wood",
+        "density_kg_m3": 1000,
+        "specific_gravity": 0.56,
+        "E_gpa": 9.3,
+        "E_perp_gpa": 0.581,
+        "nu": 0.37,
+        "uts_mpa": 57.0,
+        "grain": {
+          "compression_parallel_mpa": 23.7,
+          "compression_perp_mpa": 4.2,
+          "shear_parallel_mpa": 8.3,
+          "tension_perp_mpa": 5.2,
+          "side_hardness_n": 4400,
+          "toughness_along_j_m2": 347,
+          "toughness_across_j_m2": 11106
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.2,
+          "texture": 0.6,
+          "energy": 0.7
+        }
+      },
+      "red_oak_dry": {
+        "name": "Northern red oak, 12% moisture",
+        "family": "wood",
+        "density_kg_m3": 700,
+        "specific_gravity": 0.63,
+        "E_gpa": 12.5,
+        "E_perp_gpa": 0.781,
+        "nu": 0.37,
+        "uts_mpa": 99.0,
+        "grain": {
+          "compression_parallel_mpa": 46.6,
+          "compression_perp_mpa": 7.0,
+          "shear_parallel_mpa": 12.3,
+          "tension_perp_mpa": 5.5,
+          "side_hardness_n": 5700,
+          "toughness_along_j_m2": 414,
+          "toughness_across_j_m2": 13252
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.3,
+          "energy": 0.7
+        }
+      },
+      "white_oak_green": {
+        "name": "White oak, green",
+        "family": "wood",
+        "density_kg_m3": 1030,
+        "specific_gravity": 0.6,
+        "E_gpa": 8.6,
+        "E_perp_gpa": 0.537,
+        "nu": 0.37,
+        "uts_mpa": 57.0,
+        "grain": {
+          "compression_parallel_mpa": 24.5,
+          "compression_perp_mpa": 4.6,
+          "shear_parallel_mpa": 8.6,
+          "tension_perp_mpa": 5.3,
+          "side_hardness_n": 4700,
+          "toughness_along_j_m2": 385,
+          "toughness_across_j_m2": 12317
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.2,
+          "texture": 0.6,
+          "energy": 0.7
+        }
+      },
+      "white_oak_dry": {
+        "name": "White oak, 12% moisture",
+        "family": "wood",
+        "density_kg_m3": 770,
+        "specific_gravity": 0.68,
+        "E_gpa": 12.3,
+        "E_perp_gpa": 0.769,
+        "nu": 0.37,
+        "uts_mpa": 105.0,
+        "grain": {
+          "compression_parallel_mpa": 51.3,
+          "compression_perp_mpa": 7.4,
+          "shear_parallel_mpa": 13.8,
+          "tension_perp_mpa": 5.5,
+          "side_hardness_n": 6000,
+          "toughness_along_j_m2": 464,
+          "toughness_across_j_m2": 14861
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.3,
+          "energy": 0.7
+        }
+      },
+      "sycamore_green": {
+        "name": "American sycamore, green (stands for London plane, the commonest SF street tree of its kind)",
+        "family": "wood",
+        "density_kg_m3": 900,
+        "specific_gravity": 0.46,
+        "E_gpa": 7.3,
+        "E_perp_gpa": 0.456,
+        "nu": 0.37,
+        "uts_mpa": 44.0,
+        "grain": {
+          "compression_parallel_mpa": 20.1,
+          "compression_perp_mpa": 2.5,
+          "shear_parallel_mpa": 6.9,
+          "tension_perp_mpa": 4.3,
+          "side_hardness_n": 2700,
+          "toughness_along_j_m2": 258,
+          "toughness_across_j_m2": 8268
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.2,
+          "texture": 0.6,
+          "energy": 0.7
+        }
+      },
+      "white_ash_dry": {
+        "name": "White ash, 12% moisture (tool handles, bats, clubs)",
+        "family": "wood",
+        "density_kg_m3": 670,
+        "specific_gravity": 0.6,
+        "E_gpa": 12.0,
+        "E_perp_gpa": 0.75,
+        "nu": 0.37,
+        "uts_mpa": 103.0,
+        "grain": {
+          "compression_parallel_mpa": 51.1,
+          "compression_perp_mpa": 8.0,
+          "shear_parallel_mpa": 13.2,
+          "tension_perp_mpa": 6.5,
+          "side_hardness_n": 5900,
+          "toughness_along_j_m2": 385,
+          "toughness_across_j_m2": 12317
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.3,
+          "energy": 0.7
+        }
+      },
+      "decayed_softwood": {
+        "name": "Decayed softwood (deadwood: Douglas-fir at 40% of sound strength)",
+        "family": "wood",
+        "density_kg_m3": 400,
+        "specific_gravity": 0.4,
+        "E_gpa": 5.36,
+        "E_perp_gpa": 0.335,
+        "nu": 0.37,
+        "uts_mpa": 34.0,
+        "grain": {
+          "compression_parallel_mpa": 20.0,
+          "compression_perp_mpa": 2.2,
+          "shear_parallel_mpa": 3.1,
+          "tension_perp_mpa": 0.92,
+          "side_hardness_n": 1280,
+          "toughness_along_j_m2": 84,
+          "toughness_across_j_m2": 2682
+        },
+        "failure_strain": 0.02,
+        "sources": ["usda_wood_handbook", "wood_elastic_ratios", "wood_fracture"],
+        "surface": {
+          "smoothness": 0.15,
+          "texture": 0.6,
+          "energy": 0.6
+        }
+      },
+      "mild_steel": {
+        "name": "Mild structural steel (A36/1018), painted or galvanised",
+        "family": "metal",
+        "density_kg_m3": 7850,
+        "E_gpa": 200,
+        "nu": 0.29,
+        "yield_mpa": 250,
+        "uts_mpa": 410,
+        "hardness_hv": 130,
+        "fracture_toughness_mpa_m": 120,
+        "failure_strain": 0.25,
+        "surface": {
+          "smoothness": 0.75,
+          "texture": 0.25,
+          "energy": 0.8
+        },
+        "sources": ["asm_metals"]
+      },
+      "knife_steel": {
+        "name": "Hardened stainless blade steel (X50CrMoV15 / 440C, HRC 56-58)",
+        "family": "metal",
+        "density_kg_m3": 7700,
+        "E_gpa": 210,
+        "nu": 0.29,
+        "yield_mpa": 1800,
+        "uts_mpa": 2000,
+        "hardness_hv": 630,
+        "fracture_toughness_mpa_m": 22,
+        "failure_strain": 0.03,
+        "surface": {
+          "smoothness": 0.9,
+          "texture": 0.02,
+          "energy": 0.8
+        },
+        "sources": ["blade_steels"]
+      },
+      "axe_steel": {
+        "name": "Plain carbon axe and tool steel, bit hardened (HRC 50-54)",
+        "family": "metal",
+        "density_kg_m3": 7850,
+        "E_gpa": 205,
+        "nu": 0.29,
+        "yield_mpa": 1500,
+        "uts_mpa": 1800,
+        "hardness_hv": 540,
+        "fracture_toughness_mpa_m": 45,
+        "failure_strain": 0.06,
+        "surface": {
+          "smoothness": 0.8,
+          "texture": 0.05,
+          "energy": 0.8
+        },
+        "sources": ["blade_steels"]
+      },
+      "tool_steel": {
+        "name": "Medium-carbon alloy tool steel (4140, HRC 45: hammer faces, bars)",
+        "family": "metal",
+        "density_kg_m3": 7850,
+        "E_gpa": 205,
+        "nu": 0.29,
+        "yield_mpa": 1300,
+        "uts_mpa": 1450,
+        "hardness_hv": 450,
+        "fracture_toughness_mpa_m": 60,
+        "failure_strain": 0.1,
+        "surface": {
+          "smoothness": 0.75,
+          "texture": 0.1,
+          "energy": 0.8
+        },
+        "sources": ["asm_metals", "blade_steels"]
+      },
+      "aluminium_6061": {
+        "name": "Aluminium alloy 6061-T6",
+        "family": "metal",
+        "density_kg_m3": 2700,
+        "E_gpa": 69,
+        "nu": 0.33,
+        "yield_mpa": 276,
+        "uts_mpa": 310,
+        "hardness_hv": 107,
+        "fracture_toughness_mpa_m": 29,
+        "failure_strain": 0.12,
+        "surface": {
+          "smoothness": 0.8,
+          "texture": 0.05,
+          "energy": 0.8
+        },
+        "sources": ["asm_metals"]
+      },
+      "aluminium_conductor": {
+        "name": "Hard-drawn aluminium conductor (1350-H19 strands)",
+        "family": "metal",
+        "density_kg_m3": 2705,
+        "E_gpa": 69,
+        "nu": 0.33,
+        "yield_mpa": 165,
+        "uts_mpa": 185,
+        "hardness_hv": 50,
+        "fracture_toughness_mpa_m": 40,
+        "failure_strain": 0.02,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.2,
+          "energy": 0.8
+        },
+        "sources": ["asm_metals"]
+      },
+      "grey_cast_iron": {
+        "name": "Grey cast iron",
+        "family": "metal",
+        "density_kg_m3": 7200,
+        "E_gpa": 110,
+        "nu": 0.26,
+        "yield_mpa": 650,
+        "uts_mpa": 200,
+        "compressive_mpa": 750,
+        "hardness_hv": 210,
+        "fracture_toughness_mpa_m": 18,
+        "failure_strain": 0.005,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.25,
+          "energy": 0.8
+        },
+        "sources": ["asm_metals"]
+      },
+      "chromed_steel": {
+        "name": "Chrome-plated steel and polished alloy",
+        "family": "metal",
+        "density_kg_m3": 7850,
+        "E_gpa": 200,
+        "nu": 0.29,
+        "yield_mpa": 300,
+        "uts_mpa": 450,
+        "hardness_hv": 850,
+        "fracture_toughness_mpa_m": 100,
+        "failure_strain": 0.2,
+        "surface": {
+          "smoothness": 0.97,
+          "texture": 0.0,
+          "energy": 0.8
+        },
+        "sources": ["asm_metals"]
+      },
+      "glass_annealed": {
+        "name": "Annealed soda-lime float glass",
+        "family": "glass",
+        "density_kg_m3": 2500,
+        "E_gpa": 72,
+        "nu": 0.22,
+        "uts_mpa": 45,
+        "point_strength_mpa": 120,
+        "hardness_hv": 550,
+        "fracture_toughness_mpa_m": 0.75,
+        "brittle": true,
+        "surface": {
+          "smoothness": 1.0,
+          "texture": 0.0,
+          "energy": 1.0
+        },
+        "sources": ["glass"]
+      },
+      "glass_tempered": {
+        "name": "Fully tempered (toughened) soda-lime glass",
+        "family": "glass",
+        "density_kg_m3": 2500,
+        "E_gpa": 72,
+        "nu": 0.22,
+        "uts_mpa": 45,
+        "point_strength_mpa": 120,
+        "residual_compression_mpa": 100,
+        "compression_depth_share": 0.2,
+        "hardness_hv": 550,
+        "fracture_toughness_mpa_m": 0.75,
+        "brittle": true,
+        "fragments": "dice",
+        "surface": {
+          "smoothness": 1.0,
+          "texture": 0.0,
+          "energy": 1.0
+        },
+        "sources": ["glass"]
+      },
+      "ceramic_stoneware": {
+        "name": "Glazed stoneware and porcelain",
+        "family": "ceramic",
+        "density_kg_m3": 2400,
+        "E_gpa": 80,
+        "nu": 0.22,
+        "uts_mpa": 60,
+        "hardness_hv": 650,
+        "fracture_toughness_mpa_m": 1.2,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.95,
+          "texture": 0.02,
+          "energy": 1.0
+        },
+        "sources": ["ceramics"]
+      },
+      "zirconia": {
+        "name": "Yttria-stabilised zirconia (ceramic knife blades)",
+        "family": "ceramic",
+        "density_kg_m3": 6050,
+        "E_gpa": 205,
+        "nu": 0.3,
+        "uts_mpa": 1000,
+        "hardness_hv": 1250,
+        "fracture_toughness_mpa_m": 8,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.95,
+          "texture": 0.02,
+          "energy": 0.9
+        },
+        "sources": ["ceramics"]
+      },
+      "tungsten_carbide": {
+        "name": "Cemented tungsten carbide (window-punch and drill tips)",
+        "family": "ceramic",
+        "density_kg_m3": 15000,
+        "E_gpa": 600,
+        "nu": 0.22,
+        "uts_mpa": 2200,
+        "hardness_hv": 1600,
+        "fracture_toughness_mpa_m": 11,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.9,
+          "texture": 0.02,
+          "energy": 0.9
+        },
+        "sources": ["ceramics"]
+      },
+      "concrete": {
+        "name": "Concrete (f'c about 30 MPa), broom finished",
+        "family": "stone",
+        "density_kg_m3": 2400,
+        "E_gpa": 30,
+        "nu": 0.2,
+        "uts_mpa": 3,
+        "compressive_mpa": 30,
+        "hardness_mpa": 90,
+        "abrasive_hardness_hv": 1100,
+        "fracture_toughness_mpa_m": 0.9,
+        "toughness_j_m2": 100,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.25,
+          "texture": 0.6,
+          "energy": 0.95
+        },
+        "sources": ["concrete_masonry"]
+      },
+      "asphalt": {
+        "name": "Asphalt concrete at about 20 C",
+        "family": "stone",
+        "density_kg_m3": 2300,
+        "E_gpa": 4,
+        "nu": 0.35,
+        "uts_mpa": 1.0,
+        "compressive_mpa": 6,
+        "hardness_mpa": 20,
+        "abrasive_hardness_hv": 1100,
+        "toughness_j_m2": 400,
+        "failure_strain": 0.01,
+        "surface": {
+          "smoothness": 0.15,
+          "texture": 0.8,
+          "energy": 0.9
+        },
+        "sources": ["concrete_masonry", "polymers"]
+      },
+      "clay_brick": {
+        "name": "Fired clay brick (and brick and stone masonry)",
+        "family": "stone",
+        "density_kg_m3": 1900,
+        "E_gpa": 15,
+        "nu": 0.2,
+        "uts_mpa": 3,
+        "compressive_mpa": 35,
+        "hardness_mpa": 100,
+        "abrasive_hardness_hv": 700,
+        "fracture_toughness_mpa_m": 0.8,
+        "toughness_j_m2": 60,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.25,
+          "texture": 0.6,
+          "energy": 0.95
+        },
+        "sources": ["concrete_masonry"]
+      },
+      "stucco": {
+        "name": "Cement stucco render over lath",
+        "family": "stone",
+        "density_kg_m3": 1850,
+        "E_gpa": 10,
+        "nu": 0.2,
+        "uts_mpa": 1.2,
+        "compressive_mpa": 10,
+        "hardness_mpa": 30,
+        "abrasive_hardness_hv": 1100,
+        "toughness_j_m2": 30,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.35,
+          "texture": 0.5,
+          "energy": 0.9
+        },
+        "sources": ["concrete_masonry"]
+      },
+      "granite": {
+        "name": "Granite",
+        "family": "stone",
+        "density_kg_m3": 2650,
+        "E_gpa": 60,
+        "nu": 0.25,
+        "uts_mpa": 10,
+        "compressive_mpa": 170,
+        "hardness_mpa": 500,
+        "abrasive_hardness_hv": 1100,
+        "fracture_toughness_mpa_m": 1.5,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.3,
+          "texture": 0.75,
+          "energy": 1.0
+        },
+        "sources": ["rock"]
+      },
+      "sandstone": {
+        "name": "Sandstone",
+        "family": "stone",
+        "density_kg_m3": 2300,
+        "E_gpa": 15,
+        "nu": 0.25,
+        "uts_mpa": 4,
+        "compressive_mpa": 60,
+        "hardness_mpa": 180,
+        "abrasive_hardness_hv": 1100,
+        "fracture_toughness_mpa_m": 0.6,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.15,
+          "texture": 0.85,
+          "energy": 1.0
+        },
+        "sources": ["rock"]
+      },
+      "ice": {
+        "name": "Ice (about -10 C)",
+        "family": "ice",
+        "density_kg_m3": 917,
+        "E_gpa": 9.5,
+        "nu": 0.33,
+        "uts_mpa": 1.2,
+        "compressive_mpa": 10,
+        "hardness_mpa": 50,
+        "fracture_toughness_mpa_m": 0.1,
+        "brittle": true,
+        "melts_c": 0,
+        "premelt_from_c": -22,
+        "surface": {
+          "smoothness": 0.9,
+          "texture": 0.05,
+          "energy": 0.45
+        },
+        "sources": ["ice", "friction_pavement"]
+      },
+      "polypropylene": {
+        "name": "Polypropylene and similar hard plastics",
+        "family": "polymer",
+        "density_kg_m3": 905,
+        "E_gpa": 1.5,
+        "nu": 0.42,
+        "yield_mpa": 32,
+        "uts_mpa": 35,
+        "hardness_mpa": 80,
+        "fracture_toughness_mpa_m": 3,
+        "failure_strain": 0.5,
+        "surface": {
+          "smoothness": 0.85,
+          "texture": 0.05,
+          "energy": 0.55
+        },
+        "sources": ["polymers"]
+      },
+      "polycarbonate": {
+        "name": "Polycarbonate (lamp lenses, visors)",
+        "family": "polymer",
+        "density_kg_m3": 1200,
+        "E_gpa": 2.4,
+        "nu": 0.37,
+        "yield_mpa": 62,
+        "uts_mpa": 65,
+        "hardness_mpa": 150,
+        "fracture_toughness_mpa_m": 2.5,
+        "failure_strain": 1.0,
+        "surface": {
+          "smoothness": 0.95,
+          "texture": 0.0,
+          "energy": 0.6
+        },
+        "sources": ["polymers"]
+      },
+      "ldpe_film": {
+        "name": "Polyethylene bag film",
+        "family": "polymer",
+        "density_kg_m3": 920,
+        "E_gpa": 0.25,
+        "nu": 0.45,
+        "yield_mpa": 10,
+        "uts_mpa": 20,
+        "hardness_mpa": 30,
+        "toughness_j_m2": 20000,
+        "failure_strain": 4,
+        "surface": {
+          "smoothness": 0.85,
+          "texture": 0.05,
+          "energy": 0.4
+        },
+        "sources": ["polymers"]
+      },
+      "thermoplastic_paint": {
+        "name": "Thermoplastic road marking with glass beads",
+        "family": "polymer",
+        "density_kg_m3": 1600,
+        "E_gpa": 0.6,
+        "nu": 0.4,
+        "yield_mpa": 8,
+        "uts_mpa": 10,
+        "hardness_mpa": 40,
+        "abrasive_hardness_hv": 550,
+        "toughness_j_m2": 500,
+        "failure_strain": 0.05,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.3,
+          "energy": 0.7
+        },
+        "sources": ["polymers"]
+      },
+      "polymer_concrete": {
+        "name": "Moulded polymer composite (tactile warning pads)",
+        "family": "polymer",
+        "density_kg_m3": 1800,
+        "E_gpa": 8,
+        "nu": 0.3,
+        "yield_mpa": 25,
+        "uts_mpa": 30,
+        "hardness_mpa": 200,
+        "abrasive_hardness_hv": 1100,
+        "fracture_toughness_mpa_m": 1.5,
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.7,
+          "energy": 0.8
+        },
+        "sources": ["polymers"]
+      },
+      "rubber_tread": {
+        "name": "Filled tyre and sole rubber",
+        "family": "elastomer",
+        "density_kg_m3": 1150,
+        "E_gpa": 0.005,
+        "nu": 0.49,
+        "uts_mpa": 18,
+        "toughness_j_m2": 15000,
+        "failure_strain": 4,
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.4,
+          "energy": 0.7
+        },
+        "sources": ["polymers"]
+      },
+      "poured_rubber": {
+        "name": "Poured rubber safety surface (EPDM granules)",
+        "family": "elastomer",
+        "density_kg_m3": 1100,
+        "E_gpa": 0.002,
+        "nu": 0.45,
+        "uts_mpa": 1.5,
+        "toughness_j_m2": 3000,
+        "failure_strain": 1.0,
+        "surface": {
+          "smoothness": 0.2,
+          "texture": 0.7,
+          "energy": 0.7
+        },
+        "sources": ["polymers"]
+      },
+      "vinyl_upholstery": {
+        "name": "Vinyl, leather and seat cloth",
+        "family": "polymer",
+        "density_kg_m3": 1000,
+        "E_gpa": 0.02,
+        "nu": 0.45,
+        "uts_mpa": 15,
+        "toughness_j_m2": 6000,
+        "failure_strain": 1.0,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.2,
+          "energy": 0.6
+        },
+        "sources": ["polymers"]
+      },
+      "cotton_canvas": {
+        "name": "Cotton duck canvas and woven fabric",
+        "family": "fabric",
+        "density_kg_m3": 600,
+        "E_gpa": 0.3,
+        "nu": 0.3,
+        "uts_mpa": 40,
+        "toughness_j_m2": 3000,
+        "failure_strain": 0.15,
+        "surface": {
+          "smoothness": 0.3,
+          "texture": 0.4,
+          "energy": 0.5
+        },
+        "sources": ["sheets"]
+      },
+      "carpet_pile": {
+        "name": "Carpet pile on backing",
+        "family": "fabric",
+        "density_kg_m3": 300,
+        "E_gpa": 0.001,
+        "nu": 0.2,
+        "uts_mpa": 5,
+        "toughness_j_m2": 5000,
+        "failure_strain": 0.5,
+        "surface": {
+          "smoothness": 0.2,
+          "texture": 0.6,
+          "energy": 0.5
+        },
+        "sources": ["sheets"]
+      },
+      "paper": {
+        "name": "Paper and card",
+        "family": "fabric",
+        "density_kg_m3": 800,
+        "E_gpa": 4,
+        "nu": 0.3,
+        "uts_mpa": 50,
+        "toughness_j_m2": 5000,
+        "failure_strain": 0.03,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.2,
+          "energy": 0.6
+        },
+        "sources": ["sheets"]
+      },
+      "corrugated_board": {
+        "name": "Corrugated cardboard",
+        "family": "fabric",
+        "density_kg_m3": 150,
+        "E_gpa": 0.3,
+        "nu": 0.3,
+        "uts_mpa": 8,
+        "hardness_mpa": 0.6,
+        "toughness_j_m2": 4000,
+        "failure_strain": 0.03,
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.3,
+          "energy": 0.6
+        },
+        "sources": ["sheets"]
+      },
+      "plasterboard": {
+        "name": "Gypsum plasterboard",
+        "family": "stone",
+        "density_kg_m3": 700,
+        "E_gpa": 2,
+        "nu": 0.2,
+        "uts_mpa": 1.5,
+        "compressive_mpa": 4,
+        "hardness_mpa": 15,
+        "toughness_j_m2": 20,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.2,
+          "energy": 0.8
+        },
+        "sources": ["concrete_masonry"]
+      },
+      "skin": {
+        "name": "Human (or pig) skin",
+        "family": "tissue",
+        "density_kg_m3": 1100,
+        "E_gpa": 0.08,
+        "nu": 0.48,
+        "uts_mpa": 20,
+        "toughness_j_m2": 2500,
+        "failure_strain": 0.4,
+        "damage_pressure_mpa": 1.0,
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.2,
+          "energy": 0.6
+        },
+        "sources": ["tissue"]
+      },
+      "fat": {
+        "name": "Subcutaneous fat",
+        "family": "tissue",
+        "density_kg_m3": 920,
+        "E_gpa": 5e-06,
+        "nu": 0.49,
+        "uts_mpa": 0.05,
+        "toughness_j_m2": 150,
+        "failure_strain": 0.5,
+        "damage_pressure_mpa": 0.1,
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.1,
+          "energy": 0.5
+        },
+        "sources": ["tissue"]
+      },
+      "muscle": {
+        "name": "Skeletal muscle (and raw meat)",
+        "family": "tissue",
+        "density_kg_m3": 1060,
+        "E_gpa": 0.0001,
+        "nu": 0.49,
+        "uts_mpa": 0.5,
+        "toughness_j_m2": 1500,
+        "failure_strain": 0.5,
+        "damage_pressure_mpa": 0.3,
+        "surface": {
+          "smoothness": 0.5,
+          "texture": 0.1,
+          "energy": 0.5
+        },
+        "sources": ["tissue"]
+      },
+      "bone_cortical": {
+        "name": "Cortical bone",
+        "family": "tissue",
+        "density_kg_m3": 1900,
+        "E_gpa": 18,
+        "nu": 0.3,
+        "uts_mpa": 130,
+        "compressive_mpa": 190,
+        "hardness_mpa": 500,
+        "fracture_toughness_mpa_m": 4,
+        "brittle": true,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.2,
+          "energy": 0.7
+        },
+        "sources": ["bone"]
+      },
+      "apple": {
+        "name": "Apple flesh (and firm fruit and vegetables)",
+        "family": "food",
+        "density_kg_m3": 840,
+        "E_gpa": 0.003,
+        "nu": 0.35,
+        "uts_mpa": 0.35,
+        "compressive_mpa": 0.4,
+        "hardness_mpa": 1.2,
+        "toughness_j_m2": 150,
+        "failure_strain": 0.15,
+        "surface": {
+          "smoothness": 0.8,
+          "texture": 0.05,
+          "energy": 0.5
+        },
+        "sources": ["food"]
+      },
+      "soil_loam": {
+        "name": "Moist loam soil",
+        "family": "soil",
+        "soil": {"cohesion_kpa": 12, "friction_deg": 30, "adhesion_kpa": 5, "metal_friction_deg": 22},
+        "density_kg_m3": 1600,
+        "E_gpa": 0.02,
+        "nu": 0.35,
+        "uts_mpa": 0.02,
+        "compressive_mpa": 0.1,
+        "hardness_mpa": 1.5,
+        "abrasive_hardness_hv": 1100,
+        "toughness_j_m2": 10,
+        "failure_strain": 0.05,
+        "surface": {
+          "smoothness": 0.1,
+          "texture": 0.5,
+          "energy": 0.5
+        },
+        "sources": ["soils", "soil_cutting"]
+      },
+      "turf": {
+        "name": "Grass turf over soil",
+        "family": "soil",
+        "soil": {"cohesion_kpa": 22, "friction_deg": 28, "adhesion_kpa": 5, "metal_friction_deg": 20},
+        "density_kg_m3": 1300,
+        "E_gpa": 0.01,
+        "nu": 0.35,
+        "uts_mpa": 0.05,
+        "compressive_mpa": 0.1,
+        "hardness_mpa": 1.0,
+        "abrasive_hardness_hv": 1100,
+        "toughness_j_m2": 300,
+        "failure_strain": 0.2,
+        "surface": {
+          "smoothness": 0.1,
+          "texture": 0.5,
+          "energy": 0.5
+        },
+        "sources": ["soils", "soil_cutting"]
+      },
+      "forest_duff": {
+        "name": "Leaf litter and duff",
+        "family": "soil",
+        "soil": {"cohesion_kpa": 3, "friction_deg": 25, "adhesion_kpa": 1, "metal_friction_deg": 18},
+        "density_kg_m3": 600,
+        "E_gpa": 0.001,
+        "nu": 0.3,
+        "uts_mpa": 0.01,
+        "hardness_mpa": 0.1,
+        "toughness_j_m2": 100,
+        "failure_strain": 0.3,
+        "surface": {
+          "smoothness": 0.1,
+          "texture": 0.4,
+          "energy": 0.4
+        },
+        "sources": ["soils", "soil_cutting"]
+      },
+      "sand": {
+        "name": "Dry sand",
+        "family": "soil",
+        "soil": {"cohesion_kpa": 0, "friction_deg": 34, "adhesion_kpa": 0, "metal_friction_deg": 24, "wet_cohesion_kpa": 4},
+        "density_kg_m3": 1600,
+        "E_gpa": 0.03,
+        "nu": 0.3,
+        "uts_mpa": 0.0,
+        "hardness_mpa": 0.5,
+        "abrasive_hardness_hv": 1100,
+        "toughness_j_m2": 0,
+        "failure_strain": 0.02,
+        "surface": {
+          "smoothness": 0.1,
+          "texture": 0.4,
+          "energy": 0.3
+        },
+        "sources": ["soils", "soil_cutting"]
+      },
+      "gravel": {
+        "name": "Gravel and compacted trail",
+        "family": "soil",
+        "soil": {"cohesion_kpa": 5, "friction_deg": 42, "adhesion_kpa": 0, "metal_friction_deg": 28},
+        "density_kg_m3": 1800,
+        "E_gpa": 0.1,
+        "nu": 0.3,
+        "uts_mpa": 0.0,
+        "hardness_mpa": 2.0,
+        "abrasive_hardness_hv": 1100,
+        "toughness_j_m2": 0,
+        "failure_strain": 0.02,
+        "surface": {
+          "smoothness": 0.1,
+          "texture": 0.7,
+          "energy": 0.6
+        },
+        "sources": ["soils", "soil_cutting"]
+      },
+      "leaf": {
+        "name": "Leaves and soft green stems",
+        "family": "plant",
+        "density_kg_m3": 600,
+        "E_gpa": 0.05,
+        "nu": 0.3,
+        "uts_mpa": 5,
+        "toughness_j_m2": 500,
+        "failure_strain": 0.1,
+        "surface": {
+          "smoothness": 0.7,
+          "texture": 0.1,
+          "energy": 0.4
+        },
+        "sources": ["food"]
+      },
+      "latex_paint": {
+        "name": "Exterior acrylic latex paint film, dry",
+        "family": "polymer",
+        "density_kg_m3": 1400,
+        "E_gpa": 0.25,
+        "nu": 0.45,
+        "yield_mpa": 3,
+        "uts_mpa": 5,
+        "hardness_mpa": 10,
+        "toughness_j_m2": 2000,
+        "failure_strain": 1.5,
+        "surface": {
+          "smoothness": 0.6,
+          "texture": 0.2,
+          "energy": 0.6
+        },
+        "sources": ["coating_films"]
+      },
+      "alkyd_enamel": {
+        "name": "Alkyd gloss enamel film (doors, trim, furniture, railings)",
+        "family": "polymer",
+        "density_kg_m3": 1300,
+        "E_gpa": 2,
+        "nu": 0.38,
+        "yield_mpa": 20,
+        "uts_mpa": 25,
+        "hardness_mpa": 80,
+        "toughness_j_m2": 300,
+        "failure_strain": 0.06,
+        "surface": {
+          "smoothness": 0.85,
+          "texture": 0.05,
+          "energy": 0.6
+        },
+        "sources": ["coating_films"]
+      },
+      "powder_coat": {
+        "name": "Polyester powder coat (poles, racks, cabinets, metal panels)",
+        "family": "polymer",
+        "density_kg_m3": 1500,
+        "E_gpa": 2.8,
+        "nu": 0.38,
+        "yield_mpa": 35,
+        "uts_mpa": 45,
+        "hardness_mpa": 180,
+        "toughness_j_m2": 500,
+        "failure_strain": 0.08,
+        "surface": {
+          "smoothness": 0.8,
+          "texture": 0.1,
+          "energy": 0.6
+        },
+        "sources": ["coating_films"]
+      },
+      "auto_clearcoat": {
+        "name": "Car paint: two-pack clearcoat over base, primer and e-coat",
+        "family": "polymer",
+        "density_kg_m3": 1150,
+        "E_gpa": 3.5,
+        "nu": 0.35,
+        "yield_mpa": 55,
+        "uts_mpa": 60,
+        "hardness_mpa": 250,
+        "toughness_j_m2": 400,
+        "failure_strain": 0.04,
+        "surface": {
+          "smoothness": 0.97,
+          "texture": 0,
+          "energy": 0.6
+        },
+        "sources": ["coating_films", "clearcoat_nanoindentation"]
+      },
+      "water": {
+        "name": "Water",
+        "family": "fluid",
+        "density_kg_m3": 1000,
+        "sources": []
+      }
+    },
+    "coatings": {
+      "about": "A coat is a layer of its own over what it covers: its own substance (hardness, stiffness, failure strain), its own thickness, and what holds it on (adhesion, the interface's strength). A scratch in it stays in it until it is cut through; what is under is marked only by what out-hardens that too.",
+      "exterior_latex": {
+        "name": "Two coats of exterior acrylic latex",
+        "substance": "latex_paint",
+        "thickness_um": 90,
+        "adhesion_mpa": 1.5,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      },
+      "alkyd_enamel": {
+        "name": "Alkyd primer and two gloss coats",
+        "substance": "alkyd_enamel",
+        "thickness_um": 110,
+        "adhesion_mpa": 3,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      },
+      "powder_coat": {
+        "name": "Polyester powder coat",
+        "substance": "powder_coat",
+        "thickness_um": 70,
+        "adhesion_mpa": 10,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      },
+      "car_paint": {
+        "name": "OEM car paint stack",
+        "substance": "auto_clearcoat",
+        "thickness_um": 100,
+        "adhesion_mpa": 12,
+        "sources": ["coating_thickness", "coating_adhesion", "clearcoat_nanoindentation"]
+      },
+      "road_marking": {
+        "name": "Hot thermoplastic road marking",
+        "substance": "thermoplastic_paint",
+        "thickness_um": 3000,
+        "adhesion_mpa": 1.5,
+        "sources": ["coating_thickness", "coating_adhesion"]
+      }
+    },
+    "cladding_coats": {
+      "about": "The coat each wall cladding class (claddings.classes) wears: painted classes the paint the house's colour is in; brick, stone, tile and vinyl show their own colour and have none.",
+      "stucco_render": "exterior_latex",
+      "concrete": "exterior_latex",
+      "wood_siding": "exterior_latex",
+      "painted_brick": "exterior_latex",
+      "metal_panel": "powder_coat",
+      "vinyl_siding": null,
+      "brick": null,
+      "stone": null,
+      "ceramic_tile": null
+    },
+    "forms": {
+      "about": "The shape each archetype meets a blow or a push with: shape (box: panels round a frame; beam: on two supports; post: fixed at its foot; panel: a plate held at its edges; round: a log lying; wall and ground: fixed, a half-space at the scale of a contact), its section (b_m x h_m, or d_m and a tube's wall_m), its span_m, the radius of its corners and edges (edge_r_m), its biggest face (face_m2), its coat, its own mass (mass_kg) where it is one thing, and the bending strength of a made board where it is not its substance's (flexural_mpa). Archetypes not listed are fixed half-spaces of their material with no coat.",
+      "item.movable": {
+        "shape": "box",
+        "substance": "polypropylene",
+        "section": {
+          "b_m": 0.35,
+          "h_m": 0.004
+        },
+        "span_m": 0.35,
+        "edge_r_m": 0.006,
+        "face_m2": 0.12,
+        "height_m": 0.3,
+        "mass_kg": 5
+      },
+      "interior.furniture": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.45,
+          "h_m": 0.018
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.003,
+        "face_m2": 0.5,
+        "height_m": 0.8,
+        "coat": "alkyd_enamel",
+        "mass_kg": 30
+      },
+      "interior.appliance": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.4,
+          "h_m": 0.003
+        },
+        "span_m": 0.5,
+        "edge_r_m": 0.005,
+        "face_m2": 0.25,
+        "height_m": 0.5,
+        "mass_kg": 15
+      },
+      "vegetation.log": {
+        "shape": "round",
+        "section": {
+          "d_m": 0.35
+        },
+        "span_m": 3,
+        "edge_r_m": 0.175,
+        "face_m2": 0.1,
+        "height_m": 0.35,
+        "mass_kg": 120
+      },
+      "vegetation.stump": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.4
+        },
+        "span_m": 0.4,
+        "edge_r_m": 0.2,
+        "face_m2": 0.13
+      },
+      "vegetation.tree": {
+        "shape": "post",
+        "substance": "sycamore_green",
+        "section": {
+          "d_m": 0.3
+        },
+        "span_m": 1,
+        "edge_r_m": 0.15,
+        "face_m2": 0.3
+      },
+      "furniture.bench": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.09,
+          "h_m": 0.04
+        },
+        "span_m": 1.8,
+        "edge_r_m": 0.004,
+        "face_m2": 0.2,
+        "height_m": 0.45
+      },
+      "furniture.picnic_table": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.14,
+          "h_m": 0.04
+        },
+        "span_m": 1.8,
+        "edge_r_m": 0.004,
+        "face_m2": 0.3,
+        "height_m": 0.75
+      },
+      "furniture.raised_bed": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.25,
+          "h_m": 0.04
+        },
+        "span_m": 2.4,
+        "edge_r_m": 0.004,
+        "face_m2": 0.6
+      },
+      "furniture.street_cafe": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.06,
+          "wall_m": 0.002
+        },
+        "span_m": 0.7,
+        "edge_r_m": 0.03,
+        "face_m2": 0.4,
+        "coat": "powder_coat",
+        "mass_kg": 12
+      },
+      "furniture.sign_post": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.06,
+          "wall_m": 0.0027
+        },
+        "span_m": 2.4,
+        "edge_r_m": 0.03,
+        "face_m2": 0.15
+      },
+      "furniture.sign_plate": {
+        "shape": "panel",
+        "substance": "aluminium_6061",
+        "section": {
+          "b_m": 0.6,
+          "h_m": 0.002
+        },
+        "span_m": 0.6,
+        "edge_r_m": 0.001,
+        "face_m2": 0.36
+      },
+      "furniture.street_light": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.2,
+          "wall_m": 0.005
+        },
+        "span_m": 1,
+        "edge_r_m": 0.1,
+        "face_m2": 0.6,
+        "coat": "powder_coat"
+      },
+      "furniture.traffic_signal": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.25,
+          "wall_m": 0.006
+        },
+        "span_m": 1,
+        "edge_r_m": 0.125,
+        "face_m2": 0.8,
+        "coat": "powder_coat"
+      },
+      "furniture.utility_pole": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.3
+        },
+        "span_m": 1,
+        "edge_r_m": 0.15,
+        "face_m2": 0.9
+      },
+      "furniture.trolley_pole": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.25,
+          "wall_m": 0.008
+        },
+        "span_m": 1,
+        "edge_r_m": 0.125,
+        "face_m2": 0.8,
+        "coat": "powder_coat"
+      },
+      "furniture.parking_meter": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.075,
+          "wall_m": 0.005
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.03,
+        "face_m2": 0.1,
+        "coat": "powder_coat"
+      },
+      "furniture.bike_rack": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.05,
+          "wall_m": 0.003
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.025,
+        "face_m2": 0.05,
+        "coat": "powder_coat"
+      },
+      "furniture.bollard": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.15,
+          "wall_m": 0.012
+        },
+        "span_m": 1,
+        "edge_r_m": 0.075,
+        "face_m2": 0.15,
+        "coat": "alkyd_enamel"
+      },
+      "furniture.cabinet": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.8,
+          "h_m": 0.002
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.002,
+        "face_m2": 1.2,
+        "coat": "powder_coat"
+      },
+      "furniture.drinking_fountain": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.2,
+          "wall_m": 0.004
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.05,
+        "face_m2": 0.2,
+        "coat": "powder_coat"
+      },
+      "furniture.shelter": {
+        "shape": "panel",
+        "substance": "glass_tempered",
+        "section": {
+          "b_m": 1.2,
+          "h_m": 0.01
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.002,
+        "face_m2": 2.4
+      },
+      "furniture.ad_panel": {
+        "shape": "panel",
+        "substance": "polycarbonate",
+        "section": {
+          "b_m": 1.2,
+          "h_m": 0.004
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.005,
+        "face_m2": 2.2
+      },
+      "furniture.play_equipment": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.09,
+          "wall_m": 0.003
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.045,
+        "face_m2": 0.3,
+        "coat": "powder_coat"
+      },
+      "furniture.pole_equipment": {
+        "shape": "box",
+        "section": {
+          "b_m": 0.3,
+          "h_m": 0.002
+        },
+        "span_m": 0.3,
+        "edge_r_m": 0.003,
+        "face_m2": 0.1,
+        "coat": "powder_coat"
+      },
+      "barrier.fence_board": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.14,
+          "h_m": 0.016
+        },
+        "span_m": 2.4,
+        "edge_r_m": 0.002,
+        "face_m2": 4,
+        "height_m": 1.8,
+        "coat": "exterior_latex"
+      },
+      "barrier.fence_picket": {
+        "shape": "beam",
+        "section": {
+          "b_m": 0.09,
+          "h_m": 0.019
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.002,
+        "face_m2": 2,
+        "height_m": 1.1,
+        "coat": "exterior_latex"
+      },
+      "barrier.fence_chainlink": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.06,
+          "wall_m": 0.0028
+        },
+        "span_m": 1.5,
+        "edge_r_m": 0.0015,
+        "face_m2": 4
+      },
+      "barrier.wall": {
+        "shape": "post",
+        "section": {
+          "b_m": 1,
+          "h_m": 0.2
+        },
+        "span_m": 1,
+        "edge_r_m": 0.005,
+        "face_m2": 2
+      },
+      "barrier.jersey": {
+        "shape": "post",
+        "section": {
+          "b_m": 3,
+          "h_m": 0.6
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.02,
+        "face_m2": 2.4,
+        "mass_kg": 1800
+      },
+      "barrier.railing": {
+        "shape": "post",
+        "section": {
+          "d_m": 0.042,
+          "wall_m": 0.0035
+        },
+        "span_m": 1,
+        "edge_r_m": 0.021,
+        "face_m2": 0.1,
+        "coat": "alkyd_enamel"
+      },
+      "building.exterior": {
+        "shape": "wall",
+        "edge_r_m": 0.005,
+        "face_m2": 10
+      },
+      "building.facade_detail": {
+        "shape": "wall",
+        "edge_r_m": 0.005,
+        "face_m2": 1,
+        "coat": "exterior_latex"
+      },
+      "building.door": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.9,
+          "h_m": 0.044
+        },
+        "span_m": 0.9,
+        "edge_r_m": 0.002,
+        "face_m2": 1.8,
+        "coat": "alkyd_enamel"
+      },
+      "building.window": {
+        "shape": "panel",
+        "section": {
+          "b_m": 1.2,
+          "h_m": 0.006
+        },
+        "span_m": 1.2,
+        "edge_r_m": 0.001,
+        "face_m2": 1.4
+      },
+      "building.sign": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.8,
+          "h_m": 0.003
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.002,
+        "face_m2": 0.6,
+        "coat": "powder_coat"
+      },
+      "interior.wall": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.406,
+          "h_m": 0.0127
+        },
+        "flexural_mpa": 5,
+        "span_m": 0.406,
+        "edge_r_m": 0.003,
+        "face_m2": 8,
+        "coat": "exterior_latex"
+      },
+      "vehicle.body": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.6,
+          "h_m": 0.0008
+        },
+        "span_m": 0.6,
+        "edge_r_m": 0.015,
+        "face_m2": 1,
+        "coat": "car_paint"
+      },
+      "vehicle.car": {
+        "shape": "panel",
+        "section": {
+          "b_m": 0.6,
+          "h_m": 0.0008
+        },
+        "span_m": 0.6,
+        "edge_r_m": 0.015,
+        "face_m2": 1.5,
+        "coat": "car_paint",
+        "mass_kg": 1400
+      },
+      "vehicle.glass": {
+        "shape": "panel",
+        "substance": "glass_tempered",
+        "section": {
+          "b_m": 0.8,
+          "h_m": 0.004
+        },
+        "span_m": 0.8,
+        "edge_r_m": 0.002,
+        "face_m2": 0.5
+      },
+      "geology.rock": {
+        "shape": "wall",
+        "edge_r_m": 0.02,
+        "face_m2": 1
+      },
+      "ground.sidewalk": {
+        "shape": "ground",
+        "edge_r_m": 0.005,
+        "face_m2": 10
+      },
+      "ground.kerb": {
+        "shape": "wall",
+        "edge_r_m": 0.01,
+        "face_m2": 0.5
+      },
+      "ground.road": {
+        "shape": "ground",
+        "edge_r_m": 0.005,
+        "face_m2": 10
+      },
+      "ground.paint": {
+        "shape": "ground",
+        "substance": "asphalt",
+        "edge_r_m": 0.005,
+        "face_m2": 10,
+        "coat": "road_marking"
+      }
+    },
+    "item_materials": {
+      "liquid": "water",
+      "food": "apple",
+      "fabric": "cotton_canvas",
+      "paper": "paper",
+      "plant": "leaf",
+      "bag": "ldpe_film",
+      "cardboard": "corrugated_board",
+      "glass": "glass_annealed",
+      "ceramic": "ceramic_stoneware",
+      "plastic": "polypropylene",
+      "aluminium": "aluminium_6061",
+      "steel": "mild_steel",
+      "lumber": "douglas_fir_dry",
+      "masonry": "clay_brick",
+      "concrete": "concrete",
+      "rubber": "rubber_tread"
+    },
+    "contactors": {
+      "about": "What touches a surface when something is held, stood on or climbed: its adhesive share (sticks by true contact area, so best on smooth clean surfaces), its hysteresis share (grips by deforming over the surface's texture, so best on rough ones), a base share (boundary and ploughing friction), how much water it holds (sweat), and any dry adhesive (gecko tiles: a shear stress over its area that needs a smooth surface). Calibrated against the catalogue's shoe friction and the published ranges in sources.",
+      "skin": {
+        "name": "Bare dry skin (fingers and palm)",
+        "adhesion": 0.5,
+        "hysteresis": 0.45,
+        "base": 0.12,
+        "moisture": 0.0,
+        "area_m2": 0.0015,
+        "sources": ["friction_skin"]
+      },
+      "skin_chalked": {
+        "name": "Chalked skin",
+        "adhesion": 0.45,
+        "hysteresis": 0.5,
+        "base": 0.14,
+        "moisture": 0.0,
+        "powder": true,
+        "area_m2": 0.0015,
+        "sources": ["friction_skin"]
+      },
+      "skin_sweaty": {
+        "name": "Sweaty skin",
+        "adhesion": 0.5,
+        "hysteresis": 0.45,
+        "base": 0.12,
+        "moisture": 0.6,
+        "area_m2": 0.0015,
+        "sources": ["friction_skin"]
+      },
+      "glove": {
+        "name": "Leather work glove",
+        "adhesion": 0.25,
+        "hysteresis": 0.35,
+        "base": 0.2,
+        "moisture": 0.0,
+        "area_m2": 0.002,
+        "sources": ["friction_skin"]
+      },
+      "shoe_rubber": {
+        "name": "Street shoe sole rubber",
+        "adhesion": 0.55,
+        "hysteresis": 0.55,
+        "base": 0.1,
+        "moisture": 0.0,
+        "area_m2": 0.012,
+        "sources": ["friction_pavement"]
+      },
+      "climbing_rubber": {
+        "name": "Sticky climbing-shoe rubber",
+        "adhesion": 0.8,
+        "hysteresis": 0.75,
+        "base": 0.1,
+        "moisture": 0.0,
+        "area_m2": 0.004,
+        "sources": ["friction_climbing"]
+      },
+      "boot": {
+        "name": "Lugged hiking boot rubber",
+        "adhesion": 0.4,
+        "hysteresis": 0.5,
+        "base": 0.1,
+        "moisture": 0.0,
+        "area_m2": 0.01,
+        "sources": ["friction_pavement"]
+      },
+      "leather_sole": {
+        "name": "Leather shoe sole",
+        "adhesion": 0.2,
+        "hysteresis": 0.1,
+        "base": 0.3,
+        "moisture": 0.0,
+        "area_m2": 0.012,
+        "sources": ["friction_pavement"]
+      },
+      "gecko_pad": {
+        "name": "Gecko-type dry adhesive pad",
+        "adhesion": 0.3,
+        "hysteresis": 0.1,
+        "base": 0.15,
+        "moisture": 0.0,
+        "dry_adhesive_kpa": 50,
+        "smooth_power": 4,
+        "area_m2": 0.014,
+        "sources": ["gecko"]
+      },
+      "steel": {
+        "name": "Bare steel (a blade or a tool face sliding on what it strikes)",
+        "adhesion": 0.12,
+        "hysteresis": 0.03,
+        "base": 0.3,
+        "moisture": 0.0,
+        "area_m2": 0.0,
+        "sources": ["cutting"]
+      }
+    },
+    "implements": {
+      "about": "The geometry and make of what strikes: an edge (its thickness at each distance back from the apex, the length that meets the work), a tip (width and thickness at each distance from the point, how many sharp sides), a face (its curvature and size), and the strike mass. Radii are the state of a new tool; the engine returns them worn. Each names its substance.",
+      "chef_knife": {
+        "name": "Chef's knife, 20 cm",
+        "substance": "knife_steel",
+        "mass_kg": 0.22,
+        "strike_mass_kg": 1.2,
+        "grip_limit_n": 1500,
+        "edge": {
+          "radius_m": 5e-07,
+          "contact_length_m": 0.05,
+          "profile": [[0, 0], [0.0004, 0.00026], [0.045, 0.0022]]
+        },
+        "tip": {
+          "radius_m": 0.0003,
+          "sharp_sides": 1,
+          "width": [[0, 0], [0.02, 0.014], [0.06, 0.04], [0.2, 0.045]],
+          "thickness": [[0, 0.0001], [0.03, 0.0009], [0.2, 0.0022]]
+        },
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.01,
+          "length_m": 0.05
+        },
+        "sources": ["tool_geometry", "edge_radius", "stab"]
+      },
+      "paring_knife": {
+        "name": "Paring knife, 9 cm",
+        "substance": "knife_steel",
+        "mass_kg": 0.06,
+        "strike_mass_kg": 0.9,
+        "grip_limit_n": 800,
+        "edge": {
+          "radius_m": 4e-07,
+          "contact_length_m": 0.03,
+          "profile": [[0, 0], [0.0003, 0.0002], [0.02, 0.0016]]
+        },
+        "tip": {
+          "radius_m": 0.0002,
+          "sharp_sides": 1,
+          "width": [[0, 0], [0.015, 0.012], [0.09, 0.02]],
+          "thickness": [[0, 0.0001], [0.02, 0.0008], [0.09, 0.0016]]
+        },
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.008,
+          "length_m": 0.03
+        },
+        "sources": ["tool_geometry", "edge_radius"]
+      },
+      "butter_knife": {
+        "name": "Table (butter) knife",
+        "substance": "mild_steel",
+        "mass_kg": 0.05,
+        "strike_mass_kg": 0.9,
+        "grip_limit_n": 800,
+        "edge": {
+          "radius_m": 0.0003,
+          "contact_length_m": 0.05,
+          "profile": [[0, 0.0006], [0.002, 0.0012], [0.02, 0.002]]
+        },
+        "tip": {
+          "radius_m": 0.006,
+          "sharp_sides": 0,
+          "width": [[0, 0.012], [0.02, 0.02], [0.1, 0.02]],
+          "thickness": [[0, 0.0012], [0.1, 0.002]]
+        },
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.01,
+          "length_m": 0.05
+        },
+        "sources": ["tool_geometry", "edge_radius"]
+      },
+      "ceramic_knife": {
+        "name": "Ceramic (zirconia) kitchen knife",
+        "substance": "zirconia",
+        "mass_kg": 0.09,
+        "strike_mass_kg": 1.1,
+        "grip_limit_n": 1500,
+        "edge": {
+          "radius_m": 3e-07,
+          "contact_length_m": 0.05,
+          "profile": [[0, 0], [0.0004, 0.00021], [0.04, 0.0022]]
+        },
+        "tip": {
+          "radius_m": 0.0003,
+          "sharp_sides": 1,
+          "width": [[0, 0], [0.02, 0.014], [0.06, 0.04], [0.15, 0.042]],
+          "thickness": [[0, 0.0001], [0.03, 0.0009], [0.15, 0.0022]]
+        },
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.01,
+          "length_m": 0.05
+        },
+        "sources": ["tool_geometry", "ceramics"]
+      },
+      "machete": {
+        "name": "Machete, 45 cm",
+        "substance": "axe_steel",
+        "mass_kg": 0.6,
+        "strike_mass_kg": 1.0,
+        "grip_limit_n": 1500,
+        "edge": {
+          "radius_m": 1.5e-06,
+          "contact_length_m": 0.08,
+          "profile": [[0, 0], [0.001, 0.0006], [0.04, 0.0028]]
+        },
+        "tip": {
+          "radius_m": 0.0005,
+          "sharp_sides": 1,
+          "width": [[0, 0], [0.03, 0.03], [0.45, 0.05]],
+          "thickness": [[0, 0.0002], [0.05, 0.0018], [0.45, 0.0028]]
+        },
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.015,
+          "length_m": 0.1
+        },
+        "sources": ["tool_geometry"]
+      },
+      "felling_axe": {
+        "name": "Felling axe, 1.6 kg head",
+        "substance": "axe_steel",
+        "mass_kg": 2.2,
+        "strike_mass_kg": 1.9,
+        "grip_limit_n": 3000,
+        "edge": {
+          "radius_m": 2e-06,
+          "max_depth_m": 0.09,
+          "contact_length_m": 0.1,
+          "profile": [[0, 0], [0.003, 0.0016], [0.03, 0.0095], [0.06, 0.017], [0.09, 0.024]]
+        },
+        "face": {
+          "kind": "flat",
+          "radius_m": 0.3,
+          "diameter_m": 0.04
+        },
+        "sources": ["tool_geometry"]
+      },
+      "hatchet": {
+        "name": "Hatchet, 0.6 kg head",
+        "substance": "axe_steel",
+        "mass_kg": 0.9,
+        "strike_mass_kg": 0.8,
+        "grip_limit_n": 2000,
+        "edge": {
+          "radius_m": 2e-06,
+          "max_depth_m": 0.06,
+          "contact_length_m": 0.075,
+          "profile": [[0, 0], [0.003, 0.0015], [0.025, 0.008], [0.06, 0.017]]
+        },
+        "face": {
+          "kind": "flat",
+          "radius_m": 0.3,
+          "diameter_m": 0.03
+        },
+        "sources": ["tool_geometry"]
+      },
+      "splitting_maul": {
+        "name": "Splitting maul, 3.6 kg",
+        "substance": "tool_steel",
+        "mass_kg": 3.6,
+        "strike_mass_kg": 3.0,
+        "grip_limit_n": 3000,
+        "edge": {
+          "radius_m": 2e-05,
+          "max_depth_m": 0.1,
+          "contact_length_m": 0.1,
+          "profile": [[0, 0], [0.003, 0.0035], [0.03, 0.024], [0.06, 0.042], [0.1, 0.06]]
+        },
+        "face": {
+          "kind": "flat",
+          "radius_m": 0.3,
+          "diameter_m": 0.05
+        },
+        "sources": ["tool_geometry"]
+      },
+      "claw_hammer": {
+        "name": "Claw hammer, 0.6 kg head",
+        "substance": "tool_steel",
+        "mass_kg": 0.7,
+        "strike_mass_kg": 0.65,
+        "grip_limit_n": 2000,
+        "face": {
+          "kind": "flat",
+          "radius_m": 0.15,
+          "diameter_m": 0.025
+        },
+        "sources": ["tool_geometry"]
+      },
+      "sledgehammer": {
+        "name": "Sledgehammer, 4.5 kg",
+        "substance": "tool_steel",
+        "mass_kg": 4.5,
+        "strike_mass_kg": 4.2,
+        "grip_limit_n": 3000,
+        "face": {
+          "kind": "flat",
+          "radius_m": 0.3,
+          "diameter_m": 0.045
+        },
+        "sources": ["tool_geometry"]
+      },
+      "rubber_mallet": {
+        "name": "Rubber mallet",
+        "substance": "rubber_tread",
+        "mass_kg": 0.5,
+        "strike_mass_kg": 0.5,
+        "grip_limit_n": 1500,
+        "face": {
+          "kind": "flat",
+          "radius_m": 0.1,
+          "diameter_m": 0.06
+        },
+        "sources": ["tool_geometry"]
+      },
+      "wooden_club": {
+        "name": "Wooden club or bat (ash)",
+        "substance": "white_ash_dry",
+        "mass_kg": 0.9,
+        "strike_mass_kg": 0.9,
+        "grip_limit_n": 2000,
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.033,
+          "length_m": 0.15
+        },
+        "sources": ["tool_geometry"]
+      },
+      "aluminium_bat": {
+        "name": "Aluminium bat",
+        "substance": "aluminium_6061",
+        "mass_kg": 0.85,
+        "strike_mass_kg": 0.85,
+        "grip_limit_n": 2000,
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.033,
+          "length_m": 0.15
+        },
+        "body": {
+          "shape": "shell",
+          "thickness_m": 0.003,
+          "span_m": 0.066
+        },
+        "sources": ["tool_geometry"]
+      },
+      "crowbar": {
+        "name": "Crowbar",
+        "substance": "tool_steel",
+        "mass_kg": 1.6,
+        "strike_mass_kg": 1.4,
+        "grip_limit_n": 2000,
+        "tip": {
+          "radius_m": 0.001,
+          "sharp_sides": 0,
+          "width": [[0, 0.004], [0.02, 0.02], [0.1, 0.02]],
+          "thickness": [[0, 0.001], [0.02, 0.006], [0.1, 0.016]]
+        },
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.009,
+          "length_m": 0.1
+        },
+        "sources": ["tool_geometry"]
+      },
+      "screwdriver": {
+        "name": "Flat screwdriver, 6 mm",
+        "substance": "tool_steel",
+        "mass_kg": 0.12,
+        "strike_mass_kg": 1.0,
+        "grip_limit_n": 1200,
+        "tip": {
+          "radius_m": 0.0005,
+          "sharp_sides": 0,
+          "flat": true,
+          "width": [[0, 0.006], [0.1, 0.006]],
+          "thickness": [[0, 0.001], [0.01, 0.003], [0.02, 0.006], [0.1, 0.006]]
+        },
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.003,
+          "length_m": 0.05
+        },
+        "sources": ["tool_geometry"]
+      },
+      "nail": {
+        "name": "Common nail, 16d (3.3 mm)",
+        "substance": "mild_steel",
+        "mass_kg": 0.01,
+        "strike_mass_kg": 0.65,
+        "grip_limit_n": 100000,
+        "length_m": 0.089,
+        "head_diameter_m": 0.0071,
+        "tip": {
+          "radius_m": 0.0002,
+          "sharp_sides": 0,
+          "round": true,
+          "width": [[0, 0], [0.004, 0.0033], [0.09, 0.0033]],
+          "thickness": [[0, 0], [0.004, 0.0033], [0.09, 0.0033]]
+        },
+        "sources": ["tool_geometry", "nds_withdrawal", "nail_driving"]
+      },
+      "window_punch": {
+        "name": "Spring window punch (carbide pin)",
+        "substance": "tungsten_carbide",
+        "mass_kg": 0.012,
+        "strike_mass_kg": 0.012,
+        "grip_limit_n": 100000,
+        "tip": {
+          "radius_m": 0.0001,
+          "sharp_sides": 0,
+          "round": true,
+          "width": [[0, 0], [0.003, 0.0035], [0.01, 0.004]],
+          "thickness": [[0, 0], [0.003, 0.0035], [0.01, 0.004]]
+        },
+        "sources": ["tool_geometry", "ceramics"]
+      },
+      "ice_axe": {
+        "name": "Ice axe pick",
+        "substance": "axe_steel",
+        "mass_kg": 0.6,
+        "strike_mass_kg": 0.6,
+        "grip_limit_n": 2500,
+        "tip": {
+          "radius_m": 0.0003,
+          "sharp_sides": 0,
+          "width": [[0, 0], [0.01, 0.006], [0.06, 0.012]],
+          "thickness": [[0, 0.0005], [0.06, 0.004]]
+        },
+        "face": {
+          "kind": "flat",
+          "radius_m": 0.2,
+          "diameter_m": 0.025
+        },
+        "sources": ["tool_geometry"]
+      },
+      "glass_bottle": {
+        "name": "Glass bottle (as a club)",
+        "substance": "glass_annealed",
+        "mass_kg": 0.5,
+        "strike_mass_kg": 0.6,
+        "grip_limit_n": 1500,
+        "face": {
+          "kind": "cylinder",
+          "radius_m": 0.035,
+          "length_m": 0.1
+        },
+        "body": {
+          "shape": "shell",
+          "thickness_m": 0.003,
+          "span_m": 0.07
+        },
+        "sources": ["tool_geometry", "glass"]
+      },
+      "spade": {
+        "name": "Garden spade, 19 cm blade",
+        "substance": "tool_steel",
+        "mass_kg": 2.0,
+        "strike_mass_kg": 1.5,
+        "grip_limit_n": 1500,
+        "edge": {
+          "radius_m": 0.0004,
+          "max_depth_m": 0.29,
+          "contact_length_m": 0.19,
+          "profile": [[0, 0], [0.003, 0.0015], [0.01, 0.002], [0.29, 0.002]]
+        },
+        "blade": {"width_m": 0.19, "length_m": 0.29, "thickness_m": 0.002, "handle_m": 1.0},
+        "face": {
+          "kind": "flat",
+          "radius_m": 1.0,
+          "diameter_m": 0.15
+        },
+        "sources": ["tool_geometry", "soil_cutting"]
+      },
+      "pocket_knife": {
+        "name": "Folding pocket knife, 7.5 cm",
+        "substance": "knife_steel",
+        "mass_kg": 0.09,
+        "strike_mass_kg": 0.8,
+        "grip_limit_n": 900,
+        "edge": {
+          "radius_m": 6e-07,
+          "contact_length_m": 0.03,
+          "profile": [[0, 0], [0.0003, 0.0002], [0.015, 0.0018]]
+        },
+        "tip": {
+          "radius_m": 0.0003,
+          "sharp_sides": 1,
+          "width": [[0, 0], [0.012, 0.012], [0.075, 0.018]],
+          "thickness": [[0, 0.0001], [0.015, 0.0012], [0.075, 0.0025]]
+        },
+        "sources": ["tool_geometry", "blade_steels"]
+      },
+      "fist": {
+        "name": "A fist",
+        "substance": "skin",
+        "mass_kg": 0.6,
+        "strike_mass_kg": 2.5,
+        "grip_limit_n": 100000,
+        "face": {
+          "kind": "sphere",
+          "radius_m": 0.04
+        },
+        "sources": ["tool_geometry", "tissue"]
+      }
+    },
+    "strike_kinds": {
+      "fists": "fist",
+      "hammer": "claw_hammer",
+      "sledgehammer": "sledgehammer",
+      "crowbar": "crowbar",
+      "saw": "machete",
+      "axe": "felling_axe",
+      "bolt_cutters": "crowbar",
+      "blunt": "wooden_club",
+      "shovel": "spade",
+      "knife": "pocket_knife"
+    }
   }
 }

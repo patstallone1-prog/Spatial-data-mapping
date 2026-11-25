@@ -2,6 +2,7 @@ import {businessFixture} from '../interior-lab/business-fixtures.mjs';
 import {inPolygon} from './tour-world.mjs';
 import {retailFixture} from './retail-fixtures.mjs';
 import {wallRoom,wallRoomCuts,wallTileColour,wallCapColour} from './finishes.mjs';
+import {fruitBowlGeometry,mergeSimple,mugGeometry,placeSetting} from '../city/tableware.mjs';
 // Shared renderer for the bounded interior lab and Kerbside's generated-house overlay.
 // Geometry uses the serialized metre contract. GLTFs fit the exact collision/support box.
 export function buildInferredHouse(THREE, house, options = {}) {
@@ -56,6 +57,24 @@ export function buildInferredHouse(THREE, house, options = {}) {
     for(const hole of holes) shape.holes.push(new THREE.Path(hole.coordinates[0].map(([x,y])=>new THREE.Vector2(x,-y))));
     const mesh=new THREE.Mesh(new THREE.ShapeGeometry(shape),floorMaterial(color,finish));
     mesh.rotation.x=-Math.PI/2; mesh.position.y=y; mesh.receiveShadow=true; parent.add(mesh);return mesh;
+  }
+  // The table laid (tableware.mjs, at real sizes): a place on each long side for each 60 cm of it
+  // -- plate, fork on its napkin, knife, a water glass (and in fine dining a spoon and a wine glass)
+  // -- and a bowl of oranges and lemons in the middle of a house's table. One mesh per material.
+  const porcelain=material('#f6f4ee',{roughness:.25}),stemware=material('#e6f1f3',{transparent:true,opacity:.3,roughness:.05,depthWrite:false}),
+    cutlery=material('#d9dde0',{metalness:.9,roughness:.25}),napkin=material(finedining?'#f4f1ea':'#d9cdb4',{roughness:.95}),mugGlaze=material('#31475a',{roughness:.35}),
+    fruitSkin=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.45});
+  let settingGeo=null;
+  function layTable(parent,w,d,h){
+    settingGeo||=placeSetting(THREE,{fine:finedining,depth:.2,segments:18});
+    const per=Math.max(1,Math.min(3,Math.floor(w/.6))),parts={porcelain:[],glass:[],steel:[],linen:[]};
+    for(const side of [-1,1])for(let i=0;i<per;i+=1){
+      const x=(i-(per-1)/2)*(w/per);
+      for(const k of Object.keys(parts))if(settingGeo[k]){const g=settingGeo[k].clone();if(side<0)g.rotateY(Math.PI);g.translate(x,h,side*d/2);parts[k].push(g);}
+    }
+    const mats={porcelain,glass:stemware,steel:cutlery,linen:napkin};
+    for(const [k,list] of Object.entries(parts))if(list.length){const m=new THREE.Mesh(mergeSimple(THREE,list),mats[k]);m.castShadow=k!=='glass';m.receiveShadow=true;m.name=`table-laid:${k}`;parent.add(m);}
+    if(!restaurant&&d>=.75){const fb=fruitBowlGeometry(THREE);const b=new THREE.Mesh(fb.bowl,porcelain),f=new THREE.Mesh(fb.fruit,fruitSkin);b.position.y=f.position.y=h;b.castShadow=f.castShadow=true;parent.add(b,f);}
   }
   function box(parent,w,h,d,x,y,z,mat=wood) {
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.set(x,y,z);
@@ -179,6 +198,9 @@ export function buildInferredHouse(THREE, house, options = {}) {
       // A cloth over each fine-dining table, falling a hand's breadth over the edge.
       if(finedining&&role==='dining_table'){box(parent,w+.04,.006,d+.04,0,h+.003,0,linen);
         for(const s of [-1,1]){box(parent,w+.04,.2,.006,0,h-.1,s*(d/2+.02),linen);box(parent,.006,.2,d+.04,s*(w/2+.02),h-.1,0,linen);}}
+      if(role==='dining_table'&&w>=.7&&d>=.6)layTable(parent,w,d,h+(finedining?.006:0));
+      // A mug left on the coffee table.
+      if(role==='coffee_table'&&w>=.5){const m=new THREE.Mesh(mugGeometry(THREE),mugGlaze);m.position.set(w*.22,h,-d*.12);m.rotation.y=.7;m.castShadow=true;parent.add(m);}
     } else if(['dining_chair','office_chair','bar_stool'].includes(role)) {
       const seatY=role==='bar_stool'?.72:.46;box(parent,w,.06,d,0,seatY,0,economy?steel:fabric);if(role!=='bar_stool')box(parent,w,h-.43,.045,0,(h+.43)/2,-d/2,economy?steel:wood);
       for(const x of [-w*.36,w*.36])for(const z of [-d*.36,d*.36])box(parent,.035,role==='bar_stool'?.70:.44,.035,x,role==='bar_stool'?.35:.22,z,economy?steel:wood);

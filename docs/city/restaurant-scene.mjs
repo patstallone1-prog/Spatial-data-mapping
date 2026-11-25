@@ -1,4 +1,5 @@
 // The plan and its collision bounds share restaurant-local metres, +Z away from the entrance.
+import { placeSetting } from "./tableware.mjs";
 export function restaurantScene(T,plan,{doc,name,finish={},shellEnabled=true}) {
   const group=new T.Group(), surfaces=new Map(), geo=new Map(), batches=new Map();
   const material=(c,extra={})=>{const k=c+JSON.stringify(extra);if(!surfaces.has(k))surfaces.set(k,new T.MeshLambertMaterial({color:c,emissive:new T.Color(c).multiplyScalar(.30),...extra}));return surfaces.get(k);};
@@ -27,6 +28,20 @@ export function restaurantScene(T,plan,{doc,name,finish={},shellEnabled=true}) {
     batches.get(key).instances.push(matrix.clone());
   }
   const box=(...a)=>primitive("box",...a),round=(...a)=>primitive("round",...a);
+  //: A whole geometry (a place laid: tableware.mjs) at (x, y, z) turned ``yaw``, instanced with the
+  //: rest of its kind.
+  const turn=new T.Quaternion(),UP=new T.Vector3(0,1,0);
+  function piece(kind,make,x,y,z,yaw,m){
+    if(!geo.has(kind))geo.set(kind,make());
+    const key=kind+m.uuid;if(!batches.has(key))batches.set(key,{geometry:geo.get(kind),m,instances:[]});
+    matrix.compose(pos.set(x,y,z),turn.setFromAxisAngle(UP,yaw),scale.set(1,1,1)).premultiply(frame);
+    batches.get(key).instances.push(matrix.clone());
+  }
+  // A fine-dining place: the dinner plate, fork on its napkin, knife and spoon, water and wine
+  // glasses, each at its real size and shape.
+  let laid=null;
+  const setting=()=>(laid||=placeSetting(T,{fine:true,depth:0,segments:28}));
+  const stemware=material(0xe4f0f3,{transparent:true,opacity:.32,depthWrite:false});
   function label(text,x,y,z,w,h){
     const c=doc.createElement("canvas");c.width=384;c.height=80;const g=c.getContext("2d");
     g.fillStyle="#263632";g.fillRect(0,0,384,80);g.fillStyle="#fff3d6";g.font="600 49px system-ui";g.textAlign="center";g.textBaseline="middle";g.fillText(text,192,42,366);
@@ -107,7 +122,12 @@ export function restaurantScene(T,plan,{doc,name,finish={},shellEnabled=true}) {
       for(const x of four?[-.35,.35]:[0]){
         const z=s*(four?.77:.58);
         if(!booth)chair(tier,x,z,s);
-        if(tier==="dining"){round(x,.806,s*.21,.25,.018,.25,white);box(x+.15,.801,s*.21,.018,.014,.16,steel);box(x-.15,.801,s*.21,.018,.014,.16,steel);round(x-.16,.855,s*.08,.055,.13,.055,glass);}
+        if(tier==="dining"){
+          // The sitter on side ``s`` faces the table's middle: the place turned to face them.
+          const L=setting(),yaw=s>0?0:Math.PI;
+          piece("tw-porcelain",()=>L.porcelain,x,.799,s*.21,yaw,white);piece("tw-steel",()=>L.steel,x,.799,s*.21,yaw,steel);
+          piece("tw-linen",()=>L.linen,x,.799,s*.21,yaw,linen);piece("tw-glass",()=>L.glass,x,.799,s*.21,yaw,stemware);
+        }
         else if(tier==="casual"){box(x,.8,s*.2,.3,.008,.24,cream);}
       }
       if(booth)boothSide(tier,f.role==="banquette",s);

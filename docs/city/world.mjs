@@ -21,6 +21,8 @@ import { clockOf } from "./clock.mjs";
 import { homePrices, mortgageTerms, neighbourhoodAt } from "./market.mjs";
 import { hash32 as hash, rng } from "./people.mjs";
 import { injuryFor, vehicleDamage, vehicleState } from "./fleet.mjs";
+import { RESPONSE, injuryAt, instinct } from "./hit-reaction.mjs";
+import { temperamentOf } from "./temperament.mjs";
 import { CRASH, damageLevel, impactOn } from "./crash.mjs";
 import { canLift, swingOf, throwOf } from "./handling.mjs";
 import { SLOTS, STACK, slotsUsed } from "./inventory.mjs";
@@ -40,6 +42,8 @@ import { HOME_INTERIOR_COMMANDS, installHomeInteriors } from "../interior-lab/ho
 const rngOnce = (...parts) => rng(...parts)();
 //: What a vehicle weighs (kg), for the energy of its impact, by its kind.
 const VEHICLE_KG = { car: 1500, truck: 2600, van: 2500, bus: 13000 };
+//: What a blow can do to a body, and where it can land (hit-reaction.mjs).
+const REACTION_KINDS = new Set(["flinch", "stumble", "fall"]), ZONES = new Set(["head", "chest", "belly", "arm", "leg"]);
 
 export const AUTHORITIES = {
   "authority:bata": "Bay Area Toll Authority",
@@ -56,6 +60,19 @@ export const AUTHORITIES = {
 const DAY = 86_400_000;
 //: The most one backend grant may put in a wallet (cents): the same ceiling a saved self brings in.
 export const ACCOUNT_GRANT_MAX = 5_000_000_00;
+
+//: How much of a swing's energy (and its stamina) a thrust and a stroke of work are.
+const STRIKE_MODES = { swing: { energy: 1, stamina: 1 }, thrust: { energy: 0.6, stamina: 0.7 }, work: { energy: 0.35, stamina: 0.4 } };
+//: The strike kinds that work (R): a saw saws, a crowbar pries, bolt cutters cut.
+const WORK_TOOLS = new Set(["saw", "crowbar", "bolt_cutters", "knife", "shovel"]);
+//: Work by hand that is not a blow (mechanics-work.mjs): the stamina a stroke costs, and what must
+//: be in the hand for it. A box of nails holds this many.
+const LABOUR = { dig: { stamina: 0.8, tool: "shovel" }, carve: { stamina: 0.15, tool: "pocket_knife" }, hammer: { stamina: 0.35, tool: "hammer" }, push: { stamina: 0.5, tool: null },
+  //: Setting a nail on the wood by hand, point first, ready for the hammer (a click with nails in the hand).
+  set_nail: { stamina: 0.02, tool: null } };
+//: How far from where you stand you can set a thing down (m).
+const PLACE_REACH_M = 2.5;
+const NAILS_PER_BOX = 50;
 
 export class CityError extends Error {}
 
@@ -447,7 +464,8 @@ export class CityWorld {
     return { item, effect, vitals: p.vitals };
   }
   //: Putting something down where you stand, for anyone to pick up.
-  cmd_drop(pid, { item, qty = 1 }) {
+  //: Putting something down: at your feet, or (``spot``: {x, z}) set down where you clicked within reach.
+  cmd_drop(pid, { item, qty = 1, spot: to = null }) {
     const p = this.player(pid);
     const spec = this.R.items[item];
     qty = Math.max(1, qty | 0);
@@ -455,10 +473,11 @@ export class CityWorld {
     if (spec.parcel) throw new CityError("the parcel is someone's delivery: hand it over, or cancel the gig");
     take(p.inventory, item, qty);
     for (const slot of Object.keys(p.worn)) if (p.worn[slot] === item && !p.inventory[item]) p.worn[slot] = null;
-    const id = this.id("item");
-    this.items.set(id, { id, item, qty, x: p.x ?? 0, z: p.z ?? 0, by: pid, at: this.now });
+    handsCheck(p);
+    const id = this.id("item"), spot = this.placeSpot(p, to);
+    this.items.set(id, { id, item, qty, x: spot.x, z: spot.z, by: pid, at: this.now });
     if (this.items.size > 400) this.items.delete(this.items.keys().next().value);
-    return { dropped: id };
+    return { dropped: id, spot };
   }
   //: Picking up what lies within reach: something dropped, or a thing found on the pavement
   //: (``found``: the district's own, seeded by its day; each is picked up once).
@@ -947,7 +966,10 @@ export class CityWorld {
   //: your hands -- or, at the wheel, the car's impact (``energy``, no more than the car moving at
   //: its top speed could carry). The thing breaks once the energy it has taken reaches its break
   //: energy. Breaking what is not yours, seen, is vandalism: a fine and the repair.
-  cmd_strike(pid, { target, energy = null, witnesses = 0 }) {
+  //: ``mode`` (affordances.mjs, docs/63): "swing" (X, the default); "thrust" (Shift + X) -- the point or
+  //: the head driven straight in, less of a blow than a swing but no backswing; "work" (R, held) --
+  //: one stroke of a saw, a pry or a cut: a little each stroke, and less tiring than a blow.
+  cmd_strike(pid, { target, energy = null, witnesses = 0, mode = "swing" }) {
     const p = this.player(pid);
     let spec = this.R.objects?.[target?.archetype] || target?.spec;
     if (!target?.key || !spec?.break_j) throw new CityError("nothing there that breaks");
@@ -970,8 +992,10 @@ export class CityWorld {
       const blow = this.blowWith(p);
       tool = blow.kind;
       const tired = p.vitals.stamina < this.R.vitals.stamina.low ? 0.6 : 1;
-      joules = strikeEnergy(this.R, tool, p.vitals.strength, spec.material, blow.joules) * tired;
-      p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.25 + (blow.joules ?? this.R.tools.kinds[tool].energy_j) / 400)) };
+      const M = STRIKE_MODES[mode] || STRIKE_MODES.swing;
+      if (mode === "work" && !WORK_TOOLS.has(tool)) throw new CityError("that is not a tool to work with");
+      joules = strikeEnergy(this.R, tool, p.vitals.strength, spec.material, blow.joules) * tired * M.energy;
+      p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - (0.25 + (blow.joules ?? this.R.tools.kinds[tool].energy_j) / 400) * M.stamina) };
       if (blow.breaks) this.shatter(p, p.hands);
     }
     const wear = strikeWear(this.R, joules, spec.break_j);
@@ -1110,7 +1134,78 @@ export class CityWorld {
   }
   //: A blow to someone: hurt by the energy of it; they hit back, run, or (a police officer)
   //: arrest you; seen, or reported by them, it is a battery.
-  cmd_strike_person(pid, { npc, witnesses = 0, thrown = null }) {
+  //: A stroke of work by hand (``kind``: dig, carve, hammer, push), paid in stamina. Starting a
+  //: nail takes one from the box (a box holds NAILS_PER_BOX; a new box is opened when the last is
+  //: used).
+  cmd_labour(pid, { kind, start_nail = false } = {}) {
+    const p = this.player(pid), L = LABOUR[kind];
+    if (!L) throw new CityError("no such work");
+    if (L.tool && !(p.hands === L.tool && p.inventory[L.tool] > 0)) throw new CityError(`that needs a ${this.R.items[L.tool]?.name.toLowerCase() || L.tool} in your hand`);
+    p.loose ||= {};
+    if (kind === "set_nail") start_nail = true;
+    // A single nail picked up off the ground is used before a box is opened.
+    if (start_nail && p.inventory.nail > 0) { take(p.inventory, "nail", 1); handsCheck(p); start_nail = false; }
+    if (start_nail) {
+      if (!(p.loose.nails > 0)) {
+        if (!(p.inventory.nails > 0)) throw new CityError("no nails: a box of nails is sold at the hardware store");
+        take(p.inventory, "nails", 1);
+        p.loose.nails = NAILS_PER_BOX;
+      }
+      p.loose.nails -= 1;
+    }
+    const tired = p.vitals.stamina < this.R.vitals.stamina.low;
+    p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - L.stamina) };
+    return { kind, tired, nails: (p.loose.nails ?? 0) + (p.inventory.nail || 0), vitals: p.vitals };
+  }
+  //: A nail set on the wood and let go of before it was hammered: it drops where it was (``at``),
+  //: one nail lying on the ground (``spot``), picked up again like anything else.
+  cmd_drop_nail(pid, { spot: to = null } = {}) {
+    const p = this.player(pid);
+    const spot = this.placeSpot(p, to);
+    const id = this.id("item");
+    this.items.set(id, { id, item: "nail", qty: 1, x: spot.x, z: spot.z, by: pid, at: this.now });
+    if (this.items.size > 400) this.items.delete(this.items.keys().next().value);
+    return { dropped: id, spot };
+  }
+  //: Where a thing set down goes: ``at`` if it is within reach of you, else at your feet.
+  placeSpot(p, at) {
+    if (at && Number.isFinite(at.x) && Number.isFinite(at.z) && (p.x === undefined || Math.hypot(at.x - p.x, at.z - p.z) <= PLACE_REACH_M)) return { x: +at.x, z: +at.z };
+    return { x: p.x ?? 0, z: p.z ?? 0 };
+  }
+  //: Something lying on the ground pushed along (a click on it, then the arrows): it is where
+  //: you pushed it, no further than a stride a step from where it was.
+  cmd_move_item(pid, { id, to } = {}) {
+    const p = this.player(pid), thing = this.items.get(id);
+    if (!thing) throw new CityError("nothing there to push");
+    if (!to || !Number.isFinite(to.x) || !Number.isFinite(to.z)) throw new CityError("push it where?");
+    if (p.x !== undefined && Math.hypot(thing.x - p.x, thing.z - p.z) > 4) throw new CityError("too far to reach");
+    const d = Math.hypot(to.x - thing.x, to.z - thing.z), k = d > 1.5 ? 1.5 / d : 1;
+    thing.x += (to.x - thing.x) * k; thing.z += (to.z - thing.z) * k;
+    return { id, x: thing.x, z: thing.z };
+  }
+  //: An open-handed shove (mechanics-work.mjs shove decides whether they stay up). Only one that
+  //: knocks someone down hurts them, and is battery when seen, reported, or done to an officer.
+  cmd_shove(pid, { npc, falls = false, witnesses = 0 } = {}) {
+    const p = this.player(pid);
+    if (!npc?.id) throw new CityError("nobody there");
+    if (p.x !== undefined && npc.x !== undefined && Math.hypot(p.x - npc.x, p.z - npc.z) > this.R.tools.reach_m * 2) throw new CityError("out of reach");
+    p.vitals = { ...p.vitals, stamina: Math.max(0, p.vitals.stamina - LABOUR.push.stamina) };
+    if (!falls) { this.log("shoved", { player: pid, npc: npc.id }); return { falls: false, fine: 0, vitals: p.vitals }; }
+    const h = this.harmed(npc.id, "person", npc.name || null);
+    if (h.down_until > this.now) throw new CityError("they are down already");
+    const injury = injuryFor(this.R, { joules: 20, seed: `${npc.id}:${this.now}:shove` });
+    this.hurtPerson(h, injury, npc, `knocked down by ${p.name}`);
+    let fine = 0;
+    if (witnesses > 0 || npc.role === "police") {
+      fine = this.fine(p, "battery", `Battery on ${npc.name || "a resident"}: a shove that knocked them down`, [npc.role === "police" ? "the officer" : `${witnesses} witness${witnesses > 1 ? "es" : ""}`], `shove:${npc.id}:${Math.floor(this.now / 60000)}`).amount;
+    }
+    this.log("shoved", { player: pid, npc: npc.id, falls: true, injury: injury.type });
+    return { falls: true, injury, fine, down: h.down_until > this.now, vitals: p.vitals };
+  }
+  //: ``reaction``: what the blow did to their body (hit-reaction.mjs blowOn, worked out where it
+  //: was seen: {kind: "flinch" | "stumble" | "fall", zone, steps, fracture}); ``near``: what is
+  //: round them ({police: an officer or patrol in sight}). Their instinct then decides what they do.
+  cmd_strike_person(pid, { npc, witnesses = 0, thrown = null, reaction = null, near = null }) {
     const p = this.player(pid);
     if (!npc?.id) throw new CityError("nobody there");
     if (!thrown && p.x !== undefined && npc.x !== undefined && Math.hypot(p.x - npc.x, p.z - npc.z) > this.R.tools.reach_m * 2) throw new CityError("out of reach");
@@ -1125,14 +1220,25 @@ export class CityWorld {
     if (blow.breaks) this.shatter(p, p.hands);
     const h = this.harmed(npc.id, "person", npc.name || null);
     if (h.down_until > this.now) throw new CityError("they are down already");
-    const injury = injuryFor(this.R, { joules, seed: `${npc.id}:${this.now}` });
+    const re = REACTION_KINDS.has(reaction?.kind) ? { kind: reaction.kind, zone: ZONES.has(reaction.zone) ? reaction.zone : null, steps: Math.max(0, Math.min(3, reaction.steps | 0)), fracture: Boolean(reaction.fracture) } : null;
+    // A bone broken where it landed is at least the band that breaks bones.
+    let injury = injuryFor(this.R, { joules: re?.fracture ? Math.max(joules, 150) : joules, seed: `${npc.id}:${this.now}` });
+    if (re?.zone) {
+      const band = [...this.R.harm.blow].reverse().find((b) => b.severity === injury.severity);
+      injury = injuryAt(injury, re.zone, band?.types || [], `${npc.id}:${this.now}`);
+    }
     this.hurtPerson(h, injury, npc, `struck by ${p.name}${weapon ? ` with ${weapon}` : ""}`);
+    // Knocked off their feet (or stunned) by the blow itself: down, whatever the injury.
+    if (re?.kind === "fall") h.down_until = Math.max(h.down_until || 0, this.now + this.R.harm.down_s * 1000);
     const down = h.down_until > this.now;
+    // Their instinct (hit-reaction.mjs): who they are, how they are hurt, you against them, who
+    // is watching and whether the police are near.
+    const t = temperamentOf({ id: npc.id, age: npc.age, base: { role: npc.role } });
+    const act = instinct(t, { reaction: down ? { kind: "fall" } : re || { kind: "flinch" }, strength: npc.strength ?? 50, attacker: p.vitals.strength,
+      severity: injury.severity, witnesses, police_near: Boolean(near?.police), phone: npc.phone !== false, role: npc.role, seed: `${npc.id}:${this.now}` }).act;
     const r = rng(npc.id, this.now, "response");
-    let response = down ? "down" : "flee", hurt = 0;
-    if (npc.role === "police") response = "arrest";
-    else if (!down && r() < this.R.harm.retaliate_chance) {
-      response = "hit back";
+    let response = RESPONSE[act] || "flee", hurt = 0;
+    if (response === "hit back") {
       const [a, b] = this.R.harm.retaliate_health;
       hurt = Math.round(a + r() * (b - a));
       p.vitals = { ...p.vitals, health: Math.max(0, p.vitals.health - hurt) };
@@ -1146,8 +1252,8 @@ export class CityWorld {
       if (injury.bill) { restitution = injury.bill; this.billing.issue({ payer: p.account, payee: "business:hospital", kind: "restitution", amount: injury.bill, memo: `Care for ${npc.name || "a resident"}: ${injury.type}`, at: this.now, due_days: 30, penalties: [Math.round(injury.bill * 0.1)] }); }
     }
     if (p.vitals.health <= 0) this.faint(p, "a fight");
-    this.log("struck_person", { player: pid, npc: npc.id, injury: injury.type, response });
-    return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, vitals: p.vitals };
+    this.log("struck_person", { player: pid, npc: npc.id, injury: injury.type, zone: injury.zone || null, reaction: re?.kind || null, response });
+    return { tool, joules: Math.round(joules), injury, health: h.health, down, response, hurt, fine, restitution, reaction: re, vitals: p.vitals };
   }
   //: The city's own collisions use the same harm, court and billing records as a player's.
   //: ``id`` identifies a single impact, so sustained contact/replayed reports cannot bill twice.
@@ -1762,7 +1868,7 @@ const COMMANDS = new Set(["join", "status", "take_job", "quit_job", "clock_in", 
   "toll", "lane", "speed_camera", "pay_bill", "contest", "buy_building", "sell_building", "propose", "vote",
   "use", "drop", "pick_up", "give_item", "exert", "hurt", "rest", "board", "alight", "take_delivery", "deliver", "cancel_delivery",
   "hold", "stow", "strike", "task", "take_errand", "deliver_errand", "cancel_errand", "buy_home", "rent_home", "end_lease", "sell_home",
-  "strike_person", "collision", "crash_cleared", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
+  "strike_person", "shove", "labour", "drop_nail", "move_item", "collision", "crash_cleared", "buy_online", "take_task", "cancel_task", "collect_delivery", "task_visit", "throw", "checkout", "book_service", "use_booking",
   ...ENTERPRISE_COMMANDS, ...MESSAGE_COMMANDS, ...COMMERCE_COMMANDS, ...HOME_INTERIOR_COMMANDS, ...CREDIT_COMMANDS, ...SOCIAL_COMMANDS, ...KITCHEN_COMMANDS, ...WORKSHOP_COMMANDS, ...SHOPPING_COMMANDS, ...FAVOUR_COMMANDS, ...ANIMAL_COMMANDS]);
 export const PLAYER_COMMANDS = [...COMMANDS];
 installEnterprise(CityWorld, CityError);

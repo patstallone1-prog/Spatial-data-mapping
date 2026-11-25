@@ -298,6 +298,15 @@ function setAppMode(mode) {
       toLonLat: (x, z) => [x / metersPerLon + midLon, -z / metersPerLat + midLat],
       fromLonLat: (lon, lat) => { const [x, y] = xy(lon, lat); return [x, -y]; },
       groundAt: (x, z) => walkerGroundAt(x, z),
+      //: What the ground at (x, z) is made of, for a spade (docs/city/view.mjs underfoot): the
+      //: landscape's soil out past the regions, the carriageway's asphalt, the laid pavement's
+      //: concrete; null for open ground in the city (a lawn, a bed, a verge).
+      groundKind: (x, z) => {
+        if (typeof outsideTerrainGrid === "function" && outsideTerrainGrid(x, z)) return "soil_loam";
+        if (hostWorldActive && typeof insideCarriageway === "function" && insideCarriageway(x, z, 0)) return "asphalt";
+        if (typeof pavementTopAt === "function" && pavementTopAt(x, z) !== undefined) return "concrete";
+        return null;
+      },
       regionData, onRoad,
       //: Whether (x, z) is roadway as drawn -- a carriageway, not a deck or the open country
       //: (onRoad counts those as road, for the car): null where the world is not built in full.

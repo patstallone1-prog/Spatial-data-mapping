@@ -2,7 +2,7 @@
 // the rats -- where animals.mjs has them, drawn by animal-figures.mjs -- and what you do with a
 // pet: the Pets panel (K), tying it up or leaving it in the car (L), feeding it, the vet.
 // Kept out of view.mjs, which hands over what this needs.
-import { AMBIENT, MOVE, PET, PET_SPECIES, RESIDENT, SPECIES, ambientCell, animalTier, birdAt, impactHarm, petMood, ratAt, stepPet, stoopCat, vetQuote, walkedDog } from "./animals.mjs";
+import { AMBIENT, MOVE, PET, PET_SPECIES, RESIDENT, SPECIES, ambientCell, animalTier, birdAt, impactHarm, petLonely, petMood, ratAt, stepPet, stoopCat, vetQuote, walkedDog } from "./animals.mjs";
 import { animalFigures } from "./animal-figures.mjs";
 
 export const ANIMALS_CSS = `
@@ -227,7 +227,7 @@ export function animalsView(env) {
       lastTick = nowMs;
       send("pet_tick", {}).then((r) => { for (const n of r?.news || []) if (n.died) notify(`${n.name} has died of ${n.died}.`); if (r?.news?.length) env.drawSide?.(); });
       const hungry = pets.find((p) => !p.dead && p.hunger >= 65);
-      if (hungry) say(`${hungry.name} is ${petMood(hungry)}. Feed it from the Pets panel (K).`, 500);
+      if (hungry) say(`${hungry.name} is ${petMood(hungry)}. Feed it from your profile (Relationships › Family).`, 500);
     }
   }
   //: What the city's drivers stop for: your pets out of doors.
@@ -247,7 +247,7 @@ export function animalsView(env) {
   //: out; else ties up the pet beside you (a lead), or tells it to stay, or has it follow again.
   async function leashKey() {
     const pets = petsNow().filter((p) => !p.dead);
-    if (!pets.length) { notify("No pet of yours. Take one in at a pet shop or a vet's, or on the online store (K)."); return; }
+    if (!pets.length) { notify("No pet of yours. Take one in at a pet shop or a vet's, or on the online store (your profile: Relationships › Family)."); return; }
     if (car.active) {
       const riding = pets.filter((p) => p.mode === "car");
       if (!riding.length) { const waiting = pets.filter((p) => p.mode === "follow"); if (waiting.length) { boardAt = Infinity; for (const p of waiting) { const a = actors.get(p.id); await setMode(p, "stay", a ? { at: { x: a.x, z: a.z } } : {}); } notify(`${waiting.map((p) => p.name).join(" and ")} will wait here.`); } return; }
@@ -287,9 +287,11 @@ export function animalsView(env) {
     for (const pet of pets) {
       const S = SPECIES[pet.species], B = S.breeds[pet.breed], a = actors.get(pet.id), you = me(), d = a ? Math.round(Math.hypot(a.x - you.x, a.z - you.z)) : null;
       const where = pet.dead ? `died of ${pet.dead.cause}` : { follow: "with you", stay: "waiting", tied: "tied up", car: "in the car", home: "at home" }[pet.mode] + (d !== null && pet.mode !== "follow" && pet.mode !== "car" && pet.mode !== "home" ? `, ${d} m off` : "");
-      const box = h("div", { className: "pet" }, h("h4", {}, h("b", { textContent: pet.name }), h("small", { textContent: `${B.name} · ${petMood(pet)} · ${where}` })));
+      const lone = petLonely(pet, Date.now());
+      const box = h("div", { className: "pet" }, h("h4", {}, h("b", { textContent: pet.name }), h("small", { textContent: `${B.name} · ${petMood(pet)}${lone && lone.word !== "content" ? ` · ${lone.word}` : ""} · ${where}` })));
       if (!pet.dead) {
-        box.append(h("div", { className: "row" }, h("span", { textContent: `Health ${Math.round(pet.health)}` }), h("span", { textContent: `Hunger ${Math.round(pet.hunger)}` })), bar(pet.health), bar(pet.hunger, false));
+        box.append(h("div", { className: "row" }, h("span", { textContent: `Health ${Math.round(pet.health)}` }), h("span", { textContent: `Hunger ${Math.round(pet.hunger)}${pet.hunger >= 65 ? " (hungry)" : ""}` })), bar(pet.health), bar(pet.hunger, false));
+        if (lone) box.append(h("p", { className: "note", textContent: `On its own for ${lone.hours < 1 ? `${Math.max(1, Math.round(lone.hours * 60))} minutes` : `${Math.round(lone.hours)} hours`}: ${lone.word}.` }));
         if (pet.injury > 0) box.append(h("p", { className: "note", textContent: `Hurt by ${pet.cause || "an accident"} (${Math.round(pet.injury)} of 100)${pet.injury >= PET.serious ? ": this will not mend by itself, and it is getting worse. A vet." : ": it will mend with rest and food."}` }));
         const food = S.food.filter((id) => inv[id] > 0);
         for (const id of food) box.append(act(`Feed (${R.items[id]?.name || id}, ${inv[id]} left)`, async () => { const r = await send("feed_pet", { pet: pet.id, item: id }); if (r.ok) notify(`${pet.name} eats.`); return r; }, pet.hunger >= 50));
@@ -314,7 +316,7 @@ export function animalsView(env) {
       rows.push(h("h4", { textContent: here.pet ? "Take one in here" : "Take one in (online: brought to you)" }), h("div", {}, kind, " ", breed, " ", name),
         act(`Adopt for ${fmt(fee)}`, async () => { const r = await send("adopt_pet", { species: adopt.species, breed: adopt.breed || null, name: adopt.name, ...(here.pet ? { place: placeArg(here.pet) } : {}) }); if (r.ok) { notify(`${r.pet.name} is yours. L ties it up or tells it to stay; it gets in the car after you.`); adopt.name = ""; } return r; }, true));
     }
-    rows.push(h("p", { className: "note", textContent: "L: tie up or stay / follow. At the wheel, L: leave them in the car. Drive off before one is in and it waits where it was. Food and leads: pet shops, vets, the online store." }));
+    rows.push(h("p", { className: "note", textContent: "L: tie up or stay / follow. At the wheel, L: leave them in the car. Drive off before one is in and it waits where it was. Food and leads: pet shops, vets, the online store. Your pets are under Family on your profile (Relationships)." }));
     side.el.replaceChildren(...rows);
     return true;
   }

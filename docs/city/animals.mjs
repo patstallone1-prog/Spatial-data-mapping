@@ -138,6 +138,14 @@ export function impactHarm(speed, kg = 10) {
 //: What the vet asks to treat ``pet`` as it is.
 export const vetQuote = (pet, P = PET) => (pet.injury > 0 || pet.health < 100 ? Math.round(P.treat_base + P.treat_per * pet.injury + (100 - pet.health) * 1.5) : P.treat_base);
 
+//: How lonely ``pet`` is without you, by how long it has been left (real hours; ``now`` ms): null
+//: when it is with you, else {hours, word}. A dog misses you sooner than a cat.
+export function petLonely(pet, now) {
+  if (pet.dead || pet.mode === "follow" || pet.mode === "car" || !Number.isFinite(pet.alone_since)) return null;
+  const hours = Math.max(0, (now - pet.alone_since) / 3_600_000), k = pet.species === "cat" ? 2 : pet.species === "dog" ? 1 : 1.5;
+  return { hours, word: hours >= 8 * k ? "very lonely" : hours >= 3 * k ? "lonely" : hours >= 1 * k ? "missing you" : "content" };
+}
+
 //: How ``pet`` is, in a few words.
 export function petMood(pet) {
   if (pet.dead) return "has died";
@@ -515,6 +523,8 @@ export function installAnimals(CityWorld, CityError, { storesAt = null } = {}) {
     if (!PET_MODES.includes(mode)) fail("follow, stay, tied, car or home");
     if (x.dead) fail(`${x.name} has died`);
     if (mode === "tied" && !(p.inventory?.leash > 0)) fail("a lead to tie it up with: a pet shop has them");
+    // Left (waiting, tied, at home) from now: how long it has been without you (petLonely).
+    if ((mode === "follow" || mode === "car") !== (x.mode === "follow" || x.mode === "car")) x.alone_since = mode === "follow" || mode === "car" ? null : this.now;
     x.mode = mode;
     const spot = at && Number.isFinite(at.x) && Number.isFinite(at.z) ? { x: +at.x, z: +at.z } : p.x !== undefined ? { x: p.x, z: p.z } : x.at;
     x.at = spot; x.car = mode === "car" ? String(car || "") || null : null;

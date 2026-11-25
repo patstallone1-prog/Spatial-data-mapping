@@ -1076,7 +1076,8 @@ export function installKitchen(CityWorld, CityError) {
     if (b && score < 40) b.reputation = clamp(b.reputation - 0.25, 0, 100);
     if (t.player) {
       const q = this.players.get(t.player);
-      if (q) (q.meals ||= []).push({ id: t.id, place: k.id, name: k.name, cook: pid, cook_name: p.name, score, dishes: t.lines.map((l) => l.dish), at: this.now, tipped: false });
+      // The plates as made go with the meal, so the eater's food looks as it was cooked (plated.mjs).
+      if (q) (q.meals ||= []).push({ id: t.id, place: k.id, name: k.name, cook: pid, cook_name: p.name, score, dishes: t.lines.map((l) => l.dish), plates: clean, at: this.now, tipped: false });
       if (q?.meals.length > 6) q.meals.splice(0, q.meals.length - 6);
     }
     worked(p);

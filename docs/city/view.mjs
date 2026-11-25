@@ -24,7 +24,7 @@ import {
 import { crashScenes } from "./crash-scene.mjs";
 import { CRASH, crumple, scuff, damageKey, damageLevel, damagePace, impactOn, impactZone, personImpact, personPose } from "./crash.mjs";
 import { clockOf, fleetTime, clockTime, clockHeld, holdClock, releaseClock, clockHoldState, restoreClockHold, heldOffset } from "./clock.mjs";
-import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, placeFromBuilding, populationByRole, rng, saysStreet, shortStreet } from "./people.mjs";
+import { BIKE_LANE, CLOTHES, COUNTER_ROLES, Crowd, DRIVE_LANE, LANE, SPEED_MS, Streets, alongRoute, counterLine, distToSegment, generatePopulation, hash32, pavementRoute, placeFromBuilding, populationByRole, rng, saysStreet, shortStreet } from "./people.mjs";
 import { homeListings, mortgageTerms } from "./market.mjs";
 import { BOUNDARY_MESSAGE, arrivalsAt, boundaryStop, buildLines, busesAt, stopsOf } from "./transit.mjs";
 import { CITATIONS, CityWorld } from "./world.mjs";
@@ -36,6 +36,15 @@ import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf,
 import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleLampAnchors, wheelTurn, bodyOf, bodyFile, bodyDims, carSurface, CAR_MODELS } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
+import { createClimbPlay } from "./climb-play.mjs";
+import { createEatPlay } from "./eat-play.mjs";
+import { TOOLS as TOOL_VERBS, affordances, hintChips, steady } from "./affordances.mjs";
+import { createMechanics } from "./mechanics.mjs";
+import { IMPLEMENT, strikePreview, substanceOf } from "./strike-preview.mjs";
+import { blowOn, victimOf } from "./hit-reaction.mjs";
+import { WORK, createWork } from "./mechanics-work.mjs";
+import { createCollisions } from "./mechanics-collide.mjs";
+import { madeFrom } from "./plated.mjs";
 import { JUMP, PUNCH, SWING, jumpAir, jumpCrouch, jumpLand, punchPose, swingPose } from "./body-moves.mjs";
 import { DRIVE, carState, lightAhead, parkPath, startLaneChange, startPark, startStop, stepCar } from "./car-control.mjs";
 import { carPoints, entryPose, entrySpot } from "./car-entry.mjs";
@@ -258,9 +267,12 @@ export async function startCity(ctx) {
   // What breaks and how hard it is to break: the object catalogue's archetypes (docs/object-catalogue.json).
   const catalogue = await fetch(ctx.catalogueUrl || ctx.asset("object-catalogue.json")).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   R.objects = {};
+  //: What a push (C, empty-handed) can move, and about what it weighs: what is not bolted, set in
+  //: the ground or built in (mechanics-work.mjs push slides it on the pavement).
+  const PUSH_KG = { "interior.furniture": 30, "vegetation.log": 120, "item.movable": 5 };
   for (const [id, a] of Object.entries(catalogue?.archetypes || {})) {
     const d = a.durability || {};
-    if (d.level >= 2 && d.break_energy_j) R.objects[id] = { name: a.name, material: a.material, break_j: d.break_energy_j, health: d.health };
+    if (d.level >= 2 && d.break_energy_j) R.objects[id] = { name: a.name, material: a.material, break_j: d.break_energy_j, health: d.health, push_kg: PUSH_KG[id] ?? null };
   }
   // The real bus stops and the routes that call at them.
   let transitStops = null, timetable = null;
@@ -1079,7 +1091,24 @@ diffuseColor.rgb *= kbCloth;`);
       out.push({ p, y, d: (p.x - VIEW_AT.x) ** 2 + (p.z - VIEW_AT.z) ** 2 });
     }
     if (out.length > MAX_PEOPLE) { out.sort((a, b) => a.d - b.d); out.length = MAX_PEOPLE; }
+    // Those drawn stand on the ground where they are, not on the metre-square's: the cache's
+    // height from up to 0.7 m away had feet 5 cm or more into the pavement at 1.75% of the places
+    // people stand in the Marina (10 cm at 0.9%, 42 cm at the worst: a kerb's edge, a hill;
+    // measured 2026-11-25), so the crowd always had someone sunk to the ankles.
+    for (const o of out) if (!(shop.place && o.p.indoors === shop.place.id)) o.y = footAt(o.p);
     return out;
+  }
+  //: The ground right under someone (the page's walker ground: the drawn surface, which the soil
+  //: holds up -- grass bends over it, foliage-motion.mjs), looked up again only once they have
+  //: moved FOOT_MOVE_M: [x, z, y] by id.
+  const feet = new Map(), FOOT_MOVE_M = 0.1;
+  function footAt(p) {
+    let f = feet.get(p.id);
+    if (f && Math.abs(f[0] - p.x) < FOOT_MOVE_M && Math.abs(f[1] - p.z) < FOOT_MOVE_M) return f[2];
+    const y = ctx.groundAt(p.x, p.z) ?? groundAt(p.x, p.z);
+    if (!f) { if (feet.size > 6000) feet.clear(); f = [0, 0, 0]; feet.set(p.id, f); }
+    f[0] = p.x; f[1] = p.z; f[2] = y;
+    return y;
   }
   // How the people near you move (clips.mjs): a walk, a run, a telephone at the ear, a look each
   // way at the kerb -- sampled for each, cross-faded when what they are doing changes. One state
@@ -2009,17 +2038,29 @@ diffuseColor.rgb *= kbCloth;`);
     const stores = view?.storesHere ? view.storesHere(place) : storesAt(R, place.keys);
     return [...new Set(stores.flatMap((st) => st.items))].filter((id) => R.items[id] && !R.items[id].service && !R.items[id].parcel && !floor.has(id));
   }
-  function showClerk(place, e) {
-    hideClerk();
+  //: What whoever serves at ``place`` says to you (clerk.mjs), with its link.
+  function clerkLineFor(place, e) {
     const st = storesAt(R, place.keys)[0];
     const kind = view?.kitchenKind?.(place) || st?.kind;
     const style = view?.kitchenKind?.(place) ? restaurantService(R, kind, view?.bizAt?.(place.id), view?.kitchens?.get?.(String(place.id)))?.style : null;
     const tt = fleetAt(Date.now());
-    // (A shop walked round -- its goods on its shelves, shop-floor.mjs -- is not bought from a list:
-    // its staff point to the baskets and the till, and link only what is kept behind the counter.)
     const walked = floor.active() && floor.counterItems() > 0 && !view?.kitchenKind?.(place);
     const behind = walked ? counterOnly(place).length > 0 : false;
-    const line = clerkLine({ storeKind: kind || st?.kind, serviceStyle: style, name: (view?.bizAt?.(place.id)?.name) || (place.name && !/^\d/.test(place.name) ? place.name : null), hour: (tt.gameMinute ?? tt.minute) / 60, staffName: e.person.name, visit: clerk.visits, place: place.id, floor: walked, counter: behind });
+    return clerkLine({ storeKind: kind || st?.kind, serviceStyle: style, name: (view?.bizAt?.(place.id)?.name) || (place.name && !/^\d/.test(place.name) ? place.name : null), hour: (tt.gameMinute ?? tt.minute) / 60, staffName: e.person.name, visit: clerk.visits, place: place.id, floor: walked, counter: behind });
+  }
+  //: Someone who works here clicked (staffClicked): they have come over, and the messages open with
+  //: them asking what you need -- a waiter's or a cashier's line carries the menu or the wares, and
+  //: ordering from it is the same as at the counter.
+  function staffArrived(place, e) {
+    clerk.place = place;
+    const line = clerkLineFor(place, e);
+    const said = /help|get you|look(ing)? for|what can/i.test(line.text) ? line.text : `Hi, can I help you? ${line.text}`;
+    const parts = lineParts(said).map((x) => (typeof x === "string" ? x : { link: x.link, run: () => shopWindowUI().open(windowSpec(place, line)) }));
+    messages().npc({ id: e.person.id, name: e.person.name, title: line.who ? line.who.charAt(0).toUpperCase() + line.who.slice(1) : e.person.title, role: "resident", tone: "warm" }, {}, { opening: parts });
+  }
+  function showClerk(place, e) {
+    hideClerk();
+    const line = clerkLineFor(place, e);
     if (!String(e.person.id).startsWith("counter:")) talkTo({ id: e.person.id, name: e.person.name, title: e.person.title });
     const parts = lineParts(line.text).map((x) => (typeof x === "string" ? x : h("a", { href: "#", textContent: x.link, onclick: (ev) => { ev.preventDefault(); shopWindowUI().open(windowSpec(place, line)); } })));
     clerk.el = h("div", { id: "city-clerk", className: "glass", role: "dialog", "aria-label": `${e.person.name}, the ${line.who}` },
@@ -2147,6 +2188,8 @@ diffuseColor.rgb *= kbCloth;`);
   let profileUI = null;
   const profile = () => (profileUI ||= profilePanel({ R, h, act, row, send, notify, me, district, address, wealthOf, portrait, finance, openSide, getSide: () => side, drawSide,
     legacy: TABS, crossAt, editHome, redraw: () => refresh(), close: () => { if (panel) openPanel(); },
+    // Your pets, as the Pets panel draws them (animals-view.mjs), for Family on Relationships.
+    family: () => { const p = view?.players.get(myId); if (!p) return []; const el = h("div", { className: "pets" }); const fake = { kind: "pets", el }; try { animals().draw(fake, { close: null, status: null, p }); } catch (error) { console.warn("pets", error); return []; } return [...el.childNodes].filter((n) => n.tagName !== "H3"); },
     peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })).filter((x) => x.pid && x.pid !== myId) }));
   //: Something said to one of the city's people: the server's answer, or null when there is no server to ask (the box answers with a set line).
   async function talk(body) { return online.state === "online" && online.client?.talk ? online.client.talk(body) : null; }
@@ -2355,7 +2398,7 @@ diffuseColor.rgb *= kbCloth;`);
       person: { id: `you:${myId}`, age: p?.age ?? 30, pace: 1.35, height: 1.75 } };
     cycle.active = true;
     ctx.avatarVisible(false);
-    notify("On your bicycle: the arrows pedal, brake and steer; B or Enter to get off.");
+    notify("On your bicycle: the arrows pedal, brake and steer; Enter to get off.");
     refresh();
   }
   function dismountBicycle() {
@@ -2882,12 +2925,13 @@ diffuseColor.rgb *= kbCloth;`);
     const p = self();
     if (!p?.vitals || !ctx.enabled()) { body.sprinting = false; return 1; }
     const f = walkFactor(R, p.vitals, body.sprintHeld);
-    body.sprinting = f.sprint;
-    return f.factor;
+    body.sprinting = f.sprint && !pushing.on;
+    return f.factor * pushPace();
   }
   //: The walk as the page made it: counted at a walker's pace however far the zoomed-out view
   //: carries the walker, and reported to the books every few seconds.
   function walked(metres, dt) {
+    climbPlay.noteSpeed(metres, dt);   // a jump carries on at the pace you were going
     if (!self() || !(metres > 0) || inWater()) return;   // (a swim is counted by swim)
     body.walked += Math.min(metres, dt * 2.6 * (body.sprinting ? R.vitals.stamina.sprint_factor : 1));
     if (body.sprinting) body.sprint += dt;
@@ -2966,7 +3010,7 @@ diffuseColor.rgb *= kbCloth;`);
   function thingsNear(x, z, reach) {
     const w = view, out = [];
     for (const f of foundToday()) if (!w?.found?.has(f.id) && Math.abs(f.x - x) < reach && Math.abs(f.z - z) < reach) out.push(f);
-    // A courier task's order, waiting outside the shop's door until you pick it up (G).
+    // A courier task's order, waiting outside the shop's door until you pick it up (a click on it).
     const dl = self()?.delivery;
     if (dl?.stage === "pickup") {
       // Outside its door (where its people come out), else on the corner of the street by it.
@@ -3060,16 +3104,23 @@ diffuseColor.rgb *= kbCloth;`);
   function stepReach(dt) {
     const t = reach.t;
     if (!t) return false;
-    const at = me(), dx = t.x - at.x, dz = t.z - at.z, d = Math.hypot(dx, dz);
-    if (d <= PICK_AT_M) { reach.t = null; ctx.faceTo?.(t.x, t.z); ctx.animateWalk?.(0); reachDown(t); return false; }
-    if (car.active || transit.ride || performance.now() - reach.since > 4000) { reach.t = null; ctx.animateWalk?.(0); notify("Could not get to it: something is in the way."); return false; }
-    const step = Math.min(1.3 * dt, d - PICK_AT_M + 0.05);
+    const at = me(), dx = t.x - at.x, dz = t.z - at.z, d = Math.hypot(dx, dz), near = t.at ?? PICK_AT_M;
+    if (d <= near) { reach.t = null; ctx.faceTo?.(t.x, t.z); ctx.animateWalk?.(0); if (t.then) t.then(); else reachDown(t); return false; }
+    if (car.active || transit.ride || performance.now() - reach.since > (t.ms ?? 4000)) { reach.t = null; ctx.animateWalk?.(0); notify("Could not get to it: something is in the way."); return false; }
+    const step = Math.min(1.3 * dt, d - near + 0.05);
     const moved = ctx.moveWalker?.((dx / d) * step, (dz / d) * step) ?? step;
     ctx.faceTo?.(t.x, t.z);
     ctx.animateWalk?.(moved, dx / d, dz / d);
     return true;
   }
-  function reachDown(t) {
+  //: Walk over to (x, z), to within ``at`` metres, then ``then()`` (a click's errand: a thing to pick
+  //: up, a spot to set something down, something to push, wood to set a nail in).
+  function goTo(x, z, at, then) {
+    const d = Math.hypot(x - me().x, z - me().z);
+    if (d <= at) { ctx.faceTo?.(x, z); then(); return; }
+    Object.assign(reach, { t: { x, z, at, then, ms: 3000 + (d / 1.3) * 1000 }, since: performance.now() });
+  }
+  function reachDown(t, { carry: carried = false } = {}) {
     const pl = self();
     if (!pl) return;
     const ph = physOf(R, t.item), lift = liftKg(R, pl.vitals.strength);
@@ -3081,8 +3132,9 @@ diffuseColor.rgb *= kbCloth;`);
       if (!r.ok) { notify(r.error); return; }
       if (t.debris) { t.debris.mesh.removeFromParent(); debrisParts.splice(debrisParts.indexOf(t.debris), 1); }
       if (t.courier) { notify(`Picked up the order (${ph.kg} kg). Now to ${self()?.delivery?.to.name || "the address"}: follow the green light; at the door you are asked to hand it over.`); syncSlots(true); return; }
-      notify(`Picked up ${R.items[r.item].name.toLowerCase()}${r.qty > 1 ? ` x${r.qty}` : ""} — ${weightClass(R, ph.kg, pl.vitals.strength)}, ${ph.kg} kg (carrying ${r.carry.kg} of ${r.carry.capacity} kg).`);
+      notify(`Picked up ${R.items[r.item].name.toLowerCase()}${r.qty > 1 ? ` x${r.qty}` : ""} — ${weightClass(R, ph.kg, pl.vitals.strength)}, ${ph.kg} kg (carrying ${r.carry.kg} of ${r.carry.capacity} kg).${carried ? " Click where it should go to set it down." : ""}`);
       syncSlots(true);
+      if (carried) holdPicked(r.item);
     });
   }
 
@@ -3411,7 +3463,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (!p?.job) { notify("No job: walk up to a shop that is hiring and take one (Enter, then the SHOP panel by the door; or the City panel's Here tab)."); return; }
     const place = district.placeById?.get(p.job.place.id), was = Boolean(p.clocked);
     const r = await send(was ? "clock_out" : "clock_in", was ? {} : { spots: place ? spotsFor(place) : null });
-    notify(r.ok ? (was ? "Clocked out and paid for the time worked." : `At work as ${p.job.title.toLowerCase()}: tasks come every minute or so (V where the orange ring is). Paid ${R.fmt(p.job.pay / 6)} a 10 minutes worked, tax held back; idle 30 minutes and you are sent home.`) : r.error);
+    notify(r.ok ? (was ? "Clocked out and paid for the time worked." : `At work as ${p.job.title.toLowerCase()}: tasks come every minute or so (R where the orange ring is). Paid ${R.fmt(p.job.pay / 6)} a 10 minutes worked, tax held back; idle 30 minutes and you are sent home.`) : r.error);
   }
   //: A bed within reach (the rooms' furniture round you), and whether it is in your home.
   function bedHere() {
@@ -3807,7 +3859,7 @@ diffuseColor.rgb *= kbCloth;`);
   const taskInside = (task) => ["counter", "back"].includes(task?.where) && shopFrame(district.placeById?.get(self()?.job?.place.id) || {});
   async function taskKey() {
     const p = self(), task = p?.clocked?.task;
-    if (!p?.clocked) { notify(p?.job ? "Clock in first (J) at your work." : "No job: take one at a shop that is hiring."); return; }
+    if (!p?.clocked) { notify(p?.job ? "Clock in first: Yes when asked at your work." : "No job: take one at a shop that is hiring."); return; }
     if (!task) { notify(`Nothing to do this minute: the next task comes soon (${p.clocked.tasks_total || 0} done this shift).`); return; }
     const d = Math.hypot(me().x - task.x, me().z - task.z);
     if (d > R.work_tasks.task_reach_m) {
@@ -3889,7 +3941,7 @@ diffuseColor.rgb *= kbCloth;`);
   // things are gone until the city mends them; breaking what is not yours, seen, is vandalism.
   // ---- the body: holding, lifting, swinging, throwing, jumping ----------------------------------
   // How each thing is held (rules.json items' hold: in a hand, a tool by its handle, in both arms in
-  // front, or on the shoulder) and what the arms do on top of the walk: bend down and lift (G),
+  // front, or on the shoulder) and what the arms do on top of the walk: bend down and lift (a click),
   // strain at what is too heavy, swing (X), throw (Q), jump (Space). Poses are turns of the arm,
   // forearm and spine bones about the walker's own axes, over the walking clip (module 26 calls
   // afterPose after the clip each frame).
@@ -3920,7 +3972,8 @@ diffuseColor.rgb *= kbCloth;`);
   let heldMesh = null, heldItem = null, heldHidden = false, lastStrike = 0;
   function drawHeld() {
     const item = self()?.hands || null;
-    if (heldMesh) heldMesh.visible = !heldHidden;
+    // (Food and drink are drawn by the eating, as they are held: eat-play.mjs.)
+    if (heldMesh) heldMesh.visible = !heldHidden && !eatPlay.active;
     // Swung from the shoulder or the side: carried there again once the swing is over.
     if (heldMesh?.userData.swungFromRest && pose.kind !== "swing") { heldMesh.removeFromParent(); heldItem = undefined; }
     if (item === heldItem && (!heldMesh || heldMesh.parent)) return;
@@ -3960,6 +4013,10 @@ diffuseColor.rgb *= kbCloth;`);
     return null;
   }
   function stepBody(dt) {
+    // What is in the hand to eat or drink: held as it is held, eaten as U says.
+    const inHand = self()?.hands || null;
+    eatPlay.sync(inHand && R.items[inHand]?.kind === "prepared_food" && !car.active && !car.riding && !climbPlay.busy ? inHand : null);
+    eatPlay.step(dt);
     if (pose.kind) {
       const t = (performance.now() - pose.t0) / pose.dur;
       if (!pose.fired && t >= pose.at) { pose.fired = true; try { pose.fn?.(); } catch (error) { console.warn(error); } }
@@ -3978,14 +4035,70 @@ diffuseColor.rgb *= kbCloth;`);
     const bend = pose.kind === "pickup" || pose.kind === "strain" ? Math.sin(Math.PI * t) : 0;
     ctx.avatar.userData.lift = air.y - 0.32 * bend - (jumpBody()?.drop || 0);
   }
-  //: Space: up by your legs' push against your weight and what you carry (handling.mjs jumpOf).
+  //: What you carry (kg): nothing off the city (on the map, not joined).
+  const loadKg = (p = self()) => (!p ? 0 : view.carry ? view.carry(p).kg : carriedKg(R, p.inventory));
+  //: Your legs' jump: {height, speed} against your weight and what you carry (handling.mjs jumpOf).
+  //: Not in the city: your legs at the start's strength, nothing carried.
+  const legsNow = () => { const p = self(); return jumpOf(R, p ? p.vitals.strength : R.vitals.start.strength, loadKg(p)); };
+  //: Climbing and jumping (climb-play.mjs): Space climbs what is in front, or jumps onto it, over it,
+  //: up it, off it, or on the way you were going.
+  const climbPlay = createClimbPlay({
+    THREE, ctx, notify: (t) => notify(t), legs: legsNow,
+    climber: () => { const p = self(); return { strength: p ? p.vitals.strength : R.vitals.start.strength, load_kg: loadKg(p), kg: 75 }; },
+  });
+  //: Eating and drinking (eat-play.mjs): what is in your hand held as it is held, U a mouthful
+  //: (held: all of it). The city is told it was used at the last bite.
+  const eatPlay = createEatPlay({
+    THREE, ctx, R, notify: (t) => notify(t),
+    seated: () => seated.on, firstPerson: () => Boolean(ctx.isFirstPerson?.()), tableAhead: () => tableAhead(),
+    // A meal a cook served you: its plate as they made it (burnt, short of something, stacked wrong).
+    madeOf: (item) => {
+      const meals = self()?.meals || [];
+      for (let i = meals.length - 1; i >= 0; i -= 1) {
+        const m = meals[i], k = m.plates ? m.dishes.indexOf(item) : -1;
+        if (k >= 0 && m.plates[k]) { const made = madeFrom(R, item, m.plates[k]); if (made) made.sig = m.id; return made; }
+      }
+      return null;
+    },
+    finish: async (item) => {
+      const it = R.items[item] || {};
+      const r = await send("use", { item });
+      if (!r.ok) { notify(r.error); return false; }
+      notify(`Finished the ${(it.name || item).toLowerCase()}: ${Object.entries(r.effect || {}).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${k}`).join(", ") || "done"}.`);
+      syncSlots(true);
+      return true;
+    },
+  });
+  //: Sat at a table: where its top is in front of you (a ray down onto it, 40 cm ahead), for a
+  //: plate to be put there. Null where there is no table (a sofa, a bench).
+  const tableRay = new THREE.Raycaster();
+  function tableAhead() {
+    if (!seated.on) return null;
+    const a = ctx.avatar, y = a.rotation.y, fx = Math.sin(y), fz = Math.cos(y), floor = seated.floor ?? (me().y - ctx.standY);
+    const from = new THREE.Vector3(me().x + fx * 0.4, floor + 1.3, me().z + fz * 0.4);
+    tableRay.set(from, new THREE.Vector3(0, -1, 0)); tableRay.far = 1.2;
+    const roots = [shop.room, ctx.root].filter(Boolean);
+    for (const r of roots) {
+      const hit = tableRay.intersectObject(r, true).find((h) => h.point.y > floor + 0.5 && h.point.y < floor + 1.15 && !h.object.name?.startsWith("dish:") && h.object.visible);
+      if (hit) return { point: hit.point.clone().add(new THREE.Vector3(0, 0.001, 0)), toward: new THREE.Vector3(-fx, 0, -fz) };
+    }
+    return null;
+  }
+  //: E: climb what is in front of you (a fence, a wall, a rock, a tree); on it, let go.
+  function climbKey() {
+    if (car.active || car.riding || transit.ride || shop.place || entry || self()?.resting) return;
+    climbPlay.climbKey();
+  }
+  //: Space: up by your legs' push against your weight and what you carry (handling.mjs jumpOf) --
+  //: at a wall or a fence in front, onto it, over it or up it; on one, off it; running, on the way
+  //: you were going.
   function jumpKey() {
     const p = self();
     if (air.up || air.crouch || car.active || car.riding || transit.ride || p?.resting) return;
-    // Not in the city (on the map, not joined): your legs at the start's strength, nothing carried.
-    const load = !p ? 0 : view.carry ? view.carry(p).kg : carriedKg(R, p.inventory);
-    const j = jumpOf(R, p ? p.vitals.strength : R.vitals.start.strength, load);
-    if (j.height < 0.03) { notify(`Carrying ${load} kg, you can barely leave the ground.`); return; }
+    if (climbPlay.busy) { climbPlay.jumpKey(); return; }
+    const j = legsNow();
+    if (j.height < 0.03) { notify(`Carrying ${loadKg(p)} kg, you can barely leave the ground.`); return; }
+    if (climbPlay.jumpKey()) return;
     // Bent down first, then up: the take-off is stepBody's, at the bottom of the crouch.
     air.crouch = { t0: performance.now(), v: j.speed, h: j.height };
   }
@@ -4024,6 +4137,10 @@ diffuseColor.rgb *= kbCloth;`);
   const ease = (t) => t * t * (3 - 2 * t);
   function afterPose() {
     if (!ctx.avatar.visible) return;
+    // On a wall, on its top, in the air: the climb's own pose (every limb to its hold).
+    if (climbPlay.pose()) return;
+    // Food or a drink in hand: held as it is held, raised to the mouth (eat-play.mjs).
+    if (eatPlay.pose()) return;
     const B = rigBones(), p = self();
     const hold = p?.hands && !heldHidden ? physOf(R, p.hands).hold : null;
     const fwd = (b, a) => turn(b, -1, 0, 0, a);
@@ -4085,6 +4202,68 @@ diffuseColor.rgb *= kbCloth;`);
       if (p?.hands) inHand();
       return;
     }
+    if (pose.kind === "thrust") {
+      // Drawn back to the hip with both hands on it, then driven straight out at the target's
+      // height, the back leaning into it.
+      const arm = pose.aim?.arm ?? Math.PI / 2;
+      const back = t < 0.45 ? ease(t / 0.45) : Math.max(0, 1 - ease((t - 0.45) / 0.2));
+      const out = t < 0.45 ? 0 : t < 0.7 ? ease((t - 0.45) / 0.25) : 1 - ease((t - 0.7) / 0.3);
+      const lvl = Math.max(0.6, Math.min(1.8, arm));
+      fwd(B.rUpper, 0.2 * (1 - back) + lvl * out); fwd(B.rFore, 1.4 * back + 0.1 * out);
+      fwd(B.lUpper, 0.35 + (lvl - 0.2) * out); fwd(B.lFore, 1.2 * back + 0.35 * out);
+      fwd(B.spine, 0.12 * back - 0.25 * out);
+      inHand();
+      return;
+    }
+    if (pose.kind === "work") {
+      // A stroke of work: a saw drawn back and pushed through (the arm level, to and fro), a pry
+      // leaned back on, bolt cutters squeezed shut.
+      const v = work.verb, k = Math.sin(Math.PI * t);
+      if (v === "Saw") { fwd(B.rUpper, 1.1 + 0.25 * Math.cos(2 * Math.PI * t)); fwd(B.rFore, 0.6 - 0.5 * Math.cos(2 * Math.PI * t)); fwd(B.lUpper, 0.6); fwd(B.lFore, 1.3); fwd(B.spine, -0.25); }
+      else if (v === "Pry") { fwd(B.rUpper, 1.0 - 0.3 * k); fwd(B.lUpper, 1.0 - 0.3 * k); fwd(B.rFore, 0.4); fwd(B.lFore, 0.4); fwd(B.spine, 0.2 * k - 0.15); }
+      else { fwd(B.rUpper, 1.1); fwd(B.lUpper, 1.1); fwd(B.rFore, 0.3 + 0.4 * k); fwd(B.lFore, 0.3 + 0.4 * k); turn(B.rUpper, 0, 0, 1, 0.25 * k); turn(B.lUpper, 0, 0, 1, -0.25 * k); }
+      inHand();
+      return;
+    }
+    if (pose.kind === "push") {
+      // Both hands up to the chest and out, the back leaning in behind them.
+      const out = t < 0.5 ? ease(t / 0.5) : 1 - ease((t - 0.5) / 0.5);
+      fwd(B.rUpper, 1.1 + 0.4 * out); fwd(B.lUpper, 1.1 + 0.4 * out); fwd(B.rFore, 1.3 - 1.1 * out); fwd(B.lFore, 1.3 - 1.1 * out);
+      fwd(B.spine, 0.3 * out);
+      return;
+    }
+    if (pose.kind === "dig") {
+      // Both hands on the handle: lean on it and step it in, lever the handle back, then lift the
+      // spadeful and turn it out to the side.
+      const inS = Math.min(1, t / 0.45), lev = t < 0.45 ? 0 : Math.min(1, (t - 0.45) / 0.25), lift = t < 0.7 ? 0 : (t - 0.7) / 0.3;
+      const k = Math.sin(Math.PI * inS);
+      fwd(B.spine, 0.35 * k + 0.25 * (1 - lev) * (t >= 0.45 ? 1 : 0) - 0.15 * lev * (1 - lift));
+      fwd(B.rUpper, 0.45 + 0.35 * lev + 0.6 * Math.sin(Math.PI * lift)); fwd(B.lUpper, 0.6 + 0.2 * lev + 0.5 * Math.sin(Math.PI * lift));
+      fwd(B.rFore, 0.5 + 0.3 * k); fwd(B.lFore, 0.7);
+      turn(B.spine, 0, 1, 0, -0.5 * Math.sin(Math.PI * lift));
+      inHand();
+      return;
+    }
+    if (pose.kind === "carve") {
+      // The piece in the left hand at the chest, the knife drawn away along it in the right.
+      const k = Math.sin(Math.PI * t);
+      fwd(B.lUpper, 0.85); fwd(B.lFore, 1.45);
+      fwd(B.rUpper, 0.8 + 0.25 * k); fwd(B.rFore, 1.5 - 0.6 * k); turn(B.rUpper, 0, 0, 1, -0.2 * k);
+      fwd(B.spine, 0.18);
+      inHand();
+      return;
+    }
+    if (pose.kind === "hammer") {
+      // The left hand holds the nail at the target; the right lifts the hammer and brings it down
+      // on the head, from the elbow and wrist.
+      const arm = Math.max(0.6, Math.min(1.8, pose.aim?.arm ?? Math.PI / 2));
+      const up = t < 0.55 ? ease(t / 0.55) : 1 - ease((t - 0.55) / 0.12);
+      fwd(B.lUpper, arm - 0.1); fwd(B.lFore, 0.9);
+      fwd(B.rUpper, arm + 0.6 * Math.max(0, up)); fwd(B.rFore, 0.3 + 1.2 * Math.max(0, up));
+      fwd(B.spine, 0.1);
+      inHand();
+      return;
+    }
     if (pose.kind === "throw") {
       if (hold === "two_hands") {   // a heave from the chest
         const k = t < 0.5 ? ease(t / 0.5) : 1 - ease((t - 0.5) / 0.5);
@@ -4104,6 +4283,10 @@ diffuseColor.rgb *= kbCloth;`);
       fwd(B.spine, J.lean);
       if (!hold || hold === "hand") { fwd(B.lUpper, J.upper); fwd(B.lFore, J.fore); if (!hold) { fwd(B.rUpper, J.upper); fwd(B.rFore, J.fore); } }
     }
+    // Hands on what you push: both out at the chest, the back leaning in behind them.
+    if (pushing.on) { fwd(B.rUpper, 1.3); fwd(B.lUpper, 1.3); fwd(B.rFore, 0.35); fwd(B.lFore, 0.35); fwd(B.spine, 0.22); return; }
+    // A nail held on the wood: the left hand out to it, the right with what it holds.
+    if (nailSet) { fwd(B.lUpper, Math.max(0.6, Math.min(1.8, nailSet.arm)) - 0.1); fwd(B.lFore, 0.9); }
     if (hold === "hand") { fwd(B.rUpper, 0.15); fwd(B.rFore, 0.55); }
     else if (hold === "tool") { fwd(B.rUpper, 0.25); fwd(B.rFore, 0.95); }
     else if (hold === "two_hands") { fwd(B.rUpper, 0.75); fwd(B.lUpper, 0.75); fwd(B.rFore, 0.8); fwd(B.lFore, 0.8); }
@@ -4172,9 +4355,11 @@ diffuseColor.rgb *= kbCloth;`);
   async function useSelected() {
     const p = self();
     if (!p || car.active) return;
-    if (!p.hands) { notify("Nothing in your hand: choose something on the bar (1-8), then U uses it."); return; }
+    if (!p.hands) { notify("Nothing in your hand: choose something on the bar (1-8), then a right click uses it."); return; }
     const it = R.items[p.hands] || {};
     if (!it.use && !it.wear) { notify(`Nothing to use a ${it.name?.toLowerCase() || "thing"} for here: X swings it, Q throws it.`); return; }
+    // Food and drink: a mouthful at a time (eat-play.mjs), the city told at the last of it.
+    if (it.kind === "prepared_food" && eatPlay.active) { eatPlay.press(true); if (!keyHeld.u) eatPlay.press(false); return; }
     const r = await send("use", { item: p.hands });
     if (!r.ok) { notify(r.error); return; }
     notify(it.wear ? (r.wearing ? `Wearing the ${it.name.toLowerCase()}.` : `Took off the ${it.name.toLowerCase()}.`) : `${it.name}: ${Object.entries(r.effect || {}).map(([k, v]) => `${v > 0 ? "+" : ""}${v} ${k}`).join(", ") || "done"}.`);
@@ -4218,7 +4403,7 @@ diffuseColor.rgb *= kbCloth;`);
           if (h.down) { flings.set(hit.id, { t0: performance.now(), x: hit.x, z: hit.z, dx: fx, dz: fz, speed: 2, throw: 0.6 }); district.city?.forget(hit.id); }
           notify(`The ${name} hits ${hit.person?.name || "someone"} (${r.energy} J): ${h.injury.type}. ${h.response === "hit back" ? `They come at you: -${h.hurt} health.` : h.response === "down" ? "They go down." : h.response === "arrest" ? "A police officer: you are arrested and cited." : "They run."}${h.fine ? ` Battery: a ${R.fmt(h.fine)} citation.` : ""}`);
           if (h.response === "hit back") knockBack(Math.sin(yaw), Math.cos(yaw), 1.5);
-        } else notify(r.lands === "spills" ? `The ${name} spills where it lands.` : r.lands === "breaks" ? `The ${name} breaks where it lands${r.landed ? `: ${R.items[r.landed].name.toLowerCase()} on the ground` : ""}.` : `Thrown ${Math.round(Math.hypot(end[0] - at.x, end[2] - at.z))} m at ${Math.round(r.speed)} m/s: it lies there (G picks it up).`);
+        } else notify(r.lands === "spills" ? `The ${name} spills where it lands.` : r.lands === "breaks" ? `The ${name} breaks where it lands${r.landed ? `: ${R.items[r.landed].name.toLowerCase()} on the ground` : ""}.` : `Thrown ${Math.round(Math.hypot(end[0] - at.x, end[2] - at.z))} m at ${Math.round(r.speed)} m/s: it lies there (a click picks it up).`);
         syncSlots(true);
       } });
     });
@@ -4240,7 +4425,7 @@ diffuseColor.rgb *= kbCloth;`);
     const swings = swingOf(R, p.hands, p.vitals.strength).ok;
     // A swing of what you hold has its button; a punch is X alone (no button for it).
     if (it && swings && (who || target)) out.push({ id: "strike", label: `Swing the ${name}: ${who ? who.person?.name || "them" : target.spec.name.toLowerCase()}`, key: "X", run: swingKey });
-    if (it && (it.use || it.wear)) out.push({ id: "use", label: it.wear ? (Object.values(p.worn || {}).includes(p.hands) ? `Take off the ${name}` : `Wear the ${name}`) : `${it.kind === "prepared_food" || it.use.stamina ? "Eat or drink" : "Use"}: ${name}`, key: "U", run: useSelected });
+    if (it && (it.use || it.wear)) out.push({ id: "use", label: it.wear ? (Object.values(p.worn || {}).includes(p.hands) ? `Take off the ${name}` : `Wear the ${name}`) : `${it.kind === "prepared_food" || it.use.stamina ? "Eat or drink" : "Use"}: ${name}`, key: "Right click", run: useSelected });
     if (it && !it.parcel && throwOf(R, p.hands, p.vitals.strength).ok) out.push({ id: "throw", label: `Throw the ${name}`, key: "Q", run: throwKey });
     return out;
   }
@@ -4296,27 +4481,385 @@ diffuseColor.rgb *= kbCloth;`);
     if (!t) { if (!energy) notify("Nothing within reach to strike. Benches, bins, lights, signs, trees and windows break."); return; }
     const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy, witnesses: witnessesNear(t.x, t.z) });
     if (!r.ok) { notify(r.error); return; }
-    const tool = r.tool === "fists" ? "Bare hands" : r.tool === "vehicle" ? "Your car" : R.items[p.hands]?.name || r.tool;
+    reportStrike(t, r);
+  }
+  //: What a blow did, in the notice: broken (and what is left of it), or how far along it is --
+  //: with ``how`` (strike-preview.mjs: the point goes in 4 mm and sticks) when there is one.
+  function reportStrike(t, r, how = null, verb = null) {
+    const p = self();
+    const tool = r.tool === "fists" ? "Bare hands" : r.tool === "vehicle" ? "Your car" : R.items[p?.hands]?.name || r.tool;
     if (r.broken) {
       if (t.nature) ctx.fellTree?.(t.nature); else hideBroken(t.key, t.o, t.i);
       if (r.task) { notify(r.task.done ? `${r.task.title}: done — ${R.fmt(r.task.pay)} paid.` : `Felled: ${r.task.felled} of ${r.task.need} dead trees.`); return; }
-      notify(`${tool}: the ${t.spec.name.toLowerCase()} breaks.${r.salvage ? ` Left on the ground: ${R.items[r.salvage].name.toLowerCase()} (G picks it up).` : ""}${r.fine ? ` Seen: a ${R.fmt(r.fine)} vandalism fine and ${R.fmt(r.restitution)} for the repair.` : ""}`);
-    } else notify(`${tool} on the ${t.spec.name.toLowerCase()} (${t.spec.material}): ${r.joules} J, ${Math.round(r.share * 100)}% of what breaks it.${r.hurt ? ` That hurt: -${r.hurt} health.` : ""}`);
+      notify(`${tool}: the ${t.spec.name.toLowerCase()} breaks.${r.salvage ? ` Left on the ground: ${R.items[r.salvage].name.toLowerCase()} (a click picks it up).` : ""}${r.fine ? ` Seen: a ${R.fmt(r.fine)} vandalism fine and ${R.fmt(r.restitution)} for the repair.` : ""}`);
+    } else notify(`${verb ? `${verb}: ${tool.toLowerCase()} on` : `${tool} on`} the ${t.spec.name.toLowerCase()} (${t.spec.material})${how ? `: ${how}` : ""}. ${r.joules} J, ${Math.round(r.share * 100)}% of what breaks it.${r.hurt ? ` That hurt: -${r.hurt} health.` : ""}`);
   }
-  //: A blow to someone: they are hurt by it, and hit back, run, or (an officer) arrest you.
+
+  // ---- C (thrust), R (work), Y / N, and the hint strip (affordances.mjs, docs/63) ----------------
+  //: The engine, for what a thrust or a stroke looks like (made on first need from the catalogue).
+  let mech = null;
+  const mechanics = () => { if (!mech && catalogue?.mechanics) { try { mech = createMechanics(catalogue); } catch { mech = false; } } return mech || null; };
+  const isWood = (t) => Boolean(t?.nature) || /lumber|wood|deadwood|timber/.test(String(t?.spec?.material || ""));
+  //: What is in the hand, as affordances.mjs reads it.
+  function heldState() {
+    const p = self(), id = p?.hands;
+    const spec = id && (p.inventory?.[id] || 0) > 0 ? R.items[id] : null;
+    if (!spec) return null;
+    const ph = physOf(R, id);
+    return { id, name: spec.name, kind: spec.kind, strike: spec.strike || null, use: spec.use || null, wear: spec.wear || null,
+      food: spec.kind === "prepared_food" || Boolean(spec.food), drink: Boolean(spec.drink || eatPlay.what?.form === "drink"), two_hands: ph.hold === "two_hands",
+      nails: (p.loose?.nails || 0) + (p.inventory?.nails || 0) + (p.inventory?.nail || 0) + (nailSet ? 1 : 0) };
+  }
+  //: The thing in front for X, C and R, as affordances.mjs reads it (and the strike target itself).
+  function frontThing() {
+    const reach = R.tools.reach_m, who = personInReach(Math.min(reach, self()?.hands ? 1.6 : 1.1), -2), t = strikeTarget(reach);
+    if (who && (!t || Math.hypot(who.x - me().x, who.z - me().z) <= Math.hypot(t.x - me().x, t.z - me().z) + 0.4))
+      return { thing: { name: who.person?.name || "them", person: true }, target: null };
+    if (!t) return null;
+    return { thing: { name: t.spec.name, material: t.spec.material, wood: isWood(t), chainlink: /chain/i.test(t.spec.name), person: false, loose: Boolean(t.spec.push_kg) }, target: t };
+  }
+  //: What the page is doing now, for affordances(): built a few times a second.
+  function hintState() {
+    const p = self();
+    const mode = car.active ? "drive" : car.riding || transit.ride ? "ride" : inWater() ? "swim" : climbPlay.mode || (seated.on ? "seated" : shop.room ? "inside" : "walk");
+    const ft = mode === "walk" || mode === "inside" ? frontThing() : null;
+    const cf = mode === "walk" ? climbPlay.front() : null;
+    let ground = null;
+    if (p && (mode === "walk" || mode === "inside")) {
+      const shelf = floor.near(me(), ctx.getYaw());
+      const near = shelf ? null : thingsNear(me().x, me().z, PICK_REACH_M);
+      if (shelf) ground = { name: R.items[shelf.item]?.name || "it" };
+      else if (near?.length) ground = { name: R.items[near[0].item]?.name || "it" };
+    }
+    const q = promptShown ? promptsHere().find((x) => x.id === promptShown) : null;
+    const w = eatPlay.what, shiftTask = p?.clocked?.task || null;
+    return { mode, held: heldState(), ground, under: mode === "walk" ? underfoot() : null, front: { thing: ft?.thing || null, climb: cf?.climb || null, jump: cf?.jump || null },
+      prompt: q ? { yes: q.label || "Yes", no: "No" } : null,
+      eating: eatPlay.active && w ? { label: w.tool === "hand" ? "A bite" : w.tool === "spoon" ? "A spoonful" : w.form === "drink" ? "A sip" : "A forkful" } : null,
+      task: shiftTask && Math.hypot(me().x - shiftTask.x, me().z - shiftTask.z) <= R.work_tasks.task_reach_m ? { label: `${shiftTask.label}${working ? "…" : ""}` } : null,
+      nail_set: Boolean(nailSet) };
+  }
+
+  //: C: drive in the head or the point of what you hold (a crowbar's jab, a sledgehammer's ram)
+  //: -- less of a blow than X's swing, but straight at it and no backswing.
+  function thrustKey() {
+    const p = self();
+    if (!p || pose.kind || car.active || car.riding || transit.ride || climbPlay.busy) return;
+    const s = hintState();
+    if (!s.held) { pushKey(s); return; }
+    const a = affordances(s).find((x) => x.id === "thrust");
+    if (!a) {
+      const held = s.held;
+      notify(!TOOL_VERBS[held.strike]?.thrust ? `The ${held.name.toLowerCase()} has no point or head to drive in: X swings it.`
+        : "Nothing within reach to drive it into.");
+      return;
+    }
+    const ft = frontThing(), t = ft?.target;
+    if (!t) return;
+    ctx.faceTo?.(t.x, t.z);
+    pose.aim = aimOf({ kind: "thing", t, d: Math.hypot(t.x - me().x, t.z - me().z) });
+    const verb = TOOL_VERBS[s.held.strike].thrust;
+    startAct("thrust", 0.42, 0.55, () => strikeWith(t, "thrust", verb));
+  }
+  //: One blow with ``mode`` (thrust | work) at ``t``, reported with what the engine says it does.
+  async function strikeWith(t, mode, verb, quiet = false) {
+    const at = me();
+    if (Math.hypot(t.x - at.x, t.z - at.z) > R.tools.reach_m + 0.6) { notify("It is out of reach now."); return null; }
+    const r = await send("strike", { target: { key: t.key, archetype: t.id, x: t.x, z: t.z, own: false, spec: t.spec }, energy: null, witnesses: witnessesNear(t.x, t.z), mode });
+    if (!r.ok) { notify(r.error); return null; }
+    const M = mechanics();
+    const pv = M ? strikePreview(M, { tool: r.tool, material: t.spec.material, tree: Boolean(t.nature), mode, energy_j: r.joules }) : null;
+    if (!quiet || r.broken) reportStrike(t, r, pv?.text || null, verb);
+    return r;
+  }
+  //: The engine's hand work (mechanics-work.mjs): made with the engine, on first need.
+  let handWork = null;
+  const hands = () => { const M = mechanics(); if (M && !handWork) handWork = createWork(M); return handWork; };
+  //: The engine's object-on-object laws (mechanics-collide.mjs): made with the engine, on first need.
+  let collisions = null;
+  const collide = () => { const M = mechanics(); if (M && collisions === null) { try { collisions = createCollisions(M, catalogue); } catch { collisions = false; } } return collisions || null; };
+  //: What the ground underfoot is, for a spade: the page says road and pavement; open ground in
+  //: the city is taken as a lawn, out in the landscape as loam.
+  function underfoot() {
+    const at = me(), kind = ctx.groundKind?.(at.x, at.z) ?? "turf";
+    const M = mechanics(), raw = M ? M.data.substances[kind] : null;
+    return { kind, name: ({ turf: "lawn", soil_loam: "soil", asphalt: "asphalt", concrete: "pavement" })[kind] || String(raw?.name || kind).toLowerCase(), soil: raw?.family === "soil" };
+  }
+
+  //: C with nothing in the hand: push what is in front -- shove a person (mechanics-work.mjs shove:
+  //: they rock, stagger or go over by their balance), push a loose thing along (by your strength
+  //: and your shoes' grip against what it takes to slide it), or learn that it is fixed down.
+  function pushKey(s) {
+    const K = hands(), p = self();
+    if (!K || !p) return;
+    const reach = R.tools.reach_m, who = personInReach(1.1, -2), t = strikeTarget(reach);
+    const strength = p.vitals?.strength ?? 50, wet = wetNow();
+    if (who && (!t || Math.hypot(who.x - me().x, who.z - me().z) <= Math.hypot(t.x - me().x, t.z - me().z) + 0.4)) {
+      ctx.faceTo?.(who.x, who.z);
+      startAct("push", 0.5, 0.55, async () => {
+        const kid = /child|kid|student/i.test(who.person?.role || "") || (who.person?.age ?? 30) < 14, old = (who.person?.age ?? 30) >= 75;
+        const r = K.shove({ mass_kg: kid ? 40 : 75, frail: old, braced: Boolean(reacting.get(who.id)) }, { strength, ground: "concrete", wet });
+        const yaw = ctx.getYaw(), fx = -Math.sin(yaw), fz = -Math.cos(yaw), name = who.person?.name || "they";
+        const w = await send("shove", { npc: { id: who.id, name: who.person?.name, role: who.person?.role, x: who.x, z: who.z }, falls: r.outcome === "falls", witnesses: witnessesNear(who.x, who.z) - 1 });
+        if (!w.ok) { notify(w.error); return; }
+        if (r.outcome === "falls") {
+          noteIncident("fight", who.x, who.z, true);
+          flings.set(who.id, { t0: performance.now(), x: who.x, z: who.z, dx: fx, dz: fz, speed: r.speed_mps, throw: 0.5 + r.reach_m });
+          district.city?.forget(who.id);
+        } else scares.set(who.id, { until: performance.now() + 500, dx: fx * Math.min(0.6, r.reach_m * 1.5), dz: fz * Math.min(0.6, r.reach_m * 1.5), k: 0 });
+        notify(`A shove: ${r.text.replace(/^they/, name)}.${w.fine ? ` Battery: a ${R.fmt(w.fine)} citation.` : ""}`);
+      });
+      return;
+    }
+    if (!t) { notify("Shift + X with empty hands pushes what is in front: a person, or something loose (a log, a chair, a crate). To keep pushing something along, click it."); return; }
+    ctx.faceTo?.(t.x, t.z);
+    const kg = t.spec.push_kg;
+    startAct("push", 0.6, 0.55, async () => {
+      if (!kg) { notify(`The ${t.spec.name.toLowerCase()} is fixed down: it will not move for a push.`); return; }
+      const r = K.push({ name: t.spec.name, mass_kg: kg, base: substanceOf(mechanics(), t.spec.material) || "douglas_fir_dry", ground: underfoot().kind, wet }, { strength, ground: underfoot().kind, wet });
+      await send("labour", { kind: "push" });
+      if (r.moves && r.speed_mps >= 0.05 && t.o) {
+        // It goes where it is pushed: a few tenths of a metre a shove, along your facing.
+        const yaw = ctx.getYaw(), step = Math.min(0.6, 0.2 + r.speed_mps * 0.3);
+        const m = new THREE.Matrix4(); t.o.getMatrixAt(t.i, m);
+        m.elements[12] += -Math.sin(yaw) * step; m.elements[14] += -Math.cos(yaw) * step;
+        t.o.setMatrixAt(t.i, m); t.o.instanceMatrix.needsUpdate = true; ctx.objects?.()?.invalidate?.(t.o);
+      }
+      notify(`A push: ${r.text}.`);
+    });
+  }
+
+  //: R: work at what is in front with what you hold. Held, a stroke at a time while R is down --
+  //: saw, pry or cut it (a blow of work), dig the ground underfoot with a spade, carve wood with a
+  //: knife. Tapped with a hammer (and nails): one blow on the nail. Let go to stop.
+  const work = { on: false, kind: "strike", t: null, verb: null, strokes: 0, busy: false, last: 0 };
+  const carving = new Map();   // target key -> {body, mm3}
+  const nailing = new Map();   // target key -> the nail's state (mechanics-work.mjs startNail)
+  function toolWorkKey(down) {
+    if (!down) { if (work.on && work.strokes && work.kind !== "hammer") notify(`${work.verb}: stopped after ${work.strokes} stroke${work.strokes > 1 ? "s" : ""}.`); work.on = false; work.t = null; return; }
+    const p = self();
+    if (!p || car.active || car.riding || transit.ride || climbPlay.busy) return;
+    const s = hintState(), list = affordances(s);
+    const a = list.find((x) => x.key === "r");
+    // A nail you set, with the hammer in hand: a blow on it, wherever you face.
+    if (s.held?.strike === "hammer" && nailSet && Math.hypot(nailSet.point.x - me().x, nailSet.point.z - me().z) <= R.tools.reach_m + 0.4) { hammerBlow(); return; }
+    if (a?.id === "task" || (!a && p.clocked)) { taskKey(); return; }
+    if (!a) {
+      const held = s.held;
+      notify(!held ? "R works with a tool: a saw saws wood, a crowbar pries, bolt cutters cut chain, a spade digs, a knife carves, a hammer drives nails."
+        : held.strike === "shovel" ? `A spade digs the ground underfoot: ${s.under ? `the ${s.under.name} here` : "here"} is not ground to dig.`
+        : held.strike === "knife" || held.strike === "hammer" ? "Nothing wooden in front to work at."
+        : !TOOL_VERBS[held.strike]?.work ? `The ${held.name.toLowerCase()} is not a tool to work with: X swings it.` : "Nothing in front to work at.");
+      return;
+    }
+    if (!a.ok) { notify(a.reason); return; }
+    if (a.id === "hammer_in") { hammerBlow(); return; }
+    if (a.id === "dig") { Object.assign(work, { on: true, kind: "dig", t: null, verb: "Dig", strokes: 0, busy: false }); return; }
+    const t = frontThing()?.target;
+    if (!t) return;
+    ctx.faceTo?.(t.x, t.z);
+    if (a.id === "carve") { Object.assign(work, { on: true, kind: "carve", t, verb: "Carve", strokes: 0, busy: false }); return; }
+    Object.assign(work, { on: true, kind: "strike", t, verb: TOOL_VERBS[s.held.strike].work, strokes: 0, busy: false });
+  }
+  //: Each frame while R is down: the next stroke once the last is done.
+  function stepToolWork() {
+    if (!work.on || pose.kind || work.busy) return;
+    if (!keyHeld.r || car.active || climbPlay.busy) { toolWorkKey(false); return; }
+    const t = work.t;
+    if (work.kind === "dig") { startAct("dig", 1.2, 0.55, () => digStroke()); return; }
+    if (work.kind === "carve") { startAct("carve", 0.6, 0.6, () => carveStroke(t)); return; }
+    startAct("work", 0.7, 0.6, async () => {
+      work.busy = true;
+      const r = await strikeWith(t, "work", work.verb, work.strokes > 0 && work.strokes % 6 !== 0);
+      work.busy = false;
+      if (!r) { work.on = false; return; }
+      work.strokes += 1;
+      if (r.broken) work.on = false;
+    });
+  }
+  //: A spadeful (mechanics-work.mjs dig): as deep as the soil lets the spade in and the handle lever
+  //: it out; the hole is drawn where you stand, wider and darker as it goes down.
+  const holes = new Map();     // half-metre spot -> {hole, mesh}
+  const HOLE_MAT = new THREE.MeshStandardMaterial({ color: 0x3a2a1c, roughness: 1, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2 });
+  async function digStroke() {
+    const K = hands(), p = self(), u = underfoot();
+    if (!K || !p) { work.on = false; return; }
+    if (!u.soil) { notify(K.dig(mechanicsTool("spade"), u.kind).text); work.on = false; return; }
+    work.busy = true;
+    const w = await send("labour", { kind: "dig" });
+    work.busy = false;
+    if (!w.ok) { notify(w.error); work.on = false; return; }
+    const at = me(), key = `${Math.round(at.x * 2) / 2},${Math.round(at.z * 2) / 2}`;
+    const h = holes.get(key) || { hole: { volume_l: 0 }, mesh: null, x: Math.round(at.x * 2) / 2, z: Math.round(at.z * 2) / 2 };
+    const r = K.dig(mechanicsTool("spade"), u.kind, { strength: p.vitals?.strength ?? 50, wet: wetNow(), hole: h.hole });
+    h.hole = r.hole;
+    holes.set(key, h);
+    drawHole(h);
+    work.strokes += 1;
+    if (work.strokes === 1 || work.strokes % 4 === 0 || r.outcome !== "dug") notify(`Dig: ${r.text}. The hole is ${Math.round((r.hole.depth_m || 0) * 100)} cm deep.${w.tired ? " You are tiring." : ""}`);
+    if (r.outcome !== "dug") work.on = false;
+  }
+  function drawHole(h) {
+    if (!h.mesh) {
+      const g = new THREE.CircleGeometry(1, 18); g.rotateX(-Math.PI / 2);
+      h.mesh = new THREE.Mesh(g, HOLE_MAT); h.mesh.renderOrder = 2; group.add(h.mesh);
+      if (holes.size > 40) { const [k0, h0] = holes.entries().next().value; if (h0.mesh) { group.remove(h0.mesh); h0.mesh.geometry.dispose(); } holes.delete(k0); }
+    }
+    const r = Math.min(0.45, 0.12 + 0.03 * Math.sqrt(h.hole.volume_l));
+    h.mesh.scale.set(r, 1, r);
+    h.mesh.position.set(h.x, groundAt(h.x, h.z) + 0.012, h.z);
+  }
+  //: A carving stroke at a wooden thing (mechanics-work.mjs carve): shavings until your initials
+  //: are cut (about 600 mm³), told every few strokes.
+  async function carveStroke(t) {
+    const K = hands(), M = mechanics();
+    if (!K || !M || !t) { work.on = false; return; }
+    const c = carving.get(t.key) || { body: M.body({ substance: t.nature ? "red_oak_green" : substanceOf(M, t.spec.material) || "douglas_fir_dry", shape: "block", thickness_m: 0.1 }), mm3: 0 };
+    const knife = mechanicsTool("pocket_knife");
+    const r = K.carve(knife, c.body, { grain: "along", carved_mm3: c.mm3 });
+    work.busy = true;
+    const w = await send("labour", { kind: "carve" });
+    work.busy = false;
+    if (!w.ok) { notify(w.error); work.on = false; return; }
+    c.mm3 = r.carved_mm3; c.body = r.body; carving.set(t.key, c);
+    work.strokes += 1;
+    if (c.mm3 >= 600) { notify(`Carve: your initials are cut into the ${t.spec.name.toLowerCase()}, ${work.strokes} strokes.`); carving.delete(t.key); work.on = false; return; }
+    if (r.outcome === "skate") { notify(`Carve: ${r.text}.`); work.on = false; return; }
+    if (work.strokes === 1 || work.strokes % 6 === 0) notify(`Carve: ${r.text}.`);
+  }
+  //: A hammer blow on the nail in front (mechanics-work.mjs drive). Its angle off square is your
+  //: steadiness: a little each blow, more when tired, much more when the blows come faster than a
+  //: steady rhythm (under 0.65 s apart). A fresh nail is taken from the box first.
+  function hammerBlow() {
+    const set = nailSet && Math.hypot(nailSet.point.x - me().x, nailSet.point.z - me().z) <= R.tools.reach_m + 0.4 ? nailSet : null;
+    const t = set ? set.t : frontThing()?.target;
+    if (!t || pose.kind) return;
+    ctx.faceTo?.(t.x, t.z);
+    pose.aim = aimOf({ kind: "thing", t, d: Math.hypot(t.x - me().x, t.z - me().z) });
+    startAct("hammer", 0.55, 0.62, async () => {
+      const K = hands(), M = mechanics(), p = self();
+      if (!K || !M || !p) return;
+      let st = nailing.get(t.key);
+      if (st && (st.home || st.bent)) { if (st.bent) notify("Hammer: the bent nail is drawn out with the claw; a new one goes in."); st = null; }
+      const w = await send("labour", { kind: "hammer", start_nail: !st && !set });
+      if (!w.ok) { notify(w.error); return; }
+      if (!st) st = K.startNail(mechanicsTool("nail"), M.body({ substance: t.nature ? "red_oak_green" : substanceOf(M, t.spec.material) || "douglas_fir_dry", shape: "block", thickness_m: 0.2 }));
+      const now = performance.now(), rushed = now - work.last < 650;
+      work.last = now;
+      const wob = hash32(`${t.key}:${st.blows}:${Math.round(now / 1000)}`) / 4294967296;
+      const tired = 1 - Math.min(1, (p.vitals?.stamina ?? 100) / 100);
+      const angle = 1 + 6 * wob + 10 * tired * wob + (rushed ? 9 : 0);
+      const energy = 50 * (0.6 + 0.8 * Math.min(1, (p.vitals?.strength ?? 50) / 100));
+      const r = K.drive(mechanicsTool("claw_hammer"), st, { energy_j: energy, angle_deg: angle });
+      nailing.set(t.key, r.state);
+      if (set && nailSet === set) {
+        // The nail you set: in as far as it is driven, leant over as far as it bent.
+        set.hit = true; set.driven = Math.max(set.driven, r.state.driven_m || 0); set.bend = r.state.bend_deg || 0; placeNail(set);
+        if (r.state.home || r.state.bent) { nailSet = null; drivenNails.push(set); if (drivenNails.length > 40) group.remove(drivenNails.shift().mesh); }
+      }
+      notify(`Hammer: ${r.text}.${rushed ? " (Steady: a blow every second or so keeps it square.)" : ""}${r.outcome === "home" ? ` ${w.nails} nail${w.nails === 1 ? "" : "s"} left in the box.` : ""}`);
+    });
+  }
+  //: A fresh engine implement by id (cached).
+  const toolCache = new Map();
+  function mechanicsTool(id) { if (!toolCache.has(id)) toolCache.set(id, mechanics().tool(id)); return toolCache.get(id); }
+  //: Y and N: answer the question on screen (the prompt's Yes and No buttons).
+  function answerKey(yes) {
+    const q = promptShown ? promptsHere().find((x) => x.id === promptShown) : null;
+    if (!q) return;
+    declined.add(q.id); promptShown = null; if (promptBox) promptBox.hidden = true;
+    if (yes) q.run();
+  }
+
+  //: The hint strip: what is particular to here (never walking or a plain jump), learned as used.
+  let hintBox = null, hintShown = [], lastHints = 0;
+  const hintCounts = store.get("kerbside:hint-counts") || {};
+  let hintSetting = store.get("kerbside:hints") || "full", countsDirty = 0;
+  const seenLabels = new Set();
+  function drawHints(now) {
+    if (!hintBox) return;
+    let chips = [];
+    try {
+      if (ctx.enabled() && ctx.cityMode?.() !== false && !side) chips = hintChips(affordances(hintState()), { counts: hintCounts, setting: hintSetting, seenKinds: seenLabels });
+    } catch (error) { console.warn("hints", error); chips = []; }
+    hintShown = steady(hintShown, chips, now / 1000);
+    for (const a of chips) seenLabels.add(a.text);
+    const sig = hintShown.map((x) => `${x.chip.id}:${x.chip.text}`).join("|");
+    if (sig === hintBox.dataset.sig) return;
+    hintBox.dataset.sig = sig;
+    hintBox.hidden = !hintShown.length;
+    hintBox.replaceChildren(...hintShown.map(({ chip }) => h("button", { className: chip.ok ? "" : "off", title: chip.text, onclick: () => pressHint(chip) },
+      h("kbd", { textContent: chip.cap }), h("span", { textContent: chip.text }))));
+  }
+  //: A chip clicked is its key pressed (touch screens); a key pressed while its chip shows is learned.
+  function pressHint(chip) {
+    if (!chip.ok) { notify(chip.text); return; }
+    if (chip.key === "arrows") { notify("Hold the arrow keys (two together for a diagonal)."); return; }
+    if (chip.key === "r") { toolWorkKey(true); keyHeld.r = true; setTimeout(() => { keyHeld.r = false; }, 3500); return; }
+    ({ " ": jumpKey, click: pickUp, rclick: useSelected }[chip.key] || KEYS[chip.key])?.();
+  }
+  function learnKey(key) {
+    for (const { chip } of hintShown) if (chip.key === key) { hintCounts[chip.id] = (hintCounts[chip.id] || 0) + 1; countsDirty += 1; }
+    if (countsDirty) { countsDirty = 0; store.set("kerbside:hint-counts", hintCounts); }
+  }
+  function setHints(v) { hintSetting = v; store.set("kerbside:hints", v); if (hintBox) hintBox.dataset.sig = ""; }
+  //: What your blow does to ``q``'s body (hit-reaction.mjs, on the mechanics engine): where it
+  //: lands, and whether they flinch, stumble back or go down -- by the blow's energy and what it
+  //: is struck with, and their weight, height and strength.
+  function blowReaction(q) {
+    const M = mechanics(), p = self();
+    if (!M || !p) return null;
+    const sw = swingOf(R, p.hands, p.vitals.strength), [lo, hi] = R.tools.strength_scale;
+    const spec = R.tools.kinds[sw.kind] || R.tools.kinds.fists;
+    const joules = sw.joules ?? spec.energy_j * (lo + (hi - lo) * Math.max(0, Math.min(100, p.vitals.strength)) / 100);
+    const victim = victimOf({ ...(q.person || {}), figure: q.figure || q.person?.figure });
+    // A punch is thrown at the face; a swing of a thing in the hand comes in a little lower.
+    const aimY = victim.height_m * (sw.kind === "fists" ? 0.88 : 0.8);
+    const held = sw.kind === "blunt" ? (R.items[p.hands]?.kg || 0.5) + 2 : undefined;
+    try { return { victim, ...blowOn(M, { joules, tool: IMPLEMENT[sw.kind] || "fist", strike_mass_kg: held, aimY, seed: `${q.id}:${Math.round(gameNow())}` }, victim) }; } catch (error) { console.warn("blow", error); return null; }
+  }
+  //: Someone struck staggers: [id] -> { t0, x, z, dx, dz, dist, dur, flinch }.
+  const staggers = new Map();
+  const ZONE_WORD = { head: "the face", chest: "the chest", belly: "the stomach", arm: "a raised arm", leg: "the leg" };
+  //: A blow to someone: it lands somewhere (their head, chest, stomach, a raised arm), they flinch,
+  //: stumble back or go down; then their own instinct takes over: they hit back, call the police,
+  //: run, call to the people round for help, or freeze -- or (an officer) arrest you.
   async function strikePerson(q) {
     noteIncident("fight", q.x, q.z, true);
-    const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, x: q.x, z: q.z, yaw: q.yaw }, witnesses: witnessesNear(q.x, q.z) - 1 });
+    const inc = incidents[incidents.length - 1];
+    const re = blowReaction(q), me0 = me();
+    const policeNear = Boolean(patrol.phase) || visible.people.some((e) => e.id !== q.id && ["police", "patrol"].includes(e.person?.role) && Math.hypot(e.x - q.x, e.z - q.z) < 45);
+    const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, age: q.person?.age ?? q.person?.base?.age, strength: re?.victim.strength, x: q.x, z: q.z, yaw: q.yaw },
+      witnesses: witnessesNear(q.x, q.z) - 1, reaction: re ? { kind: re.kind, zone: re.zone, steps: re.steps, fracture: re.fracture } : null, near: { police: policeNear } });
     if (!r.ok) { notify(r.error); return; }
     const name = q.person?.name || "them";
+    // Away from you, along the blow.
+    const ax = q.x - me0.x, az = q.z - me0.z, L = Math.hypot(ax, az) || 1, dx = ax / L, dz = az / L;
     if (r.down) {
-      const yaw = ctx.getYaw();
-      flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx: -Math.sin(yaw), dz: -Math.cos(yaw), speed: 2, throw: 0.8 });
+      flings.set(q.id, { t0: performance.now(), x: q.x, z: q.z, dx, dz, speed: 2, throw: 0.8 + (re?.capture_m || 0) });
       district.city?.forget(q.id);
+    } else if (re) {
+      // A stumble is a step back for each the blow asked of them; a flinch sways and comes back.
+      const steps = Math.max(1, r.reaction?.steps ?? re.steps);
+      staggers.set(q.id, re.kind === "stumble" ? { t0: performance.now(), x: q.x, z: q.z, dx, dz, dist: 0.15 + 0.42 * steps, dur: 0.35 * steps + 0.15, flinch: false }
+        : { t0: performance.now(), x: q.x, z: q.z, dx, dz, dist: 0.12, dur: 0.45, flinch: true });
     }
-    if (r.response === "hit back") knockBack(Math.sin(ctx.getYaw()), Math.cos(ctx.getYaw()), 1.5);
-    const what = r.response === "arrest" ? `${name} is a police officer: you are arrested and cited` : r.response === "hit back" ? `${name} hits back: -${r.hurt} health` : r.response === "down" ? `${name} goes down` : `${name} runs`;
-    notify(`${r.tool === "fists" ? "A punch" : "A blow"} (${r.joules} J): ${name} — ${r.injury.type}. ${what}.${r.fine ? ` Battery: a ${R.fmt(r.fine)} citation${r.restitution ? ` and ${R.fmt(r.restitution)} for their care` : ""}.` : ""}`);
+    // Their instinct, as the city decided it (world.mjs cmd_strike_person): now they act on it.
+    const mind = temperamentOf(q.person || { id: q.id });
+    const act = { "flee": "flee", "call police": "call", "call for help": "shout", "freeze": "freeze", "hit back": "fight" }[r.response];
+    if (act && inc && !r.down) {
+      const now = performance.now(), secs = act === "fight" ? 4 : act === "freeze" ? 3 : reactionFor(mind, act === "shout" ? "call" : act);
+      reacting.set(q.id, { kind: act, until: now + secs * 1000, ix: me0.x, iz: me0.z, at: { x: q.x, z: q.z }, off: 0, far: REACT.flee_m[0] + (REACT.flee_m[1] - REACT.flee_m[0]) * (1 - mind.nerve), inc, victim: true });
+      // Called to for help: those round who would help come (temperament.mjs reactionTo, as at a crash).
+      if (act === "shout") noteIncident("help", q.x, q.z, true);
+    }
+    if (r.response === "hit back") knockBack(dx, dz, 1.5);
+    const landed = re ? ` to ${ZONE_WORD[re.zone] || "the body"}` : "";
+    const body = r.down ? `${name} goes down` : re?.kind === "stumble" ? `${name} stumbles back` : re?.kind === "flinch" ? `${name} flinches` : name;
+    const what = r.response === "arrest" ? `${name} is a police officer: you are arrested and cited` : r.response === "hit back" ? `they come back at you: -${r.hurt} health`
+      : r.response === "call police" ? "they get out their phone and call 911" : r.response === "call for help" ? "they shout for help" : r.response === "freeze" ? "they freeze"
+      : r.response === "down" ? "" : "they run";
+    notify(`${r.tool === "fists" ? "A punch" : "A blow"}${landed} (${r.joules} J): ${body} — ${r.injury.type}${what ? `; ${what}` : ""}.${r.fine ? ` Battery: a ${R.fmt(r.fine)} citation${r.restitution ? ` and ${R.fmt(r.restitution)} for their care` : ""}.` : ""}`);
   }
   const hidden = new Map();   // damage key -> {o, i, matrix}
   const FAR = new THREE.Matrix4().makeScale(1e-4, 1e-4, 1e-4).setPosition(0, -1e5, 0);
@@ -4476,7 +5019,7 @@ diffuseColor.rgb *= kbCloth;`);
       const km = (d(from, here) + d(to, from)) / 1000;
       out.push({ kind: "courier", title: `Courier: ${nameAt(placeName(from), from.x, from.z)} → ${nameAt(address(to.name) || "a home", to.x, to.z)}`, km, pay: C.pay_base + Math.round(C.pay_per_km * Math.min(4, km)),
         from: { id: from.id, name: nameAt(placeName(from), from.x, from.z), x: from.x, z: from.z }, to: { id: to.id, name: nameAt(address(to.name) || "a home", to.x, to.z), x: to.x, z: to.z },
-        steps: [`Go to ${nameAt(placeName(from), from.x, from.z)} and pick up the order at its door (G)`, `Take it to ${nameAt(address(to.name) || "the address", to.x, to.z)} and hand it over (Yes, at the door)`] });
+        steps: [`Go to ${nameAt(placeName(from), from.x, from.z)} and pick up the order at its door (click it)`, `Take it to ${nameAt(address(to.name) || "the address", to.x, to.z)} and hand it over (Yes, at the door)`] });
     }
     const F = T.forestry, [fx, fz] = ctx.fromLonLat(F.area.centre[1], F.area.centre[0]);
     out.push({ kind: "forestry", title: F.name, km: Math.hypot(fx - here.x, fz - here.z) / 1000, pay: F.pay,
@@ -4584,7 +5127,7 @@ diffuseColor.rgb *= kbCloth;`);
     const here = me();
     if (p.delivery) {
       const pick = p.delivery.stage === "pickup", at = pick ? p.delivery.from : p.delivery.to;
-      return { label: pick ? `Pick up the order at ${at.name || "the shop"} — G at its door` : `Deliver to ${at.name || "the address"} — Yes at the door`, x: at.x, z: at.z, colour: 0x35c46a };
+      return { label: pick ? `Pick up the order at ${at.name || "the shop"} — click it at its door` : `Deliver to ${at.name || "the address"} — Yes at the door`, x: at.x, z: at.z, colour: 0x35c46a };
     }
     const t = p.task;
     if (t?.kind === "forestry") {
@@ -4632,24 +5175,26 @@ diffuseColor.rgb *= kbCloth;`);
     const p = self();
     if (!p) return [];
     const out = [], g = objective(), t = p.task;
-    if (g) out.push({ label: g.label, x: g.x, z: g.z, now: true, run: () => openSide("tasks") });
+    // (Your task, a delivery or an errand: clicked, its card opens here -- todoDetail.)
+    const mine = p.task || p.delivery ? "task" : p.errand ? "errand" : null;
+    if (g) out.push({ label: g.label, x: g.x, z: g.z, now: true, detail: mine, run: () => openSide("tasks") });
     // What comes round again goes first, under where you are headed now: the job and its
     // shifts, and what your businesses and the court ask of you. One-off work comes after.
     const recurring = [];
     if (p.job) {
       const spec = R.jobs.roles[p.job.role], atWork = Math.hypot(me().x - p.job.place.x, me().z - p.job.place.z) < R.jobs.workplace_reach_m;
-      if (p.clocked && !p.clocked.task) recurring.push({ label: `At work as ${p.job.title.toLowerCase()}: your next task is coming`, sub: `Tasks every minute or so; V where the orange ring is · ${R.fmt(p.job.pay)}/h`, run: () => openSide("tasks") });
+      if (p.clocked && !p.clocked.task) recurring.push({ label: `At work as ${p.job.title.toLowerCase()}: your next task is coming`, sub: `Tasks every minute or so; R where the orange ring is · ${R.fmt(p.job.pay)}/h`, run: () => openSide("tasks") });
       else if (!p.clocked && !(g && g.label.startsWith("Go to work"))) recurring.push({ label: atWork ? "Clock in: you are at work" : `Work: ${p.job.title} at ${address(p.job.place.name) || "your workplace"}`, sub: `${shiftText(spec)} · ${R.fmt(p.job.pay)}/h`, x: p.job.place.x, z: p.job.place.z, run: () => (atWork ? workKey() : openSide("online")) });
     } else recurring.push({ label: "Find a job", sub: "The Shop's Jobs: hiring near you", run: () => { openSide("online"); side.cat = "jobs"; drawSide(); } });
     recurring.push(...enterprise().todo(p));   // shifts, court, recruiters, your businesses
     recurring.push(...kitchen().todo(p));      // tickets up, the owner's answers, a tip for the cook
     out.push(...recurring);
-    if (t?.steps) t.steps.forEach((s, i) => { if (!stepDone(p, i) && !(g && g.label.startsWith(s))) out.push({ label: stepAt(s), sub: t.title, run: () => openSide("tasks") }); });
-    if (p.errand && !(g && /^Errand/.test(g.label))) out.push({ label: `Errand for ${p.errand.to.who || "a neighbour"}: ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")}`, x: p.errand.to.x, z: p.errand.to.z, run: () => openSide("tasks") });
+    if (t?.steps) t.steps.forEach((s, i) => { if (!stepDone(p, i) && !(g && g.label.startsWith(s))) out.push({ label: stepAt(s), sub: t.title, detail: "task", run: () => openSide("tasks") }); });
+    if (p.errand && !(g && /^Errand/.test(g.label))) out.push({ label: `Errand for ${p.errand.to.who || "a neighbour"}: ${p.errand.items.map((i) => R.items[i].name.toLowerCase()).join(", ")}`, x: p.errand.to.x, z: p.errand.to.z, detail: "errand", run: () => openSide("tasks") });
     const owed = view?.billing?.owed(p.account) || 0;
     if (owed) out.push({ label: `Pay what you owe: ${R.fmt(owed)}`, sub: "You & wallet", run: () => openPanel(true) });
     if (p.vitals.health < 40) out.push({ label: "You are hurt: rest (Z at a bed) or see a doctor", run: () => openSide("help") });
-    if (p.vitals.stamina < R.vitals.stamina.low) out.push({ label: "Tired: eat or drink something (U), or rest", run: () => openSide("bag") });
+    if (p.vitals.stamina < R.vitals.stamina.low) out.push({ label: "Tired: eat or drink something (a right click), or rest", run: () => openSide("bag") });
     for (const b of p.bookings || []) {
       const it = R.items[b.item], there = Math.hypot(me().x - b.place.x, me().z - b.place.z) < R.stores.reach_m;
       out.push({ label: there ? `Have your ${it.name.toLowerCase()} here` : `Your booking: ${it.name} at ${address(b.place.name) || "the place"}`, sub: "Booked in the Shop", x: b.place.x, z: b.place.z, run: () => (there ? useBooking(b) : openSide("online")) });
@@ -4660,10 +5205,28 @@ diffuseColor.rgb *= kbCloth;`);
     return out;
   }
   const TODO_SHOWN = 3;
-  let todoOpen = false, todoKey = "";
+  let todoOpen = false, todoKey = "", todoDetail = null;
   try { todoOpen = globalThis.localStorage?.getItem("kerbside.city.todoOpen") === "1"; } catch { todoOpen = false; }
   function takeOffer(o) {
     send("take_task", { task: o }).then((r) => { notify(r.ok ? `${r.task.title}: ${r.task.steps[0]}.` : r.error); todoKey = ""; drawTodo(); if (side?.kind === "tasks") drawSide(); });
+  }
+  //: The card for your task ("task": a task or a delivery) or your errand: {title, pay, lines:
+  //: [[text, done]], next, x, z, d}, or null when there is none now.
+  function detailOf(p, kind) {
+    if (!p) return null;
+    const here = me(), g = objective();
+    if (kind === "errand") {
+      const e = p.errand;
+      if (!e) return null;
+      return { title: `Errand for ${e.to.who || "a neighbour"}`, pay: `Paid back what it costs, and ${R.fmt(e.fee)}.`, lines: [...e.items.map((i) => [`Buy ${R.items[i].name.toLowerCase()}`, (p.inventory[i] || 0) > 0]), [`Bring it to ${e.to.name || "their door"} (Yes at the door)`, false]],
+        next: labelAt(e.to.name || "their door", e.to.x, e.to.z), x: e.to.x, z: e.to.z, d: Math.hypot(e.to.x - here.x, e.to.z - here.z) };
+    }
+    const t = p.task, dl = p.delivery;
+    if (!t && !dl) return null;
+    const steps = t?.steps || [dl.stage === "pickup" ? `Pick up the order at ${dl.from.name} (click it at its door)` : `Deliver to ${dl.to.name || "the address"}`];
+    const ok = g && Number.isFinite(g.x);
+    return { title: t?.title || "Delivery", pay: `${R.fmt(t?.pay ?? dl?.pay ?? 0)} on finishing`, lines: steps.map((st, i) => [st, stepDone(p, i)]), next: g?.label || null,
+      x: ok ? g.x : undefined, z: ok ? g.z : undefined, d: ok ? Math.hypot(g.x - here.x, g.z - here.z) : null };
   }
   function drawTodo() {
     const box = globalThis.document.getElementById("city-tasks");
@@ -4673,10 +5236,34 @@ diffuseColor.rgb *= kbCloth;`);
     const items = todoItems(), shown = todoOpen ? items : items.slice(0, TODO_SHOWN);
     const here = car.active ? car : me(), yaw = ctx.getYaw();
     const metres = (o) => (Number.isFinite(o.x) ? Math.hypot(o.x - here.x, o.z - here.z) : null);
-    const key = JSON.stringify([todoOpen, items.length, shown.map((o) => [o.label, o.sub, o.now, Math.round((metres(o) ?? -1) / 5)]), Math.round(yaw * 20)]);
+    const card = todoDetail ? detailOf(p, todoDetail) : null;
+    if (todoDetail && !card) todoDetail = null;
+    const key = JSON.stringify([todoOpen, todoDetail, card && [card.title, card.lines, card.next, Math.round((card.d ?? -1) / 2), Boolean(nav.pts)], items.length, shown.map((o) => [o.label, o.sub, o.now, Math.round((metres(o) ?? -1) / 5)]), Math.round(yaw * 20)]);
     if (key === todoKey) return;
     todoKey = key;
     const H = (tag, props, ...kids) => { const e = Object.assign(globalThis.document.createElement(tag), props); e.append(...kids.filter(Boolean)); return e; };
+    // A task's card: what it is, its steps, an arrow to where you go next and how far, and Go there /
+    // Close / Cancel. It stays up until closed or cancelled (you are taken to be on your way).
+    if (card) {
+      let arrow = null;
+      if (Number.isFinite(card.x)) {
+        const bearing = Math.atan2(-(card.x - here.x), -(card.z - here.z)) - yaw;
+        arrow = H("span", { className: "arrow big", textContent: "⬆", title: "This way" });
+        arrow.style.transform = `rotate(${(-bearing * 180 / Math.PI).toFixed(0)}deg)`;
+      }
+      const dist = card.d === null ? "" : card.d < 1000 ? `${Math.round(card.d)} m` : `${(card.d / 1000).toFixed(1)} km`;
+      const btn = (text, fn, cls = "") => H("button", { textContent: text, className: cls, onclick: (e) => { e.stopPropagation(); fn(); } });
+      box.replaceChildren(H("h4", {}, H("span", { className: "word", textContent: card.title })),
+        H("div", { className: "detail" },
+          H("div", { className: "head" }, arrow, H("div", {}, card.next ? H("b", { textContent: card.next }) : null, dist ? H("small", { textContent: ` · ${dist}` }) : null)),
+          card.pay ? H("p", { textContent: card.pay }) : null,
+          H("ol", {}, ...card.lines.map(([text, done]) => H("li", { className: done ? "done" : "", textContent: `${text}${done ? " ✓" : ""}` }))),
+          H("div", { className: "acts" },
+            Number.isFinite(card.x) ? btn(nav.pts ? "Stop" : "Go there", () => { if (nav.pts) stopNav(); else startNav(card.x, card.z, card.next || card.title); todoKey = ""; drawTodo(); }, "primary") : null,
+            btn("Close", () => { todoDetail = null; todoKey = ""; drawTodo(); layoutBars(); }),
+            btn("Cancel", () => { const kind = todoDetail; todoDetail = null; stopNav(); send(kind === "errand" ? "cancel_errand" : self()?.task ? "cancel_task" : "cancel_delivery").then((r) => { notify(r.ok ? "Dropped." : r.error); todoKey = ""; drawTodo(); layoutBars(); }); }, "warn"))));
+      return;
+    }
     const rows = shown.map((o) => {
       const d = metres(o);
       let lead;
@@ -4688,12 +5275,12 @@ diffuseColor.rgb *= kbCloth;`);
       const dist = d === null ? "" : ` · ${d < 1000 ? `${Math.round(d)} m` : `${(d / 1000).toFixed(1)} km`}`;
       const li = H("li", { className: o.now ? "now" : "" }, lead, H("div", {}, H("span", { textContent: o.label + (o.now ? dist : "") }), o.sub ? H("small", { textContent: o.sub }) : null),
         o.take ? H("button", { textContent: "Take", title: `Take it: ${o.steps?.join(" → ") || o.title}`, onclick: (e) => { e.stopPropagation(); takeOffer(o.take); } }) : null);
-      li.onclick = () => (o.take ? openSide("tasks") : o.run?.());
+      li.onclick = () => { if (o.detail) { todoDetail = o.detail; todoKey = ""; drawTodo(); layoutBars(); return; } (o.take ? openSide("tasks") : o.run?.()); };
       return li;
     });
     const more = items.length > TODO_SHOWN ? H("button", { textContent: todoOpen ? "▴" : "▾", title: todoOpen ? "Just the top three" : `All ${items.length}`, ariaExpanded: String(todoOpen),
       onclick: () => { todoOpen = !todoOpen; try { globalThis.localStorage?.setItem("kerbside.city.todoOpen", todoOpen ? "1" : "0"); } catch { /* private window */ } todoKey = ""; drawTodo(); layoutBars(); } }) : null;
-    const word = H("span", { className: "word", textContent: items.length > TODO_SHOWN && !todoOpen ? `Tasks · ${items.length}` : "Tasks", title: "The task board (J)", onclick: () => openSide("tasks") });
+    const word = H("span", { className: "word", textContent: items.length > TODO_SHOWN && !todoOpen ? `Tasks · ${items.length}` : "Tasks", title: "The task board: work to take", onclick: () => openSide("tasks") });
     box.replaceChildren(H("h4", {}, word, more), rows.length ? H("ol", {}, ...rows) : H("p", { textContent: "Nothing for now: the Task board has work." }));
   }
   // ---- the online store ------------------------------------------------------------------------
@@ -4757,7 +5344,7 @@ diffuseColor.rgb *= kbCloth;`);
   function actionsHere() {
     const p = self(), here = me(), out = [];
     if (!p) return [];
-    if (cycle.active) return [{ id: "bike", label: "Get off your bicycle", key: "B", run: dismountBicycle }];
+    if (cycle.active) return [{ id: "bike", label: "Get off your bicycle", key: "Enter", run: dismountBicycle }];
     if (car.active) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (car.riding) return [{ id: "car", label: "Get out", key: "Enter", run: toggleCar }];
     if (transit.ride) {
@@ -4768,7 +5355,7 @@ diffuseColor.rgb *= kbCloth;`);
     for (const b of p.bookings || []) if (Math.hypot(here.x - b.place.x, here.z - b.place.z) < R.stores.reach_m) out.push({ id: `booking:${b.id}`, label: `Have your ${R.items[b.item].name.toLowerCase()}`, key: "", run: () => useBooking(b) });
     if (p.job && !p.clocked && Math.hypot(here.x - p.job.place.x, here.z - p.job.place.z) < R.jobs.workplace_reach_m) out.push({ id: "clock", label: `Clock in: ${p.job.title}`, key: "", run: workKey });
     const task = p.clocked?.task;
-    if (task) out.push({ id: "task", label: working ? `${task.label}: ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : `Task: ${task.label}`, key: "V", run: taskKey });
+    if (task) out.push({ id: "task", label: working ? `${task.label}: ${Math.min(100, Math.round((performance.now() - working.started) / 10 / working.seconds))}%` : `Task: ${task.label}`, key: "R", run: taskKey });
     const bay = shop.place || nearestPlace(undefined, R.jobs.workplace_reach_m, district.workshops || []);
     if (bay && isWorkshop(R, bay, view.bizAt(bay.id))) out.push({ id: "repair-bay", label: "Repair shop · service desk", key: "", run: () => workshop().open(bay) });
     out.push(...favours.actions());
@@ -4793,11 +5380,11 @@ diffuseColor.rgb *= kbCloth;`);
     const thing = thingsNear(here.x, here.z, 3.2)[0];
     if (thing) {
       const kg = R.items[thing.item]?.kg || 0, heavy = kg > liftKg(R, p.vitals.strength);
-      out.push({ id: "pick", label: `${heavy ? "Too heavy" : "Pick up"}: ${R.items[thing.item]?.name.toLowerCase() || "it"} (${kg} kg)`, key: "G", run: pickUp });
+      out.push({ id: "pick", label: `${heavy ? "Too heavy" : "Pick up"}: ${R.items[thing.item]?.name.toLowerCase() || "it"} (${kg} kg)`, key: "Click", run: pickUp });
     }
     const mine = view.registry.held(p.account).find((a) => a.kind === "vehicle" && a.attrs.x !== undefined && Math.hypot(a.attrs.x - here.x, a.attrs.z - here.z) < 7);
     if (mine) out.push({ id: "car", label: `Drive ${R.vehicles.models[mine.attrs.model].name.toLowerCase()}`, key: "Enter", run: toggleCar });
-    if (ownsBicycle()) out.push({ id: "bike", label: "Ride your bicycle", key: "B", run: mountBicycle });
+    if (ownsBicycle()) out.push({ id: "bike", label: "Ride your bicycle", key: "Enter", run: mountBicycle });
     // The bus on Enter, taxis on T: never the same key for both.
     const bus = nearestFare("bus");
     if (bus) out.push({ id: "bus", label: String(bus.id).startsWith("bus:") ? `Board the ${bus.route} to ${bus.nextName || "…"} ${R.fmt(R.transit.bus_fare)}${bus.leaves > 0 ? ` (leaves in ${Math.ceil(bus.leaves)} s)` : ""}` : `Board the bus ${R.fmt(R.transit.bus_fare)}`, key: "Enter", run: () => board(bus) });
@@ -4856,6 +5443,8 @@ diffuseColor.rgb *= kbCloth;`);
     if (place) here.push({ d: place.distance, run: () => { if (!(place.front && enterShop(place))) openStore(place); } });
     const door = myGarageHere();
     if (door) here.push({ d: door.d, run: () => garageKey(door) });
+    // Your bicycle (it goes with you, wheeled): on it, when nothing else is in reach.
+    if (ownsBicycle() && !inWater()) here.push({ d: 6, run: mountBicycle });
     if (!here.length) return false;
     here.sort((a, b) => a.d - b.d)[0].run();
     return true;
@@ -4953,19 +5542,456 @@ diffuseColor.rgb *= kbCloth;`);
     else { show(null); request.ready.then(() => { const again = district.city.characterContext(p, tt, view); if (again.state === "ready" && messages().isOpen()) show(again.context); }).catch(() => {}); }
     return true;
   }
-  //: A click in the game: the shop's checkout panel, a resident to talk to, another player. Never a swing.
+  //: A click in the game. In turn: a seat to sit on; letting go of what you are pushing; letting a
+  //: nail you have set drop; someone who works here (they come over and ask what you need); a
+  //: resident while the messages are open; another player; wood to set a nail in (nails in hand);
+  //: the ground, to set down what a click picked up; a thing on the ground (walked to and picked
+  //: up, or, too heavy to lift, pushed); something loose in the street (walked up to, to push).
+  //: Never a swing: X swings. A press on the food or drink in your hand eats it (pressDown).
   function click(ray) {
     if (!self()) return;
     // A chair, a stool or a booth in a shop or a restaurant: sit down on it.
     if (ray && (shop.room || ctx.insideFitted?.())) { const seat = seatClicked(ray); if (seat) { sitAt(seat); return; } }
+    if (!ray) return;
+    if (pushing.on) { stopPushing(`You let go of the ${pushing.name.toLowerCase()}.`); return; }
+    if (nailSet && !nailSet.hit) { dropSetNail(); return; }
+    if (staffClicked(ray)) return;
     // One of the city's people clicked while the messages are open: a conversation with them.
-    if (ray && messages().isOpen() && talkToClicked(ray)) return;
+    if (messages().isOpen() && talkToClicked(ray)) return;
     // Another player clicked: who they are in the messages, to add as a friend or write to.
     for (const peer of party.session?.players() || []) {
       const pid = party.ids.get(peer.id);
       if (pid && pid !== myId && peer.avatar?.visible !== false && peer.avatar && ray?.intersectObject(peer.avatar, true).length) { messages().person(pid, peer.name); return; }
     }
-    // (A click is never a blow: X swings, and lands only on what is within arm's reach.)
+    if (car.active || car.riding || transit.ride || climbPlay.busy || pose.kind) return;
+    const hand = self()?.hands || null;
+    // Nails in the hand, wood clicked: a nail set on it there, held for the hammer.
+    if (hand === "nails" || hand === "nail") { const o = objectClicked(ray); if (o && isWood(o)) { setNailAt(o); return; } }
+    // What a click picked up, still in the hand: the next click sets it down there.
+    if (carry.item && hand === carry.item) { placeAt(ray); return; }
+    // A product on a shop's shelf: a step to it, and it is taken (into your hands or basket).
+    const shelf = floor.active() ? floor.pickAt(ray, me()) : null;
+    if (shelf) { const it = shelf.item; goTo(it.x, it.z, floor.REACH_M * 0.8, () => floor.take(it).then(() => refresh())); return; }
+    const t = thingClicked(ray);
+    if (t) { fetchThing(t); return; }
+    const o = objectClicked(ray);
+    if (o) pushUp({ o, arch: o.id, x: o.x, z: o.z, kg: o.spec.push_kg || 0, name: o.spec.name, base: substanceOf(mechanics(), o.spec.material) });
+  }
+
+  // ---- the mouse on things ----------------------------------------------------------------------
+  //: A press held on the food or drink in your hand: a mouthful at a time while held (eat-play.mjs,
+  //: as U); let go and it stops after the mouthful. True when the press was the food's.
+  const press = { eat: false };
+  function pressDown(ray) {
+    if (!self() || !ray || !eatPlay.active || car.active || !eatPlay.root) return false;
+    if (!ray.intersectObject(eatPlay.root, true).length) return false;
+    press.eat = true; eatPlay.press(true);
+    return true;
+  }
+  function pressUp() { if (press.eat) { press.eat = false; eatPlay.press(false); } }
+  const rayPt = new THREE.Vector3();
+  const floorAt = (x, z) => (shop.frame && Number.isFinite(shop.frame.y) ? shop.frame.y : groundAt(x, z));
+  //: How far along the ray it passes within ``r`` of (x, y, z); Infinity when it does not.
+  function alongRay(ray, x, y, z, r) {
+    clickAt.set(x, y, z);
+    const along = rayPt.copy(clickAt).sub(ray.ray.origin).dot(ray.ray.direction);
+    if (along < 0 || along > 45) return Infinity;
+    return ray.ray.distanceSqToPoint(clickAt) <= r * r ? along : Infinity;
+  }
+  //: Where the ray meets the ground (or a shop's floor): {x, y, z, d} or null.
+  function groundHit(ray, max = 40) {
+    const o = ray.ray.origin, dir = ray.ray.direction;
+    for (let d = 0.3; d <= max; d += 0.15) {
+      rayPt.copy(o).addScaledVector(dir, d);
+      const y = floorAt(rayPt.x, rayPt.z);
+      if (rayPt.y <= y + 0.01) return { x: rayPt.x, y, z: rayPt.z, d };
+    }
+    return null;
+  }
+  //: The thing on the ground under the pointer (its yellow ring), nearest along the ray.
+  function thingClicked(ray) {
+    let best = null, bd = Infinity;
+    for (const t of thingsNear(me().x, me().z, 30)) {
+      const along = Math.min(alongRay(ray, t.x, floorAt(t.x, t.z) + 0.15, t.z, 0.45), alongRay(ray, t.x, floorAt(t.x, t.z) + 0.03, t.z, 0.5));
+      if (along < bd) { bd = along; best = t; }
+    }
+    return best;
+  }
+  //: The object of the city's catalogue under the pointer (a log, a bench, a post), with where the
+  //: ray meets it: {...target, point, normal}. Its own mesh is asked first; else the nearest along
+  //: the ray of those close round it.
+  const nm3 = new THREE.Matrix3(), im4 = new THREE.Matrix4();
+  function objectClicked(ray) {
+    const prox = ctx.objects?.();
+    if (!prox?.instancesNear) return null;
+    const at = me(), list = prox.instancesNear(at.x, at.z, 16, (a) => Boolean(R.objects[archetypeId(a.archetype)]), 40);
+    let best = null, bd = Infinity;
+    const meshes = new Map();
+    for (const t of list) if (t.o) { if (!meshes.has(t.o)) meshes.set(t.o, new Map()); meshes.get(t.o).set(t.i, t); }
+    for (const [mesh, byI] of meshes) {
+      let hits = [];
+      try { hits = ray.intersectObject(mesh, false); } catch { hits = []; }
+      for (const hit of hits) {
+        const t = byI.get(hit.instanceId);
+        if (!t || hit.distance >= bd) continue;
+        bd = hit.distance;
+        const n = new THREE.Vector3(0, 0, 1);
+        if (hit.face) { mesh.getMatrixAt(hit.instanceId, im4); im4.premultiply(mesh.matrixWorld); n.copy(hit.face.normal).applyMatrix3(nm3.getNormalMatrix(im4)).normalize(); }
+        else n.copy(ray.ray.direction).negate();
+        if (n.dot(ray.ray.direction) > 0) n.negate();
+        best = { t, point: hit.point.clone(), normal: n };
+        break;
+      }
+    }
+    if (!best) {
+      for (const t of list) {
+        const along = alongRay(ray, t.x, floorAt(t.x, t.z) + 0.5, t.z, 0.7);
+        if (along < bd) { bd = along; best = { t, point: ray.ray.at(along, new THREE.Vector3()), normal: ray.ray.direction.clone().negate() }; }
+      }
+    }
+    if (!best) return null;
+    const id = archetypeId(best.t.archetype), spec = R.objects[id];
+    if (!spec) return null;
+    return { ...best.t, id, key: damageKey(id, best.t.x, best.t.z), spec, point: best.point, normal: best.normal };
+  }
+  //: Someone who works where you are, under the pointer: they stop what they are doing, come over
+  //: to you and ask what you need (staffArrived).
+  function staffClicked(ray) {
+    const place = placeInside();
+    if (!place) return false;
+    let best = null, bd = Infinity;
+    for (const e of visible.people || []) {
+      if (!e.person || !e.indoors || String(e.person.work) !== String(place.id)) continue;
+      const along = alongRay(ray, e.x, floorAt(e.x, e.z) + 0.95, e.z, 0.6);
+      if (along < bd) { bd = along; best = e; }
+    }
+    if (!best) return false;
+    clerk.dismissed = best.id; hideClerk();
+    talkTo({ id: best.person.id, name: best.person.name, title: best.person.title });
+    talking.come = { place, since: performance.now() };
+    notify(`${best.person.name.split(" ")[0]} is coming over.`);
+    return true;
+  }
+
+  // ---- carried by a click: picked up, then set down where the next click is --------------------
+  const carry = { item: null };
+  //: The thing a click picked up, put in your hand (the bar slot it went to, once the inventory has it).
+  function holdPicked(item, tries = 0) {
+    const i = slots.indexOf(item);
+    if (i >= 0 && i < BAR) { carry.item = item; if (chosen !== i) selectSlot(i); return; }
+    if (tries < 15) setTimeout(() => holdPicked(item, tries + 1), 100);
+    else carry.item = null;
+  }
+  function fetchThing(t) {
+    const pl = self(), ph = physOf(R, t.item), lift = liftKg(R, pl.vitals.strength);
+    // Too heavy to lift: up to it, to push it along the ground (if it is the city's to move).
+    if (ph.kg > lift && !t.courier) {
+      if (t.found || t.debris) { notify(`${ph.name} (${ph.kg} kg) is too heavy for you to lift, and too heavy to shift.`); return; }
+      pushUp({ thing: t, material: ph.material, x: t.x, z: t.z, kg: ph.kg, name: ph.name, base: substanceOf(mechanics(), ph.material) });
+      return;
+    }
+    goTo(t.x, t.z, PICK_AT_M, () => reachDown(t, { carry: !t.courier }));
+  }
+  //: Setting down what you carry where the ground was clicked: walked to, bent down for, put there --
+  //: not dropped.
+  function placeAt(ray) {
+    const g = groundHit(ray), id = carry.item;
+    if (!g) { notify("Click the ground where it should go."); return; }
+    const put = () => {
+      ctx.faceTo?.(g.x, g.z);
+      startAct("pickup", 0.95, 0.55, async () => {
+        const r = await send("drop", { item: id, spot: { x: g.x, z: g.z } });
+        if (!r.ok) { notify(r.error); return; }
+        carry.item = null;
+        notify(`Set down the ${R.items[id].name.toLowerCase()}.`);
+        syncSlots(true);
+      });
+    };
+    goTo(g.x, g.z, 1.0, put);
+  }
+
+  // ---- a nail set by hand, then hammered (R) or let go (a click) --------------------------------
+  //: {t, point, normal, mesh, driven} while a nail is held on the wood (nails in the hand, wood
+  //: clicked): the left hand keeps it there, point in, until the hammer drives it or a click lets
+  //: it drop. Driven nails stay in the wood (drivenNails).
+  let nailSet = null;
+  const drivenNails = [];
+  const NAIL_MAT = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.85, roughness: 0.35 });
+  function nailMesh() {
+    const g = new THREE.Group();
+    const shank = new THREE.Mesh(new THREE.CylinderGeometry(0.0017, 0.0017, 0.089, 6), NAIL_MAT); shank.position.y = 0.0445;
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(0.0036, 0.0036, 0.0016, 12), NAIL_MAT); head.position.y = 0.089;
+    g.add(shank, head); g.name = "nail";
+    return g;
+  }
+  const UP = new THREE.Vector3(0, 1, 0);
+  function placeNail(n) {
+    // The tip at the point, pushed in as far as it is driven; the shank out along the face's normal,
+    // leant over by the bend.
+    n.mesh.quaternion.setFromUnitVectors(UP, n.normal);
+    if (n.bend) { const side = new THREE.Vector3().crossVectors(n.normal, UP); if (side.lengthSq() < 1e-6) side.set(1, 0, 0); n.mesh.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(side.normalize(), n.bend * Math.PI / 180)); }
+    n.mesh.position.copy(n.point).addScaledVector(n.normal, -n.driven);
+  }
+  async function setNailAt(o) {
+    if (nailSet) return;
+    const reachM = R.tools.reach_m;
+    if (Math.hypot(o.point.x - me().x, o.point.z - me().z) > reachM) { goTo(o.point.x, o.point.z, reachM * 0.8, () => setNailAt(o)); return; }
+    ctx.faceTo?.(o.point.x, o.point.z);
+    const w = await send("labour", { kind: "set_nail" });
+    if (!w.ok) { notify(w.error); return; }
+    const t = { x: o.x, z: o.z, key: o.key, id: o.id, spec: o.spec, o: o.o, i: o.i };
+    nailSet = { t, point: o.point.clone(), normal: o.normal.clone(), mesh: nailMesh(), driven: 0.004, bend: 0, arm: aimOf({ kind: "thing", t, d: Math.hypot(o.point.x - me().x, o.point.z - me().z) }).arm };
+    nailing.delete(t.key);
+    placeNail(nailSet);
+    group.add(nailSet.mesh);
+    notify(`A nail set on the ${o.spec.name.toLowerCase()}, held point in. Take the hammer (1-8) and tap R to drive it; click again to let it drop.`);
+  }
+  function dropSetNail() {
+    const n = nailSet;
+    if (!n) return;
+    nailSet = null;
+    group.remove(n.mesh);
+    send("drop_nail", { spot: { x: n.point.x + n.normal.x * 0.1, z: n.point.z + n.normal.z * 0.1 } }).then((r) => notify(r.ok ? "You let go: the nail drops." : r.error));
+  }
+  //: Each frame: walk off and leave it, and a nail only set falls; one part driven stays in the wood.
+  function stepNailSet() {
+    if (!nailSet) return;
+    const d = Math.hypot(nailSet.point.x - me().x, nailSet.point.z - me().z);
+    if (!nailSet.hit && d > R.tools.reach_m + 0.8) dropSetNail();
+    else if (nailSet.hit && d > R.tools.reach_m + 3) { drivenNails.push(nailSet); if (drivenNails.length > 40) group.remove(drivenNails.shift().mesh); nailSet = null; }
+  }
+
+  // ---- pushing: hands on it, the arrows push it along --------------------------------------------
+  //: {on, o | thing, kg, name, r (mechanics-work.mjs push), gap} while your hands are on something
+  //: too heavy to carry: Up walks it along ahead of you at the pace the engine gives (by your
+  //: strength and grip against what it takes to slide or roll it); a click lets go.
+  const pushing = { on: false, o: null, thing: null, kg: 0, name: "", r: null, gap: 1, x: 0, z: 0, laid: 0, sent: 0, worked: 0, S: null, touch: null, stuck: false, speed: 0, slid: 0, said: null };
+  const arrowsHeld = new Set();
+  function pushUp(target) {
+    if (!target.kg) { notify(`The ${target.name.toLowerCase()} is fixed down: it will not move.`); return; }
+    goTo(target.x, target.z, 1.05, () => startPushing(target));
+  }
+  function startPushing(target) {
+    const K = hands(), p = self();
+    if (!K || !p) return;
+    ctx.faceTo?.(target.x, target.z);
+    const wet = wetNow(), g = underfoot().kind;
+    const r = K.push({ name: target.name, mass_kg: target.kg, base: target.base || "douglas_fir_dry", ground: g, wet }, { strength: p.vitals?.strength ?? 50, ground: g, wet });
+    const at = me();
+    Object.assign(pushing, { on: true, o: target.o || null, thing: target.thing || null, kg: target.kg, name: target.name, r, x: target.x, z: target.z, laid: 0, sent: performance.now(), worked: performance.now(),
+      gap: Math.max(0.75, Math.min(1.6, Math.hypot(target.x - at.x, target.z - at.z))), S: pushedStats(target), touch: null, stuck: false, speed: 0, slid: 0, said: null });
+    notify(r.moves ? `Hands on the ${target.name.toLowerCase()}: Up pushes it along (${r.text}). Click to let go.` : `Hands on the ${target.name.toLowerCase()}: ${r.text}. Click to let go.`);
+  }
+  function stopPushing(msg = null) {
+    if (!pushing.on) return;
+    pushing.on = false;
+    if (pushing.o) ctx.objects?.()?.invalidate?.(pushing.o.o);
+    if (pushing.thing) send("move_item", { id: pushing.thing.id, to: { x: pushing.x, z: pushing.z } });
+    if (msg) notify(msg);
+  }
+  //: Each frame while pushing: Up held, it goes ahead of you along your facing, waiting for you
+  //: when it gets a stride ahead; walk off or turn away and your hands come off it.
+  function stepPushing(dt) {
+    if (!pushing.on) return;
+    if (car.active || climbPlay.busy || !self()) { stopPushing(); return; }
+    const at = me(), yaw = ctx.getYaw(), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    const dx = pushing.x - at.x, dz = pushing.z - at.z, d = Math.hypot(dx, dz);
+    if (d > pushing.gap + 1.6) { stopPushing(`You let go of the ${pushing.name.toLowerCase()}.`); return; }
+    if (!arrowsHeld.has("ArrowUp") || !pushing.r?.moves) return;
+    if ((dx * fx + dz * fz) / Math.max(d, 1e-6) < 0.5 || d > pushing.gap + 0.35) return;
+    const v = Math.max(0.2, Math.min(1.1, pushing.r.speed_mps || 0.5)), aheadX = at.x + fx * (pushing.gap + 0.1), aheadZ = at.z + fz * (pushing.gap + 0.1);
+    let nx = pushing.x + fx * v * dt, nz = pushing.z + fz * v * dt;
+    nx += (aheadX - nx) * 0.12; nz += (aheadZ - nz) * 0.12;
+    // Into a wall or another thing: it is stopped there (or slides along a wall pushed at a slant),
+    // and the two mark each other as the collision laws say.
+    const hit = pushing.S ? pushBlocked(nx, nz, fx, fz) : null;
+    if (hit) {
+      const moved = meetObstacle(hit, fx, fz, v, dt);
+      if (!moved) return;
+      nx = moved.x; nz = moved.z;
+    } else { pushing.touch = null; pushing.stuck = false; pushing.speed = v; }
+    const mx = nx - pushing.x, mz = nz - pushing.z;
+    pushing.x = nx; pushing.z = nz;
+    if (pushing.o) {
+      const t = pushing.o;
+      t.o.getMatrixAt(t.i, im4);
+      const y0 = groundAt(im4.elements[12], im4.elements[14]);
+      im4.elements[12] += mx; im4.elements[14] += mz; im4.elements[13] += groundAt(im4.elements[12], im4.elements[14]) - y0;
+      t.o.setMatrixAt(t.i, im4); t.o.instanceMatrix.needsUpdate = true;
+      pushing.laid += Math.hypot(mx, mz);
+      if (pushing.laid > 0.15) { pushing.laid = 0; ctx.objects?.()?.invalidate?.(t.o); }
+    }
+    const now = performance.now();
+    if (pushing.thing && now - pushing.sent > 400) { pushing.sent = now; send("move_item", { id: pushing.thing.id, to: { x: pushing.x, z: pushing.z } }); }
+    if (now - pushing.worked > 2500) { pushing.worked = now; send("labour", { kind: "push" }); }
+  }
+  //: How fast you walk while pushing: the engine's pace for it, or a strain on the spot (it will
+  //: not move, or it is up against something).
+  const pushPace = () => (!pushing.on || !arrowsHeld.has("ArrowUp") ? 1 : pushing.r?.moves && !pushing.stuck ? Math.max(0.15, Math.min(0.8, (pushing.r.speed_mps || 0.5) / 1.4)) : 0.05);
+
+  // ---- what a pushed thing runs into (mechanics-collide.mjs) ---------------------------------------
+  //: A loose thing's shape when the catalogue has no form for it: a small box.
+  const THING_FORM = { shape: "box", section: { b_m: 0.4, h_m: 0.008 }, span_m: 0.4, edge_r_m: 0.005, face_m2: 0.16, height_m: 0.4 };
+  //: The cladding a building's walls are taken to be in when the place does not say: render (stucco)
+  //: is the commonest SF wall by far.
+  const DEFAULT_CLADDING = "stucco_render";
+  function pushedStats(target) {
+    const Cn = collide();
+    if (!Cn) return null;
+    try {
+      if (target.arch && catalogue?.mechanics?.forms?.[target.arch]) return Cn.stats(target.arch, { mass_kg: target.kg, fixed: false });
+      return Cn.stats({ name: target.name, material: target.material || target.spec?.material || "plastic", coat: null, form: THING_FORM }, { mass_kg: target.kg, fixed: false });
+    } catch { return null; }
+  }
+  //: How far a pushed thing reaches ahead of its centre (half its face's width).
+  const pushHalf = () => Math.max(0.2, Math.min(0.8, Math.sqrt(pushing.S?.face_m2 || 0.25) / 2));
+  //: The nearest wall of a ring to (x, z): the point on it, its outward normal and its tangent.
+  function wallFace(ring, x, z) {
+    let best = null;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i], b = ring[(i + 1) % ring.length], ex = b[0] - a[0], ez = b[1] - a[1], L2 = ex * ex + ez * ez;
+      if (L2 < 1e-6) continue;
+      const u = Math.max(0, Math.min(1, ((x - a[0]) * ex + (z - a[1]) * ez) / L2)), qx = a[0] + ex * u, qz = a[1] + ez * u, d = Math.hypot(x - qx, z - qz);
+      if (!best || d < best.d) { const L = Math.sqrt(L2); best = { d, px: qx, pz: qz, tx: ex / L, tz: ez / L }; }
+    }
+    if (!best) return null;
+    // Outward: from the point inside toward the face; if the point is on it, across the edge.
+    let nx = best.px - x, nz = best.pz - z;
+    const n = Math.hypot(nx, nz);
+    if (n > 1e-6) { nx /= n; nz /= n; } else { nx = best.tz; nz = -best.tx; }
+    return { ...best, nx, nz };
+  }
+  //: What the pushed thing's front would be in at (x, z) going (fx, fz): a building's wall, or
+  //: another thing in the street.
+  function pushBlocked(x, z, fx, fz) {
+    const h = pushHalf(), ax = x + fx * h, az = z + fz * h;
+    const f = district.city?.footprintAt?.(ax, az);
+    if (f) {
+      const w = wallFace(f.ring, ax, az);
+      if (w) return { wall: true, key: `wall:${f.pl.id}`, pl: f.pl, ...w };
+    }
+    const prox = ctx.objects?.();
+    const near = prox?.instancesNear?.(ax, az, 1, (a) => Boolean(R.objects[archetypeId(a.archetype)]), 8) || [];
+    for (const t of near) {
+      if (pushing.o && t.o === pushing.o.o && t.i === pushing.o.i) continue;
+      const d = Math.hypot(t.x - ax, t.z - az);
+      if (d >= 0.45) continue;
+      const id = archetypeId(t.archetype);
+      return { wall: false, key: damageKey(id, t.x, t.z), t, id, px: t.x, pz: t.z, nx: -(t.x - x) / (Math.hypot(t.x - x, t.z - z) || 1), nz: -(t.z - z) / (Math.hypot(t.x - x, t.z - z) || 1), tx: 0, tz: 0 };
+    }
+    return null;
+  }
+  //: What it runs into, as the collision laws read it.
+  function obstacleStats(hit) {
+    const Cn = collide();
+    try {
+      if (hit.wall) return Cn.stats("building.exterior", { cladding: hit.pl?.cladding || DEFAULT_CLADDING });
+      return Cn.stats(hit.id, { fixed: true });
+    } catch { return null; }
+  }
+  //: The pushed thing meets ``hit``: the first touch is a blow at the speed it was going; after
+  //: that it is pressed on with the push you keep up. Square on it stops; at a slant past the two
+  //: surfaces' friction it slides along a wall, scraping it. Returns where it gets to, or null
+  //: (it stays where it is).
+  function meetObstacle(hit, fx, fz, v, dt) {
+    const Cn = collide(), P = pushing.S, Q = obstacleStats(hit);
+    if (!Cn || !P || !Q) { pushing.stuck = true; return null; }
+    const into = fx * -hit.nx + fz * -hit.nz;     // the push's share square into the face
+    const ang = (Math.acos(Math.max(-1, Math.min(1, Math.abs(into)))) * 180) / Math.PI;
+    const kind = P.shape === "round" ? "edge" : ang < 8 ? "face" : "edge";
+    const y = groundAt(pushing.x, pushing.z) + Math.min(1, (P.height_m || 0.4) * 0.6);
+    if (pushing.touch !== hit.key) {
+      pushing.touch = hit.key;
+      const r = Cn.impact(P, Q, { speed_mps: Math.max(0.1, pushing.speed || v), kind, mass_kg: pushing.kg || P.mass_kg || 10 });
+      drawMarks(hit, r.contact.struck, Q, y, null);
+      say(r.text);
+    }
+    pushing.speed = 0;
+    const r = Cn.push(P, Q, { force_n: (pushing.r?.push_n || 300) * WORK.sustained, angle_deg: ang, kind: kind === "face" ? "face" : "corner", length_m: 0.25 });
+    if (!hit.wall || !r.slides) {
+      if (!pushing.stuck) say(r.text);
+      pushing.stuck = true;
+      return null;
+    }
+    // Along the wall: the push's share along its face moves it; it stays off the face.
+    pushing.stuck = false;
+    const s = Math.sign(fx * hit.tx + fz * hit.tz) || 1, along = v * dt * Math.sin((ang * Math.PI) / 180);
+    pushing.slid += along;
+    if (pushing.slid >= 0.25) {
+      pushing.slid = 0;
+      drawMarks(hit, r.contact.struck, Q, y, { tx: hit.tx * s, tz: hit.tz * s });
+      say(r.text);
+    }
+    const back = Math.max(0, pushHalf() - Math.hypot(pushing.x - hit.px, pushing.z - hit.pz) + 0.02);
+    return { x: pushing.x + hit.tx * s * along + hit.nx * back, z: pushing.z + hit.tz * s * along + hit.nz * back };
+  }
+  //: Say a collision's result once (not again while it is the same).
+  function say(text) { if (text && text !== pushing.said) { pushing.said = text; notify(text); } }
+  //: The marks drawn on what was struck: a thin strip along the scrape, or a spot where it was
+  //: hit, coloured by what the mark shows -- the paint's own scratch, the render or wood bared
+  //: under it, a smear of what rubbed on it. (A scratch is drawn no narrower than 4 mm, to be seen.)
+  const MARK_COLOUR = { scratch: [0xf2efe8, 0.55], scuff: [0xf2efe8, 0.3], cut_through: [0xc8bba2, 0.95], crushed: [0x8f8676, 0.6], flaked: [0xc8bba2, 0.9], dent: [0x6d6658, 0.45], stretched: [0x6d6658, 0.35], chip: [0xb9ab92, 0.95], gouge: [0x5a4a36, 0.85], transfer: [0x3c3a36, 0.5] };
+  const SUBSTRATE_COLOUR = { stucco: 0xc8bba2, clay_brick: 0x9c5a44, concrete: 0xa9a59c, douglas_fir_dry: 0xb58a5a, mild_steel: 0x8b8f94, aluminium_6061: 0xb9bdc2, plasterboard: 0xe9e4da };
+  const marks = { group: null, list: [], MAX: 160 };
+  function drawMarks(hit, struck, Q, y, dir) {
+    // The mark that shows: the deepest layer marked (bared stuff under paint shows its own colour).
+    let show = null, at = -1;
+    struck.layers.forEach((m, i) => { if (m.kind !== "none" && i >= at) { show = m; at = i; } });
+    if (!show) return;
+    const top = struck.layers[0];
+    if (top.kind === "cut_through" || top.kind === "flaked") show = { ...top, bared: Q.layers[1]?.substance };
+    const [c0, op] = MARK_COLOUR[show.kind] || [0x777777, 0.5];
+    const colour = show.bared && SUBSTRATE_COLOUR[show.bared] != null ? SUBSTRATE_COLOUR[show.bared] : c0;
+    if (!marks.group) { marks.group = new THREE.Group(); marks.group.name = "collision-marks"; group.add(marks.group); }
+    const w = Math.max(0.004, show.flake_width_m || show.width_m || 0.004), len = dir ? 0.25 : Math.max(w, 0.01);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(dir ? len : w, w), new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: op, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    const off = 0.012;
+    m.position.set(hit.px + hit.nx * off - (dir ? dir.tx * len * 0.5 : 0), y, hit.pz + hit.nz * off - (dir ? dir.tz * len * 0.5 : 0));
+    m.lookAt(m.position.x + hit.nx, y, m.position.z + hit.nz);
+    marks.group.add(m);
+    marks.list.push(m);
+    while (marks.list.length > marks.MAX) { const old = marks.list.shift(); marks.group.remove(old); old.geometry.dispose(); old.material.dispose(); }
+  }
+
+  // ---- going where a task is: along the pavements, by itself ------------------------------------
+  //: {pts, i, label, since, best} while the task card's "Go there" walks you: the streets' walking
+  //: route (people.mjs pavementRoute) from where you stand to the place, then straight to it. An
+  //: arrow pressed takes the legs back.
+  const nav = { pts: null, i: 0, label: "", since: 0, mark: 0, markAt: null };
+  function startNav(x, z, label) {
+    const S = district.streets, at = me();
+    let pts = null;
+    try {
+      const a = S?.nearest(at.x, at.z, "walk", 150), b = S?.nearest(x, z, "walk", 150);
+      const route = a !== null && a !== undefined && b !== null && b !== undefined && a !== b ? S.route(a, b, "walk") : null;
+      const pave = route ? pavementRoute(S, route, { from: [at.x, at.z], to: [x, z] }) : null;
+      pts = pave?.pts?.length ? pave.pts.map((q) => [q[0], q[1]]) : null;
+    } catch { pts = null; }
+    pts = [...(pts || []), [x, z]];
+    // (Not back to the route's first point if it is behind you.)
+    while (pts.length > 1 && Math.hypot(pts[1][0] - at.x, pts[1][1] - at.z) < Math.hypot(pts[0][0] - at.x, pts[0][1] - at.z) + 2 && Math.hypot(pts[0][0] - pts[1][0], pts[0][1] - pts[1][1]) < Math.hypot(pts[1][0] - at.x, pts[1][1] - at.z) + 4) pts.shift();
+    Object.assign(nav, { pts, i: 0, label, since: performance.now(), mark: performance.now(), markAt: { x: at.x, z: at.z } });
+    notify(`Going to ${label}: ${Math.round(Math.hypot(x - at.x, z - at.z))} m. An arrow takes over.`);
+  }
+  function stopNav() { nav.pts = null; }
+  function stepNav(dt) {
+    if (!nav.pts) return false;
+    if (car.active || transit.ride || climbPlay.busy || seated.on) { stopNav(); return false; }
+    const at = me();
+    let q = nav.pts[nav.i];
+    while (q && Math.hypot(q[0] - at.x, q[1] - at.z) < (nav.i === nav.pts.length - 1 ? 1.2 : 1.6)) { nav.i += 1; q = nav.pts[nav.i]; }
+    if (!q) { stopNav(); ctx.animateWalk?.(0); notify(`You are at ${nav.label}.`); return false; }
+    const now = performance.now();
+    if (now - nav.mark > 3500) {
+      if (Math.hypot(at.x - nav.markAt.x, at.z - nav.markAt.z) < 0.6) { stopNav(); ctx.animateWalk?.(0); notify("Something is in the way: walk round it, then Go there again."); return false; }
+      nav.mark = now; nav.markAt = { x: at.x, z: at.z };
+    }
+    const dx = q[0] - at.x, dz = q[1] - at.z, d = Math.hypot(dx, dz), sp = 1.45 * walkFactorNow();
+    const moved = ctx.moveWalker?.((dx / d) * Math.min(sp * dt, d), (dz / d) * Math.min(sp * dt, d)) ?? 0;
+    ctx.faceTo?.(q[0], q[1]);
+    ctx.animateWalk?.(moved, dx / d, dz / d);
+    walked(moved, dt);
+    return true;
   }
 
   // ---- the bar of eight and the inventory ------------------------------------------------------
@@ -5199,8 +6225,9 @@ diffuseColor.rgb *= kbCloth;`);
       drawDebris(dt);
     }
     drawMarker(now); drawErrand(now); drawTask(now);
-    if (!ctx.animateWalk) stepReach(dt);   // (the page's walker step runs it: autoWalk)
-    stepBody(dt); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt); stepSeat();
+    if (!ctx.animateWalk) { if (!stepReach(dt)) stepNav(dt); }   // (the page's walker step runs it: autoWalk)
+    stepBody(dt); stepToolWork(); stepPushing(dt); stepNailSet(); stepFlying(); drawHeld(); garageRemote(now); ctx.garages?.tick(dt); stepSeat();
+    if (now - lastHints > 250) { lastHints = now; drawHints(now); }
     if (now - lastRefresh > 500) {
       lastRefresh = now; syncHomeEditor(); drawParked(); carMarks(); checkFainted(); syncDamage(); hud(); syncSlots(); drawPrompt(); refreshDoors(now); npcGarages(); clerkCheck();
       if (side && ["ride", "tasks"].includes(side.kind)) drawSide();
@@ -5319,10 +6346,10 @@ diffuseColor.rgb *= kbCloth;`);
   //: across rather than appear there. A gap wider than ``snap`` (out of sight and back) is taken.
   const glided = new Map();
   //: Who you are talking with (talkTo): they stand and face you while it lasts.
-  const talking = { id: null, until: 0, at: null, met: new Map() };
+  const talking = { id: null, until: 0, at: null, met: new Map(), come: null };
   function talkTo(who) {
     if (!who?.id) return;
-    if (talking.id !== who.id) talking.at = null;
+    if (talking.id !== who.id) { talking.at = null; talking.come = null; }
     talking.id = who.id; talking.until = performance.now() + 30_000;
     // The world keeps how often you have talked: it is what they are to you (social.mjs).
     const last = talking.met.get(who.id) || 0;
@@ -5708,7 +6735,14 @@ diffuseColor.rgb *= kbCloth;`);
       const held = !favoured && talking.id === id && now < talking.until && !pos.down && Math.hypot(pos.x - you.x, pos.z - you.z) < 14;
       if (held) {
         talking.at ||= { x: pos.x, z: pos.z };
-        entry.x = talking.at.x; entry.z = talking.at.z; entry.moving = false; entry.gesture = null; entry.activity = "talking with you";
+        // Called over (a click on them where they work): they walk up to you, then ask what you need.
+        let coming = false;
+        if (talking.come) {
+          const cx = you.x - talking.at.x, cz = you.z - talking.at.z, cd = Math.hypot(cx, cz);
+          if (cd > 1.1 && now - talking.come.since < 15000) { const st = Math.min(1.3 * dt, cd - 1.0); talking.at.x += (cx / cd) * st; talking.at.z += (cz / cd) * st; coming = true; }
+          else { const c = talking.come; talking.come = null; try { staffArrived(c.place, entry); } catch (error) { console.warn("staff", error); } }
+        }
+        entry.x = talking.at.x; entry.z = talking.at.z; entry.moving = coming; entry.gesture = null; entry.activity = coming ? "coming over to you" : "talking with you";
         entry.yaw = Math.atan2(-(you.x - entry.x), -(you.z - entry.z));
         if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);   // their walk waits: they go on from here
       } else if (talking.id === id && (now >= talking.until || Math.hypot(pos.x - you.x, pos.z - you.z) >= 14)) { talking.id = null; talking.at = null; }
@@ -5781,6 +6815,16 @@ diffuseColor.rgb *= kbCloth;`);
               const going = next > re.off && !(ctx.roadAt?.(nx, nz) && !ctx.roadAt?.(re.at.x, re.at.z)) && !c.footprintAt?.(nx, nz);
               if (going) re.off = next;
               entry.x = re.at.x - ux * re.off; entry.z = re.at.z - uz * re.off; entry.moving = going; entry.yaw = Math.atan2(ux, uz); entry.activity = "running from it";
+            } else if (re.kind === "fight") {
+              // Squaring up to you: in to arm's length, facing you, fists up.
+              const next = Math.min(Math.max(0, L - 0.9), re.off + 1.6 * dt), going = next > re.off + 1e-4;
+              re.off = next;
+              entry.x = re.at.x + ux * re.off; entry.z = re.at.z + uz * re.off; entry.moving = going; entry.yaw = Math.atan2(-ux, -uz);
+              entry.activity = "squaring up to you"; entry.gesture = { kind: "guard", f: 1 };
+            } else if (re.kind === "shout" || re.kind === "freeze") {
+              entry.x = re.at.x; entry.z = re.at.z; entry.moving = false; entry.yaw = Math.atan2(-ux, -uz);
+              entry.activity = re.kind === "shout" ? "shouting for help" : "frozen to the spot";
+              if (re.kind === "freeze") entry.gesture = { kind: "guard", f: 0.4 };
             } else if (re.kind === "help") {
               const next = Math.min(Math.max(0, L - 1.8), re.off + 2.4 * dt), going = next > re.off + 1e-4;
               re.off = next;
@@ -5789,10 +6833,24 @@ diffuseColor.rgb *= kbCloth;`);
               entry.x = re.at.x; entry.z = re.at.z; entry.moving = false; entry.yaw = Math.atan2(-ux, -uz);
               entry.activity = re.kind === "call" ? "calling 911" : re.kind === "film" ? "filming it" : "watching";
               if (re.kind !== "watch") entry.gesture = { kind: re.kind === "call" ? "phone" : "film", f: 0.5 };
-              if (re.kind === "call" && !re.inc.called && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
+              if (re.kind === "call" && !re.inc.called && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.victim ? "The one you hit is calling 911: a patrol car is on its way." : re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
             }
             if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);
           }
+        }
+      }
+      // Struck (strikePerson): carried back along the blow a step at a time, or swayed and back.
+      const sg = staggers.get(id);
+      if (sg) {
+        const age = (now - sg.t0) / 1000, k0 = Math.min(1, age / sg.dur);
+        // A stumble holds where it ended while they react to it, then they are back on their way.
+        const hold = !sg.flinch && (reacting.has(id) || age < sg.dur + 1.5);
+        if (!sg.flinch && !hold && sg.end === undefined) sg.end = age;
+        const k = sg.flinch ? Math.sin(k0 * Math.PI) : hold ? 1 - (1 - k0) ** 2 : Math.max(0, 1 - (age - sg.end) / 1.2);
+        if (k <= 0 && age > sg.dur) staggers.delete(id);
+        else {
+          entry.x += sg.dx * sg.dist * k; entry.z += sg.dz * sg.dist * k;
+          if (age < sg.dur) { busy = true; entry.moving = !sg.flinch; entry.yaw = Math.atan2(-sg.dx, -sg.dz); entry.activity = sg.flinch ? "flinching" : "stumbling back"; entry.gesture = { kind: "guard", f: 0.6 }; }
         }
       }
       // At the kerb of a crosswalk: waiting for the light or a gap in the traffic, then over.
@@ -6255,11 +7313,15 @@ diffuseColor.rgb *= kbCloth;`);
   const typing = (t) => t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t instanceof HTMLSelectElement || t?.isContentEditable;
   // One job to a key (ACTIONS.md). Enter (in and out: car, bus, taxi, shop, garage, doors) is the
   // page's, asked first of enterKey. The shop and the taxi are the top bar's buttons.
+  // (V's shift tasks are R's; B's bicycle and J's board are Enter's and the To do list's; K's pets
+  // are on your profile; E's climbing is Space's; H is ? or /; PageUp / PageDown are Shift + Up / Down.
+  // G's picking up is a click's; U's using is a right click's (and a click on the food); C's thrust
+  // and shove are Shift + X: the point or the flat of the hand instead of X's swing.)
   const KEYS = {
-    g: () => pickUp(), i: () => openSide("bag"), v: () => taskKey(),
-    u: () => useSelected(), x: () => swingKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
-    j: () => openSide("tasks"), h: () => openSide("help"), "?": () => openSide("help"), b: () => bicycleKey(),
-    k: () => openSide("pets"), l: () => animals().leashKey(),
+    i: () => openSide("bag"),
+    x: () => swingKey(), "shift+x": () => thrustKey(), q: () => throwKey(), " ": () => jumpKey(), z: () => restKey(),
+    "?": () => openSide("help"), "/": () => openSide("help"), l: () => animals().leashKey(),
+    r: () => toolWorkKey(true), y: () => answerKey(true), n: () => answerKey(false),
   };
   for (let i = 0; i < BAR; i += 1) KEYS[String(i + 1)] = () => selectSlot(i);
   addEventListener("keydown", (e) => {
@@ -6270,13 +7332,28 @@ diffuseColor.rgb *= kbCloth;`);
     if (ctx.cityMode?.() === false) { if (e.key === " ") { e.preventDefault(); jumpKey(); } return; }
     // At the wheel, A D S P are the driving helpers' (driveKey).
     if (car.active && e.key.length === 1 && driveKey(e.key.toLowerCase())) { e.preventDefault(); return; }
-    const run = KEYS[e.key.length === 1 ? e.key.toLowerCase() : ""];
+    const k0 = e.key.length === 1 ? e.key.toLowerCase() : "", k1 = e.shiftKey && KEYS[`shift+${k0}`] ? `shift+${k0}` : k0;
+    if (e.key.startsWith("Arrow")) { arrowsHeld.add(e.key); learnKey("arrows"); return; }
+    const run = KEYS[k1];
     if (!run) return;
     e.preventDefault();
+    learnKey(k1);
     run();
   });
-  addEventListener("keyup", (e) => { if (e.key === "Shift") body.sprintHeld = false; });
-  addEventListener("blur", () => { body.sprintHeld = false; });
+  //: Keys held down now (U held eats on).
+  const keyHeld = {};
+  addEventListener("keydown", (e) => { if ((e.key === "r" || e.key === "R") && !typing(e.target)) keyHeld.r = true; }, true);
+  //: The right button held (module 22: useDown / useUp): what a right click uses goes on while it is
+  //: down -- eating or drinking to the end (as U held did).
+  function useDown() { keyHeld.u = true; }
+  function useUp() { if (keyHeld.u) { keyHeld.u = false; eatPlay.press(false); } }
+  addEventListener("keyup", (e) => {
+    if (e.key === "Shift") body.sprintHeld = false;
+    if (e.key.startsWith("Arrow")) arrowsHeld.delete(e.key);
+
+    if (e.key === "r" || e.key === "R") { keyHeld.r = false; toolWorkKey(false); }
+  });
+  addEventListener("blur", () => { body.sprintHeld = false; keyHeld.u = false; keyHeld.r = false; arrowsHeld.clear(); eatPlay.press(false); pressUp(); toolWorkKey(false); });
 
   async function toggleCar() {
     if (!ctx.enabled() || entry) return;
@@ -6366,6 +7443,10 @@ diffuseColor.rgb *= kbCloth;`);
 #city-tasks{left:var(--city-tasks-x,72px);width:var(--city-tasks-w,300px);z-index:34;min-height:var(--city-card-h,0px);max-height:min(46vh,calc(100vh - var(--city-top-y,16px) - 130px));overflow:auto}
 #city-tasks h4{margin:0 0 4px;display:flex;align-items:center;gap:6px;font:700 13px/1.2 system-ui,sans-serif;color:#fff}
 #city-tasks h4 .word{flex:1;cursor:pointer}#city-tasks h4 .word:hover{text-decoration:underline}
+#city-tasks .detail .head{display:flex;align-items:center;gap:8px;margin:2px 0 6px}#city-tasks .detail .arrow.big{font-size:26px;line-height:1;display:inline-block;color:#ffd34d}
+#city-tasks .detail p{margin:0 0 4px;font:12px/1.35 system-ui,sans-serif;opacity:.85}#city-tasks .detail ol{margin:4px 0 8px 18px;padding:0;font:12px/1.4 system-ui,sans-serif}#city-tasks .detail li.done{opacity:.55}
+#city-tasks .detail .acts{display:flex;gap:6px;flex-wrap:wrap}#city-tasks .detail .acts button{border:0;border-radius:6px;padding:5px 10px;background:rgba(255,255,255,.16);color:#fff;font:600 12px/1 system-ui,sans-serif;cursor:pointer}
+#city-tasks .detail .acts button.primary{background:#2f7de1}#city-tasks .detail .acts button.warn{background:rgba(220,70,60,.75)}
 #city-tasks h4 button{border:0;border-radius:6px;background:rgba(255,255,255,.14);color:#fff;font:700 13px/1 system-ui,sans-serif;width:26px;height:22px;cursor:pointer}
 #city-tasks ol{margin:0;padding:0;list-style:none}
 #city-tasks li{display:flex;gap:6px;align-items:flex-start;padding:5px 0;border-top:1px solid rgba(255,255,255,.1);cursor:pointer}
@@ -6382,7 +7463,11 @@ diffuseColor.rgb *= kbCloth;`);
 #city-profile .bar{display:grid;grid-template-columns:54px 1fr 24px;align-items:center;gap:6px;margin:3px 0}
 #city-profile .bar i{display:block;height:7px;border-radius:4px;background:linear-gradient(90deg,var(--c) var(--v),rgba(255,255,255,.14) var(--v))}
 #city-profile .bar b{text-align:right;font-weight:600}#city-profile .carry{opacity:.8;margin-top:4px;font-size:11px}#city-profile .gig{margin-top:3px;color:#7ee2a0;font-size:11px}
-#city-top[hidden],.city-card[hidden],#city-prompt[hidden]{display:none!important}
+#city-top[hidden],.city-card[hidden],#city-prompt[hidden],#city-hints[hidden]{display:none!important}
+#city-hints{position:fixed;left:50%;transform:translateX(-50%);bottom:104px;z-index:34;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:calc(100vw - 32px);pointer-events:none}
+#city-hints button{pointer-events:auto;display:flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:4px 11px 4px 5px;background:rgba(17,24,39,.78);color:#fff;font:12.5px/1.3 system-ui,sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+#city-hints button.off{color:#c9ced6;background:rgba(55,60,70,.7)}
+#city-hints kbd{min-width:20px;padding:2px 6px;border-radius:6px;background:#f3f4f6;color:#111;font:600 11.5px/1.2 system-ui,sans-serif;text-align:center}
 #city.pop{left:max(16px,5vw);right:max(16px,5vw);top:max(16px,5vh);bottom:max(16px,5vh);width:auto;max-height:none;z-index:70;padding:18px 22px;font-size:13px;box-shadow:0 0 0 100vmax rgba(8,12,18,.45),0 12px 40px rgba(0,0,0,.4)}
 #city.pop .me{display:flex;gap:16px;align-items:center;margin-bottom:12px}
 #city.pop .me .face{width:104px;height:104px;border-radius:50%;flex:none;background:#2a3542 center/cover no-repeat;border:3px solid rgba(128,128,128,.3)}
@@ -6450,8 +7535,8 @@ diffuseColor.rgb *= kbCloth;`);
   actionBar.setAttribute("role", "toolbar"); actionBar.setAttribute("aria-label", "What you can do");
   const dynamicActions = Object.assign(doc.createElement("div"), { className: "here" });
   const alwaysActions = Object.assign(doc.createElement("div"), { className: "always" });
-  const helpButton = h("button", { title: "The controls (H)", onclick: () => openSide("help") }, "Controls");
-  const tasksButton = h("button", { title: "The task board: work to take (J)", onclick: () => openSide("tasks") }, "Task board");
+  const helpButton = h("button", { title: "The controls (? or /)", onclick: () => openSide("help") }, "Controls");
+  const tasksButton = h("button", { title: "The task board: work to take", onclick: () => openSide("tasks") }, "Task board");
   const onlineButton = h("button", { className: "shop", title: "The shop: anything sold in the city, from anywhere, at twice the price; homes at their price", onclick: () => openSide("online") }, "Shop");
   const bagButton = h("button", { title: "The inventory (I)", onclick: () => openSide("bag") }, "Inventory");
   const taxiButton = h("button", { title: "Call a taxi to where you stand (Enter gets in when it pulls up)", onclick: () => taxiKey() }, "Taxi");
@@ -6469,7 +7554,10 @@ diffuseColor.rgb *= kbCloth;`);
   hotbar.setAttribute("role", "toolbar"); hotbar.setAttribute("aria-label", "Your bar: 1 to 8 choose what is in your hand");
   promptBox = Object.assign(doc.createElement("div"), { id: "city-prompt" });
   promptBox.hidden = true;
-  doc.body.append(tasksCard, actionBar, profileCard, hotbar, promptBox);
+  hintBox = Object.assign(doc.createElement("div"), { id: "city-hints" });
+  hintBox.setAttribute("aria-live", "polite"); hintBox.setAttribute("aria-label", "What you can do here");
+  hintBox.hidden = true;
+  doc.body.append(tasksCard, actionBar, profileCard, hotbar, promptBox, hintBox);
   let actionsKey = "", profileKey = "";
   const bar = (label, value, colour) => `<div class="bar"><span>${label}</span><i style="--v:${Math.max(0, Math.min(100, value)).toFixed(1)}%;--c:${colour}"></i><b>${Math.round(value)}</b></div>`;
   //: Where the bar's parts go: the tasks card right of the Map button (right of the map's
@@ -6672,7 +7760,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (deliveryHere(place) && !p.delivery) extra.push(h("h4", { textContent: "Deliveries" }), act(`Take a delivery gig (${R.fmt(R.delivery.base_pay)} + ${R.fmt(R.delivery.pay_per_km)}/km)`, () => takeDelivery(place)));
       extra.push(...enterprise().storeExtra(place));   // buy the business, or manage yours
       const count = lines.reduce((a, l) => a + l.qty, 0);
-      if (walkedHere) { side.el.replaceChildren(title, status, h("p", { className: "note", textContent: "Take what you want off the shelves (G), a basket or a cart by the door, and pay at a till (Enter)." }), ...extra); return; }
+      if (walkedHere) { side.el.replaceChildren(title, status, h("p", { className: "note", textContent: "Take what you want off the shelves (click it), a basket or a cart by the door, and pay at a till (Enter)." }), ...extra); return; }
       side.el.replaceChildren(title, tabs || "", status, h("table", { className: "wares" }, ...rows),
         h("div", { style: "position:sticky;bottom:-12px;background:var(--cp,#fff);padding:8px 0;display:flex;gap:8px;align-items:center;justify-content:flex-end;border-top:1px solid rgba(128,128,128,.25)" },
           h("span", { className: "note", textContent: count ? `${count} in the basket · ${R.fmt(sub)} before tax` : "Choose how many with + and −." }),
@@ -6716,8 +7804,8 @@ diffuseColor.rgb *= kbCloth;`);
         else if (slotOf !== chosen) btns.push(h("button", { textContent: `Hold it (${slotOf + 1})`, onclick: () => { selectSlot(slotOf); drawSide(); } }));
         // Off the bar (and out of your hand) into the bag's first free place: nothing has to be held.
         if (slotOf >= 0 && slotOf < BAR) { const free = slots.findIndex((v, i) => i >= BAR && !v); if (free >= 0) btns.push(h("button", { textContent: slotOf === chosen ? "Put away in the bag" : "To the bag", onclick: () => { slots = swap(slots, slotOf, free); saveSlots(); syncSlots(); drawSide(); } })); }
-        if (inHand && (it.use || it.wear)) btns.push(h("button", { className: "primary", textContent: it.wear ? (worn ? "Take off (U)" : "Wear (U)") : `${it.kind === "prepared_food" || it.use?.stamina ? "Eat or drink" : "Use"} (U)`, onclick: () => useSelected() }));
-        if (!it.parcel) btns.push(h("button", { textContent: "Put down", onclick: () => say(send("drop", { item: pickId }), () => `Put down: ${it.name.toLowerCase()}. G picks it up.`).then(() => syncSlots(true)) }));
+        if (inHand && (it.use || it.wear)) btns.push(h("button", { className: "primary", textContent: it.wear ? (worn ? "Take off (right click)" : "Wear (right click)") : `${it.kind === "prepared_food" || it.use?.stamina ? "Eat or drink" : "Use"} (right click)`, onclick: () => useSelected() }));
+        if (!it.parcel) btns.push(h("button", { textContent: "Put down", onclick: () => say(send("drop", { item: pickId }), () => `Put down: ${it.name.toLowerCase()}. A click picks it up.`).then(() => syncSlots(true)) }));
         if (!it.parcel) for (const { peer, pid } of peers) btns.push(h("button", { textContent: `Give to ${peer.name}`, onclick: () => say(send("give_item", { to: pid, item: pickId }), (r) => `Gave ${r.to} the ${it.name.toLowerCase()}.`).then(() => syncSlots(true)) }));
         detail.push(h("div", {}, ...btns), ...commerce().bagExtra(pickId), ...commerce().packing(side));
       } else detail.push(h("p", { className: "note", textContent: "Empty hand: X punches. Shops sell food, medicine, tools and clothes (Enter at a shop, then the SHOP panel by the door); things on the ground with a yellow ring are picked up with G." }));
@@ -6780,7 +7868,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (t || p.delivery || p.errand) {
         const out = [title, status];
         if (t || p.delivery) {
-          const steps = t?.steps || [p.delivery.stage === "pickup" ? `Pick up the order at ${p.delivery.from.name} (G at its door)` : `Deliver to ${p.delivery.to.name || "the address"}`];
+          const steps = t?.steps || [p.delivery.stage === "pickup" ? `Pick up the order at ${p.delivery.from.name} (click it at its door)` : `Deliver to ${p.delivery.to.name || "the address"}`];
           const ticked = (i) => stepDone(p, i);
           const list = h("ol", { style: "margin:4px 0 8px 18px;padding:0" }, ...steps.map((st, i) => h("li", { textContent: `${st}${ticked(i) ? " ✓" : ""}`, style: ticked(i) ? "opacity:.6" : "" })));
           out.push(h("p", {}, h("b", { textContent: t?.title || "Delivery" }), ` — ${R.fmt(t?.pay ?? p.delivery?.pay ?? 0)} on finishing`), list,
@@ -6908,16 +7996,24 @@ diffuseColor.rgb *= kbCloth;`);
       return;
     }
     // The controls.
-    const keys = [["Arrows", "walk: Up goes the way you face. Left / Right standing (or slow) step you round where you stand, a quarter turn a step; walking, they turn you round a curve (tighter the slower; let go and you walk on straight). Down turns you round: one step slow, two at a sprint. At the wheel, drive"], ["Shift (hold)", "sprint, while stamina lasts"], ["Space", "jump: as high as your legs push against your weight and what you carry"],
+    const keys = [["Arrows", "walk: Up goes the way you face. Left / Right standing (or slow) step you round where you stand, a quarter turn a step; walking, they turn you round a curve. Down turns you round. Climbing, they reach for the next hold (two together for a diagonal); on a top, they walk along it; out of a tree, Down climbs down. Pushing something, Up pushes it along. At the wheel, drive"],
+      ["Shift (hold)", "sprint, while stamina lasts"], ["Shift + Up / Down", "standing still where there is a level above or below (a bridge's deck, a lower deck): up or down to it"],
+      ["Space", "jump, as high as your legs push against your weight and load; running, on the way you are going. At a fence, a wall, a tree or a ladder: onto it, over it, or the first holds of a climb (then the arrows). Climbing or on a top: push off, or jump down"],
+      ["A click", "in a shop or a restaurant: on a chair, sit down (walk to get up); on a product on a shelf, take it (into your hands or basket); on someone who works there, they come over and ask what you need (a waiter's menu link lets you order). On the food or drink in your hand: a bite or a sip; held down, eat or drink on to the end. On a thing on the ground (a courier's order at the door too): walk over and pick it up, then click the ground to set it down there. Too heavy to lift, or something loose like a log or a chair: walk up to it, hands on it, and Up pushes it; click again to let go. With nails in your hand, on wood: a nail set there, held for the hammer; click again and it drops. With the messages open, on someone: talk. On another player: who they are. A click is never a blow"],
+      ["Right click", "use what is in your hand: eat, drink, take medicine, wear or take off. A right click is a bite or a sip; held down, eat or drink it all. On a home of yours: its property menu. Shift + right click: the exterior editor"],
       ["1 – 8", "choose from the bar at the bottom: what is chosen is in your hand (an empty slot is an empty hand)"], ["I", "the inventory: the grid and the bar; click a thing, then a slot, to move it"],
-      ["U, or a right click", "use what is in your hand: eat, drink, take medicine, wear or take off"], ["X, or a click", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
-      ["K", "your pets: how each is, feed it, take one in, the vet when you are at one"], ["L", "tie up the pet beside you (with a lead) or have it stay; again and it follows. At the wheel: leave them in the car. Drive off before one is in and it waits where it was"],
-      ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"], ["G", "pick up the nearest thing on the ground (yellow ring) you can lift: a step over to it and down for it"],
-      ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), your taxi pulled up beside you (in it: out early, and pay), the bus standing at the stop (aboard: ask for the next stop), the shop whose door you are at (inside, click its blue SHOP panel by the door; at the door, back out), your own garage door up or down; elsewhere, a building's door"],
-      ["V", "on shift: do the task in front of you (the orange ring)"], ["Z", "at a bed: lie down (in your own, sleep); again, get up"], ["B", "your bicycle (a bike shop sells them): get on; the arrows pedal, brake and steer; B or Enter to get off"],
-      ["J", "the task board: courier work, flyers, dog walks, bus-stop counts, mystery shopping, the Presidio's trees, the Marina walk, neighbours' errands (the top three are in Tasks, at the top left)"],
-      ["Top bar", "Inventory, the Task board, the Shop (everything, from anywhere, at twice the shop price; real estate at its price), Taxi (call one to where you stand) and these Controls; your money, health, stamina and strength at the top right (a click opens your wallet)"],
-      ["H or ?", "these controls"], ["F", "first person"], ["S", "what is under the pointer"], ["PageUp / PageDown", "the level above or below where you stand"]];
+      ["X", "swing what is in your hand (a punch, empty-handed) at what is in front: a thing, a tree, a person"],
+      ["Shift + X", "the point or head of what you hold instead of a swing: a crowbar jabs, a sledgehammer rams, a knife stabs, a spade jabs -- less than a swing, but straight in. Empty-handed, the flat of the hand instead of a punch: shove a person (they rock, stagger or fall by their balance; a fall is battery if seen), or give something loose a shove (a log, a chair)"],
+      ["R (hold)", "work at what is in front with a tool, a stroke at a time while held: a saw saws wood, a crowbar pries, bolt cutters cut chain and wire, a knife carves wood (your initials in a bench), a spade digs the ground underfoot (lawn, soil, sand; never pavement)"],
+      ["R (tap)", "on shift: do the task at the orange ring. With a hammer and nails, at wood (or at a nail you set with a click): one blow on the nail each tap. Keep a steady second between blows: a rushed or tired blow lands off square and the nail bends"],
+      ["Y / N", "answer the question at the top (clock in, hand over a parcel, an errand's shopping)"],
+      ["L", "tie up the pet beside you (with a lead) or have it stay; again and it follows. At the wheel: leave them in the car"],
+      ["Q", "throw what is in your hand, the way you face: heavier goes slower; glass breaks, drinks spill"],
+      ["Enter", "in and out, whichever is nearest: your car (out of it, parking where you stop; or ride with a party member), your taxi pulled up beside you (in it: out early, and pay), the bus standing at the stop (aboard: ask for the next stop), the shop whose door you are at (inside, at the door, back out), a till (pay), your own garage door up or down, your bicycle (on it, and off it); elsewhere, a building's door"],
+      ["Z", "at a bed: lie down (in your own, sleep); again, get up"],
+      ["Tasks (top left)", "click your task, delivery or errand: its card -- the steps, an arrow pointing the way and how far, Go there (walks you there along the pavements; an arrow key takes over), Close (back to the list) and Cancel (drops it). Your pets are on your profile, under Relationships › Family"],
+      ["Top bar", "Inventory, the Task board (work to take), the Shop (everything, from anywhere, at twice the shop price; real estate at its price), Taxi (call one to where you stand) and these Controls; your money, health, stamina and strength at the top right (a click opens your profile)"],
+      ["? or /", "these controls"], ["F", "first person"], ["S", "what is under the pointer"], ["Esc", "close the window over the screen"]];
     const asked = "Asked as a Yes / No where it applies: clocking in at your workplace (and out when you leave), handing over a parcel at its address, and an errand's shopping at the neighbour's door. Answer No and it stays on the buttons along the bottom while it applies. A window closes with its × or its key again.";
     const bars = [["Health", "wears slowly; quickly with no stamina left. Medicine (pharmacy), a doctor's visit (clinic), a night's sleep. At 0 you faint, wake at home, and pay the ambulance."],
       ["Stamina", "runs down through the day, faster at work and sprinting; comes back at night, fastest asleep at home. Food and drink at cafés, restaurants, bars and grocers give it back. Low, you are slowed."],
@@ -6925,6 +8021,9 @@ diffuseColor.rgb *= kbCloth;`);
     side.el.replaceChildren(h("h3", {}, h("span", { textContent: "Controls" }), close), h("table", {}, ...keys.map(([k, v]) => h("tr", {}, h("td", {}, h("kbd", { textContent: k })), h("td", { textContent: v })))),
       h("h4", { textContent: "The bars" }), ...bars.map(([k, v]) => h("p", { className: "note" }, h("b", { textContent: `${k}: ` }), v)),
       h("p", { className: "note", textContent: asked },),
+      h("h4", { textContent: "Hints" }),
+      h("p", { className: "note", textContent: "The strip over the bar shows what you can do just here: climbing, a tool on what is in front, a bite. Walking and plain jumps are never in it. Each hint shortens as you use it, and goes once learned." }),
+      h("div", { className: "tabs" }, ...[["full", "In full"], ["short", "Keys only"], ["off", "Off"]].map(([k, label]) => h("button", { textContent: label, "aria-pressed": String(hintSetting === k), onclick: () => { setHints(k); drawSide(); } }))),
       h("p", { className: "note", textContent: "Every action is on the buttons along the bottom too, for touch screens. The City panel has your money, job, car, bills, taxes and the party's measures. Explore mode (the switch at the top left) has the map's keys: E the free view, R back to where you are, a click to go there, the pins; Space jumps there too, and Enter opens your own garage." }));
   }
   //: You: a window over most of the screen, opened from your card at the top right -- your
@@ -7202,10 +8301,16 @@ diffuseColor.rgb *= kbCloth;`);
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
     },
-    get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt), cancelAutoWalk: () => { reach.t = null; }, openPanel, closePanel, joinParty, leaveParty,
+    get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt) || stepNav(dt), cancelAutoWalk: () => { reach.t = null; stopNav(); }, pressDown, pressUp, useDown, useUp, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
-    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey,
+    enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, climbKey,
+    //: On a wall or its top (the arrows climb: the page's walk stands down), and in the air (a jump
+    //: under way: it carries on by itself), each stepped by the page (module 26 stepAvatar).
+    get climbing() { return climbPlay.climbing; }, get airborne() { return climbPlay.airborne; }, climbPlay: () => climbPlay,
+    stepClimb: (dt, held) => climbPlay.stepClimb(dt, held), stepAir: (dt, held) => climbPlay.stepAir(dt, held),
+    //: What is being eaten or drunk now ({item, form, tool, action, phase, left}), for checks.
+    eating: () => eatPlay.what, eatPlay: () => eatPlay,
     //: Whether the city is up and running, for the loading screen: {ready, waiting}. Ready when
     //: the district is built, the first pass over it is done, no vehicle model is still loading,
     //: and people or traffic have been out and moving for ALIVE_FOR_MS. An hour with nobody out
