@@ -20,6 +20,7 @@ from a 360 one, which changes what the frame can be used for downstream.
 
 from __future__ import annotations
 
+import math
 import os
 import urllib.parse
 from collections.abc import Callable, Iterator
@@ -67,15 +68,41 @@ FIELDS = (
 #: quota on the response, not a fault. At 1000 it answers.
 PAGE_LIMIT = 1000
 
-#: A box returning a full page is assumed to be truncated and is split. Nine levels takes a
-#: corridor down to a few metres, which is far more than any real coverage needs; the limit is
-#: there so a pathological box terminates rather than recursing forever.
+#: A box returning a full page is split. Nine levels takes a corridor down to a few metres, which
+#: is far more than any real coverage needs; the limit is there so a pathological box terminates
+#: rather than recursing forever.
 MAX_SUBDIVISION_DEPTH = 9
 
-#: Boxes are split this many times before the first request. The corridor is refused outright at
-#: full size and at a half and a quarter of it, so starting whole means three guaranteed failures
-#: and three rounds of backoff before any data arrives.
+#: The largest box ever asked for, in degrees on each side (~70 m north-south, ~55 m east-west
+#: here). ``/images?bbox=`` answers a larger box with a *sample* of its frames -- fewer than the
+#: page limit and with no cursor, so nothing in the response says frames are missing. Measured
+#: 2026-11-24 on five 0.0025-degree boxes (Sea Cliff, Chestnut, Mission, Outer Sunset, Marina
+#: Green): whole boxes returned 766, 568, 933, 497 and 476 frames where 0.000625-degree tiles
+#: found 2,661, 2,066, 1,476, 497 and 1,519. The loss does not follow the count returned: one
+#: 0.00125-degree box answered 11 frames and held 342. At 0.000625 a tile's four quarters add
+#: nothing in all but 4 of 86 tiles, and at most 13 frames.
+MAX_TILE_DEG = 0.000625
+
+#: Kept for callers that pass it; the search no longer starts from halvings of the region but
+#: from tiles no larger than ``MAX_TILE_DEG``.
 INITIAL_SPLITS = 3
+
+
+def tiles(bbox: BBox, step: float = MAX_TILE_DEG) -> list[BBox]:
+    """``bbox`` cut into a regular grid of cells no larger than ``step`` degrees on a side."""
+    rows = max(1, math.ceil((bbox.north - bbox.south) / step - 1e-9))
+    cols = max(1, math.ceil((bbox.east - bbox.west) / step - 1e-9))
+    dlat, dlon = (bbox.north - bbox.south) / rows, (bbox.east - bbox.west) / cols
+    return [
+        BBox(
+            bbox.south + i * dlat,
+            bbox.west + j * dlon,
+            bbox.north if i == rows - 1 else bbox.south + (i + 1) * dlat,
+            bbox.east if j == cols - 1 else bbox.west + (j + 1) * dlon,
+        )
+        for i in range(rows)
+        for j in range(cols)
+    ]
 
 
 class MapillaryCredentialMissing(RuntimeError):
@@ -168,39 +195,20 @@ class MapillaryProvider:
 
     # -- search -------------------------------------------------------------------------------
 
-    @staticmethod
-    def _grid(bbox: BBox, splits: int) -> list[BBox]:
-        """The box halved on both axes ``splits`` times."""
-        boxes = [bbox]
-        for _ in range(splits):
-            out: list[BBox] = []
-            for box in boxes:
-                mid_lat = (box.south + box.north) / 2.0
-                mid_lon = (box.west + box.east) / 2.0
-                out.extend(
-                    (
-                        BBox(box.south, box.west, mid_lat, mid_lon),
-                        BBox(box.south, mid_lon, mid_lat, box.east),
-                        BBox(mid_lat, box.west, box.north, mid_lon),
-                        BBox(mid_lat, mid_lon, box.north, box.east),
-                    )
-                )
-            boxes = out
-        return boxes
-
     def _region_images(self, bbox: BBox) -> Iterator[dict]:
         """Every image in a region, starting from boxes small enough to be answered.
 
-        Boxes are reported as they finish so a caller can record them. Without that, a run
+        The region is cut into tiles of at most ``MAX_TILE_DEG`` (a larger box is answered with a
+        sample). Boxes are reported as they finish so a caller can record them. Without that, a run
         interrupted after two hours restarts at the first box and re-crawls everything it already
         had -- and against a service that throttles, re-crawling is not merely wasteful, it is
         the thing most likely to get the resumed run throttled in turn.
         """
-        for index, box in enumerate(self._grid(bbox, INITIAL_SPLITS)):
+        for index, box in enumerate(tiles(bbox)):
             key = f"{index}:{box.as_stac()}"
             if key in self.completed_boxes:
                 continue
-            yield from self._images(box, INITIAL_SPLITS)
+            yield from self._images(box)
             self.completed_boxes.add(key)
             if self.on_box_done is not None:
                 self.on_box_done(key)
@@ -212,7 +220,17 @@ class MapillaryProvider:
         returns every frame once, where a split has to reconcile frames that sit on a shared
         edge. Splitting is the fallback for a box that returns a full page with no cursor, which
         is how this API says "there is more here" when it will not say how much.
+
+        A box larger than ``MAX_TILE_DEG`` is never requested whole: the API answers it with a
+        sample and no cursor, which looks exactly like a complete answer.
         """
+        if (
+            bbox.north - bbox.south > MAX_TILE_DEG * (1 + 1e-6)
+            or bbox.east - bbox.west > MAX_TILE_DEG * (1 + 1e-6)
+        ):
+            for box in tiles(bbox):
+                yield from self._images(box, depth)
+            return
         url = (
             f"{self._api}/images?"
             + urllib.parse.urlencode(
@@ -226,6 +244,7 @@ class MapillaryProvider:
         )
         seen_here = 0
         refused = False
+        paged = False
         while url:
             try:
                 payload = self._http.get_json(url)
@@ -242,15 +261,23 @@ class MapillaryProvider:
             data = payload.get("data") or []
             seen_here += len(data)
             yield from (row for row in data if isinstance(row, dict))
-            following = ((payload.get("paging") or {}).get("next")) or None
-            url = _s(following)
+            following = _s(((payload.get("paging") or {}).get("next")) or None)
+            if (
+                following is None
+                and not paged
+                and len(data) >= self._page_limit
+                and depth < MAX_SUBDIVISION_DEPTH
+            ):
+                # A full first page with no cursor: the box holds more than one page and the API
+                # will not page it. Its quarters are asked for; callers drop the duplicates.
+                refused = True
+                break
+            paged = following is not None
+            url = following
 
         if not refused:
-            # A completed cursor walk has already returned every frame in this box -- that is
-            # what the cursor is for. Splitting anyway, on the theory that a large result means a
-            # truncated one, re-requests the same area four times over at every level and turns a
-            # dense downtown box into thousands of redundant requests. Only a refusal, where the
-            # server declined to answer at all, means anything is still unseen.
+            # A completed cursor walk over a tile-sized box has returned every frame in it.
+            # Only a refusal or a full page without a cursor means anything is still unseen.
             return
         if depth >= MAX_SUBDIVISION_DEPTH:
             self.errors.append(

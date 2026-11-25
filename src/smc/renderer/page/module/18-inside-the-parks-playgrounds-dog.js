@@ -378,6 +378,7 @@ function noteParkAreaGates(areas) {
   return noted;
 }
 function fenceArea(area, pts, height, kind, sink) {
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(`area:${area.id ?? `${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`}`);
   const gates = parkAreaGates(area, pts);
   let cx = 0, cz = 0;
   for (const [x, z] of pts) { cx += x; cz += z; }
@@ -431,7 +432,9 @@ function fenceArea(area, pts, height, kind, sink) {
 function fenceSink() {
   const sink = { positions: [], uvs: [], indices: [], posts: [], gates: [] };
   sink.quad = (x0, z0, x1, z1, h, span) => {
+    sink.leaf = true;
     groundedFencePanel(sink,x0,z0,x1,z1,PLAYGROUND_Y,h,1,h);
+    sink.leaf = false;
   };
   sink.fence = (x0, z0, x1, z1, h) => layFence(sink, x0, z0, x1, z1, PLAYGROUND_Y, h, 1, h);
   return sink;
@@ -447,6 +450,7 @@ function emitFence(sink, material, surface) {
     mesh.userData = { surface, gates: sink.gates.length,liftedOntoGround:true,
       elevationBasis:"terrain_sampled_0.75m" };
     groups.ground.add(mesh);
+    sink.mesh = mesh;
   }
   if (sink.posts.length) {
     const post = new THREE.InstancedMesh(parkGeometry("cyl"),
@@ -640,6 +644,7 @@ function* buildParkAreasSteps(areas) {
     const surfaceMesh = addGround(new THREE.Mesh(geom, material), finish === "skate" ? "park:skatepark_surface" : "park:play_surface");
     surfaceMesh.renderOrder = -1;
   }
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
   const picketMaterial = new THREE.MeshStandardMaterial({ map: playFenceTexture(), alphaTest: 0.5, side: THREE.DoubleSide,
     color: 0x2f3a33, roughness: 0.55, metalness: 0.45 });
   emitFence(picket, picketMaterial, "park:playground_fence");
@@ -749,11 +754,12 @@ async function buildPropertyFences() {
     runs.forEach((run, i) => {
       const { panels, openings } = api.cutGates(run, gates.filter((g) => g.run === i));
       for (const o of openings) noteFenceGate(o.a[0], o.a[1], o.b[0], o.b[1]);
-      cut.push({ run, panels, openings });
+      cut.push({ run, panels, openings, owner: `property:${prop.id ?? stats.properties}` });
     });
   }
-  for (const { run, panels, openings } of cut) {
+  for (const { run, panels, openings, owner } of cut) {
     if (((k += 1) & 15) === 0) await new Promise((r) => setTimeout(r));
+    typeof fenceOwnedBy === "function" && fenceOwnedBy(owner);
     const sink = sinkOf(run.style), tile = run.style === "chain_link" ? 0.6 : run.style === "board" || run.style === "wall" || run.style === "hedge" ? 1.5 : 1;
     for (const panel of panels) for (let j = 0; j + 1 < panel.length; j += 1) {
       const [sx, sz] = panel[j], [ex, ez] = panel[j + 1];
@@ -773,6 +779,7 @@ async function buildPropertyFences() {
       stats.gates += 1; if (o.basis === "recorded") stats.gates_recorded += 1; else stats.gates_inferred += 1;
     }
   }
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
   const barMap = playFenceTexture();
   const materialOf = (style) => style === "chain_link" ? chainlinkMaterial()
     : style === "board" ? fenceMaterial(FENCE_STYLE.board) : style === "wall" ? fenceMaterial(FENCE_STYLE.wall)
@@ -789,6 +796,7 @@ async function buildPropertyFences() {
     geom.computeVertexNormals();
     const mesh = addGround(new THREE.Mesh(geom, materialOf(style)), look.surface + "|property");
     mesh.userData.liftedOntoGround = true; mesh.userData.elevationBasis = "terrain_sampled_0.75m"; mesh.userData.basis = "property_fences";
+    sink.mesh = mesh;
     if (look.post !== null && sink.posts.length) {
       const posts = new THREE.InstancedMesh(parkGeometry("cyl"), new THREE.MeshStandardMaterial({ color: look.post, roughness: 0.5, metalness: style === "chain_link" ? 0.1 : 0.5 }), sink.posts.length);
       sink.posts.forEach(([x, z, h], i) => { dummy.position.set(x, groundLiftAt(x, z) + YARD_Y + h / 2, z); dummy.rotation.set(0, 0, 0); dummy.scale.set(0.06, h, 0.06); dummy.updateMatrix(); posts.setMatrixAt(i, dummy.matrix); });
@@ -931,6 +939,8 @@ const groundReady = (async () => {
     }
     grassSampleAt=(x,z)=>{
         if(excludeGrassAt(x,z)||insideCarriageway(x,z,.15)||parkPavementAt(x,z)||buildingAt(x,z)||mappedWaterAt(x,z))return null;
+        // Nor on a mapped path drawn over the lawn (the streets layer draws it, not the park's mask).
+        if(typeof pathTreadAt==="function"&&pathTreadAt(x,z,.04))return null;
         const mask=grassMask.texture.image;
         const mx=Math.floor((x-grassMask.west)/(grassMask.east-grassMask.west)*mask.width);
         const my=Math.floor((-z-grassMask.south)/(grassMask.north-grassMask.south)*mask.height);
@@ -1325,6 +1335,23 @@ const groundReady = (async () => {
     tree.p = [moved[0] / metersPerLon + midLon, -moved[1] / metersPerLat + midLat];
     treeSquareStats.offFence += 1;
   }
+  // A tree whose base touches grass stands wholly on it: one half on a lawn and half on paving
+  // read as a tree planted across the edge of a path. It is moved, the least way it can be
+  // (TREE_ON_GRASS.reach_m at most), to where the ground round its base is all lawn -- and off
+  // fences, driveways and poles as before. A tree in a kerbside opening keeps its opening; one
+  // with no lawn round it at all is in paving and keeps its place.
+  const grassUnder = (x, z) => lawnDrawnAt(x, z) && pavementSurfaceAt(x, z) === null && !insideCarriageway(x, z, 0)
+    && !buildingAt(x, z) && !overWaterAt(x, z);
+  for (const tree of trees) {
+    if (treePlotCorners.has(tree) || islandTrees.some((t) => t.tree === tree)) continue;
+    const [tx, ty] = xy(tree.p[0], tree.p[1]);
+    const moved = treeOntoGrass(tx, -ty, grassUnder, (x, z) => !nearestFenceLine(x, z, TREE_FENCE_CLEAR_M)
+      && !inDriveway(x, z) && !poleNear(x, z, TREE_POLE_CLEAR_SOFT_M));
+    if (moved === null) continue;
+    if (moved === false) { treeSquareStats.grassEdge = (treeSquareStats.grassEdge || 0) + 1; continue; }
+    tree.p = [moved[0] / metersPerLon + midLon, -moved[1] / metersPerLat + midLat];
+    treeSquareStats.ontoGrass = (treeSquareStats.ontoGrass || 0) + 1;
+  }
   for (const tree of trees) {
     const [tx, ty] = xy(tree.p[0], tree.p[1]);
     const tz = -ty;
@@ -1487,6 +1514,10 @@ const groundReady = (async () => {
   buildCourts(ground);
   // What is inside the parks: playgrounds and the other recreation areas (RPD / OpenStreetMap).
   window.kerbsideParkAreas = await runStepsSliced(buildParkAreasSteps(PARK_EVIDENCE?.areas || []));
+  // Every fence is laid: each end that meets nothing is carried on to a wall or a fence (module 17).
+  try { window.kerbsideFenceEnds = closeFenceEnds(); } catch (error) { console.warn("kerbside: the fences' ends were left as laid", error); }
+  // And the paving off the far side of every fence (module 17).
+  try { window.kerbsideFenceBites = cutPavingAtFences((x, z) => lawnDrawnAt(x, z) && pavementSurfaceAt(x, z) === null && !buildingAt(x, z)); } catch (error) { console.warn("kerbside: the paving was left under the fences", error); }
   window.kerbsideFenceLayers = fenceLayStats;
   tileGroup(groups.ground);
   await liftOntoGroundAsync(groups.ground, "Standing the ground cover on the hill");
@@ -1558,11 +1589,53 @@ function surveyedCurbMaterial() {
   return SURVEYED_CURB_MATERIAL ||= new THREE.MeshStandardMaterial({
     map: KERB_CONCRETE, color: 0xd8d6d0, roughness: 0.9, metalness: 0.0 });
 }
+//: One kerb, and it is the walk's own (the owner, 2026-11-24: "I do not want any more detached
+//: curbs ... forcing only one reality version to render"). The swept kerbs are the city's
+//: digitised kerb linework (SFMTA's), a second drawing of the kerb the walks already stand along
+//: their own edges; and the two are not on one line. Measured where the Marina opens
+//: (kerbSourceReport: 3,199 points of 399 lines), the linework lies a median 0.10 m to the
+//: pavement side of the edge the walks are laid to -- the two are measured from different points
+//: of the kerb (the walk's edge from kerb-to-kerb widths, face to face; the linework a little
+//: further back) -- and half of it lies between 0.03 m inside that edge and 0.44 m outside it,
+//: 46% of the points more than 0.3 m off, since a walk is laid at one width a street and the
+//: linework follows every bay and bulb. Drawn as well as the walk's kerb, wherever the two
+//: parted the linework's kerb stood off by itself. So it is not drawn: WORLD_KERB_DRAWN. It is still read, and its distance from
+//: the drawn kerb reported, so the walks can be laid to it instead when the corner builder can
+//: take it (module 01: one kerb, everywhere).
+const WORLD_KERB_DRAWN = false;
+//: Where each kerb line is measured from, and how far apart the two are found to lie (m, the
+//: linework's distance to the pavement side of the drawn kerb): ``kerbSourceReport()`` measures
+//: it on the page that is open, at up to ``samples`` points of the linework.
+const KERB_REFERENCE = { drawn: "the walk's own edge: half the street's kerb-to-kerb width out from its centreline (the kerb's face)",
+  linework: "the city's digitised kerb line (SFMTA curb linework): found a little behind the face",
+  measured_median_m: 0.1, samples: 6000, reach_m: 3 };
+function kerbSourceReport() {
+  const offsets = [];
+  const curbs = (WORLD_OBJECTS.objects || []).filter((r) => r.type === "curb" && r.sweep);
+  const every = Math.max(1, Math.ceil(curbs.length * 9 / KERB_REFERENCE.samples));
+  curbs.forEach((record, n) => {
+    if (n % every) return;
+    const path = worldSweepLevel(record.sweep.lods).path;
+    for (let i = 0; i < path.length; i += 2 * Math.max(1, Math.floor(path.length / 18))) {
+      const [x, z] = worldLocalToPage(record.anchor, path[i] / 1000, path[i + 1] / 1000);
+      const k = typeof nearestKerbAt === "function" ? nearestKerbAt(x, z, KERB_REFERENCE.reach_m) : null;
+      if (k) offsets.push((x - k.x) * k.nx + (z - k.z) * k.nz);
+    }
+  });
+  offsets.sort((a, b) => a - b);
+  const q = (p) => (offsets.length ? +offsets[Math.floor(p * (offsets.length - 1))].toFixed(3) : null);
+  return { reference: { drawn: KERB_REFERENCE.drawn, linework: KERB_REFERENCE.linework }, linework_drawn: WORLD_KERB_DRAWN, records: curbs.length, points: offsets.length,
+    offset_m: { p05: q(0.05), p25: q(0.25), median: q(0.5), p75: q(0.75), p95: q(0.95) },
+    over_30cm_share: offsets.length ? +(offsets.filter((d) => Math.abs(d) > 0.3).length / offsets.length).toFixed(3) : null,
+    withheld: worldSweepStats.withheld || 0, guard: { ...streetShapeStats } };
+}
+window.kerbsideKerbSources = kerbSourceReport;
 function emitWorldSweeps() {
   for (const record of (WORLD_OBJECTS.objects || [])) {
     if (!record.sweep) continue;
     const side = record.sweep.params && record.sweep.params.side ? record.sweep.params.side.value : 0;
     const curb = record.type === "curb";
+    if (curb && !WORLD_KERB_DRAWN) { worldSweepStats.withheld = (worldSweepStats.withheld || 0) + 1; continue; }
     for (const piece of worldSupportedPieces(record, side)) {
       // A curb in the standard section, laid with the curb's own concrete by the metre.
       const { vertices, index, uv } = sweepGeometryLocal(piece.path, piece.breaks, false,
@@ -1704,8 +1777,303 @@ function worldSupportedPieces(record, side) {
   flush();
   return pieces;
 }
+// ---- the street's shapes settled, before they are merged -------------------------------------------
+//
+// Everything paved is in hand here as it was laid, piece by piece (MERGED), and nothing is
+// drawn yet. Four things are put right on the whole of it at once, where each builder could
+// only see its own piece:
+//
+//   * A kerb is the edge of a walk. Any kerb with no walk beside it -- left where its walk was
+//     cut away at a ramp, a corner or a crossing -- is taken out (a detached kerb in the road).
+//   * A scrap of walk standing alone (under STREET_SHAPES.sliver_m2) is taken out with it.
+//   * An island in the roadway -- pieces of several walks and a median overlapping, their
+//     outline whatever the overlaps left, stepped and many-sided -- is drawn again as one slab
+//     in the nearest plain shape: its rectangle where it all but fills one, else the curve drawn
+//     smoothly round its outermost points; with one kerb round it.
+//   * Every sidewalk's squares are on one grid, square to the district's streets, so the squares
+//     of one piece carry on into the next with no line between them. (Each piece had its own:
+//     measured along its own run, stretched across its own width.)
+//
+// On a grid of half-metre cells over the paved ground (which cells have walk on them, and which
+// stand together).
+const STREET_SHAPES = { cell_m: 0.5, sliver_m2: 2.5, island_most_m2: 420, rectangle_fill: 0.8, hull_fill: 0.68, road_share: 0.7, round_m: 0.9, long_ratio: 5, long_fill: 0.9, cells_most: 160e6 };
+const streetShapeStats = { kerb_tris_cut: 0, slivers: 0, islands: 0, rectangles: 0, curves: 0, left: 0, squared_parts: 0, grid_deg: null };
+function settleStreetShapes() {
+  if (typeof MERGED === "undefined" || HEADSET) return null;
+  const S = STREET_SHAPES, c = S.cell_m;
+  const walks = [], kerbs = [];
+  for (const [key, bucket] of MERGED) {
+    if (isBuilt(key)) continue;
+    // (A kerb: the walks' own lips. Not a rail or a fence swept by the same builder.)
+    if (bucket.surface === "kerb") { if (!key.startsWith("reconstructed:") || key.startsWith("reconstructed:curb")) kerbs.push(bucket); }
+    // (The underlay too: under an island it fills the whole of the gap the roadway leaves, which
+    // the walks laid on it do not always reach the edges of.)
+    else if (["walk", "walk_narrow", "walk_underlay", "median", "transit_island"].includes(bucket.surface)) walks.push(bucket);
+  }
+  streetShapeStats.buckets = [walks.length, kerbs.length];
+  if (!walks.length) return null;
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const b of walks) for (const g of b.parts) {
+    if (!g.getAttribute("position")) continue;
+    g.computeBoundingBox();
+    x0 = Math.min(x0, g.boundingBox.min.x); z0 = Math.min(z0, g.boundingBox.min.z); x1 = Math.max(x1, g.boundingBox.max.x); z1 = Math.max(z1, g.boundingBox.max.z);
+  }
+  x0 -= 2 * c; z0 -= 2 * c;
+  const cols = Math.ceil((x1 - x0) / c) + 3, rows = Math.ceil((z1 - z0) / c) + 3;
+  streetShapeStats.grid = [cols, rows];
+  if (!(cols > 0 && rows > 0) || cols * rows > S.cells_most) return null;
+  const at = (x, z) => Math.floor((z - z0) / c) * cols + Math.floor((x - x0) / c);
+  // (1: walk here. Then 2: looked at. Which piece a cell is of is kept only for the small pieces.)
+  const on = new Uint8Array(cols * rows), label = new Map();
+  // Each top face of each walk, on the grid.
+  const tops = (g, each) => {
+    const pos = g.getAttribute("position"), index = g.getIndex(), n = index ? index.count : pos.count;
+    for (let t = 0; t < n; t += 3) {
+      const i = index ? index.getX(t) : t, j = index ? index.getX(t + 1) : t + 1, k = index ? index.getX(t + 2) : t + 2;
+      const ax = pos.getX(i), az = pos.getZ(i), bx = pos.getX(j), bz = pos.getZ(j), cx = pos.getX(k), cz = pos.getZ(k);
+      const ux = bx - ax, uy = pos.getY(j) - pos.getY(i), uz = bz - az, vx = cx - ax, vy = pos.getY(k) - pos.getY(i), vz = cz - az;
+      const ny = uz * vx - ux * vz, nl = Math.hypot(uy * vz - uz * vy, ny, ux * vy - uy * vx);
+      each(t, i, j, k, ax, az, bx, bz, cx, cz, nl > 0 && Math.abs(ny) / nl > 0.7);
+    }
+  };
+  for (const b of walks) for (const g of b.parts) {
+    if (!g.getAttribute("position")) continue;
+    tops(g, (t, i, j, k, ax, az, bx, bz, cx, cz, flat) => {
+      if (!flat) return;
+      const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+      if (Math.abs(d) < 1e-9) return;
+      const i0 = Math.floor((Math.min(ax, bx, cx) - x0) / c), i1 = Math.floor((Math.max(ax, bx, cx) - x0) / c), j0 = Math.floor((Math.min(az, bz, cz) - z0) / c), j1 = Math.floor((Math.max(az, bz, cz) - z0) / c);
+      for (let jj = j0; jj <= j1; jj += 1) for (let ii = i0; ii <= i1; ii += 1) {
+        const px = x0 + (ii + 0.5) * c, pz = z0 + (jj + 0.5) * c;
+        const wa = ((bz - cz) * (px - cx) + (cx - bx) * (pz - cz)) / d, wb = ((cz - az) * (px - cx) + (ax - cx) * (pz - cz)) / d;
+        if (wa >= -0.02 && wb >= -0.02 && wa + wb <= 1.02) on[jj * cols + ii] = 1;
+      }
+      on[at(ax, az)] = on[at(bx, bz)] = on[at(cx, cz)] = 1;
+    });
+  }
+  // Which cells stand together: only the pieces small enough to be an island or a scrap are
+  // kept, cell by cell; a block's own pavement is told apart from them and no more.
+  const comps = [null], most = Math.ceil(S.island_most_m2 / (c * c));
+  for (let start = 0; start < on.length; start += 1) {
+    if (on[start] !== 1) continue;
+    let cells = [start], head = 0, big = false;
+    on[start] = 2;
+    while (head < cells.length) {
+      const q = cells[head], qi = q % cols, qj = (q - qi) / cols;
+      head += 1;
+      for (let dj = -1; dj <= 1; dj += 1) for (let di = -1; di <= 1; di += 1) {
+        const ii = qi + di, jj = qj + dj;
+        if (ii < 0 || jj < 0 || ii >= cols || jj >= rows) continue;
+        const r = jj * cols + ii;
+        if (on[r] === 1) { on[r] = 2; cells.push(r); }
+      }
+      if (!big && cells.length > most) big = true;
+      if (big && head > 8192) { cells = cells.slice(head); head = 0; }
+    }
+    if (big) continue;
+    const id = comps.length;
+    comps.push({ id, cells: cells.length });
+    for (const q of cells) label.set(q, id);
+  }
+  //: The small piece at or beside (x, z); -1 where the walk there is a block's own; 0 where there is none.
+  const labelNear = (x, z) => {
+    const i = Math.floor((x - x0) / c), j = Math.floor((z - z0) / c);
+    let walk = 0;
+    for (let dj = -1; dj <= 1; dj += 1) for (let di = -1; di <= 1; di += 1) {
+      const ii = i + di, jj = j + dj;
+      if (ii < 0 || jj < 0 || ii >= cols || jj >= rows || !on[jj * cols + ii]) continue;
+      const l = label.get(jj * cols + ii);
+      if (l) return l;
+      walk = -1;
+    }
+    return walk;
+  };
+  // What each piece standing apart is: a scrap (taken out), an island (drawn again), or left.
+  const gone = new Set(), redraw = new Map();
+  for (const comp of comps) {
+    if (!comp) continue;
+    const area = comp.cells * c * c;
+    if (area < S.sliver_m2) { gone.add(comp.id); streetShapeStats.slivers += 1; continue; }
+    if (area <= S.island_most_m2) redraw.set(comp.id, { comp, area, pts: [], top: -Infinity });
+  }
+  // The islands' own corners, and how high they stand.
+  if (redraw.size) for (const b of walks) for (const g of b.parts) {
+    if (!g.getAttribute("position")) continue;
+    const pos = g.getAttribute("position");
+    tops(g, (t, i, j, k, ax, az, bx, bz, cx, cz, flat) => {
+      if (!flat) return;
+      const isle = redraw.get(label.get(at((ax + bx + cx) / 3, (az + bz + cz) / 3)));
+      if (!isle) return;
+      isle.pts.push([ax, az], [bx, bz], [cx, cz]);
+      isle.top = Math.max(isle.top, pos.getY(i), pos.getY(j), pos.getY(k));
+    });
+  }
+  const shapes = [];
+  for (const [id, isle] of redraw) {
+    const hull = shapeConvexOutline(isle.pts);
+    if (hull.length < 3) { redraw.delete(id); continue; }
+    // In the roadway all round: a piece of pavement standing off a block's own is not an island.
+    let road = 0, ring = 0;
+    for (let k = 0; k < hull.length; k += 1) {
+      const p = hull[k], q = hull[(k + 1) % hull.length], len = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1, nx = (q[1] - p[1]) / len, nz = -(q[0] - p[0]) / len;
+      for (let s = 0; s < Math.max(1, Math.round(len / 1.5)); s += 1) {
+        const u = (s + 0.5) / Math.max(1, Math.round(len / 1.5)), x = p[0] + (q[0] - p[0]) * u + nx * 0.9, z = p[1] + (q[1] - p[1]) * u + nz * 0.9;
+        ring += 1; if (insideCarriageway(x, z, 0) && !labelNear(x, z)) road += 1;
+      }
+    }
+    const hullArea = shapeRingArea(hull), box = shapeTightRectangle(hull);
+    // (A long thin one -- a median down a street -- is its rectangle or it is left: the curve
+    // round a median that bends with its street would fill the bend, into the lane.)
+    const sides = [Math.hypot(box.ring[1][0] - box.ring[0][0], box.ring[1][1] - box.ring[0][1]), Math.hypot(box.ring[2][0] - box.ring[1][0], box.ring[2][1] - box.ring[1][1])];
+    const long = Math.max(...sides) / Math.max(0.1, Math.min(...sides)) > S.long_ratio;
+    let outline = null;
+    if (ring && road / ring >= S.road_share) {
+      if (isle.area / box.area >= (long ? S.long_fill : S.rectangle_fill)) { outline = shapeRoundedOutline(box.ring, Math.min(0.35, S.round_m)); streetShapeStats.rectangles += 1; }
+      else if (!long && isle.area / hullArea >= S.hull_fill) { outline = shapeRoundedOutline(shapeThinnedOutline(hull, 0.35), S.round_m); streetShapeStats.curves += 1; }
+    }
+    if (!outline) { redraw.delete(id); streetShapeStats.left += 1; continue; }
+    // (As high as a kerb at least: one with only its underlay left was level with the road.)
+    shapes.push({ id, outline, top: Math.max(isle.top, ROAD_TOP_M + Math.min(KERB_FALLBACK, KERB_RENDER_MAX_M)) });
+    streetShapeStats.islands += 1;
+  }
+  // Out of the pieces as laid: the scraps, the islands' old pieces, and every kerb with no walk
+  // beside it (or beside a scrap or an island's old outline: the island has its own, below).
+  const cut = (g, drop) => {
+    const pos = g.getAttribute("position"), index = g.getIndex(), n = index ? index.count : pos.count, keep = [];
+    let cutN = 0;
+    for (let t = 0; t < n; t += 3) {
+      const i = index ? index.getX(t) : t, j = index ? index.getX(t + 1) : t + 1, k = index ? index.getX(t + 2) : t + 2;
+      if (drop((pos.getX(i) + pos.getX(j) + pos.getX(k)) / 3, (pos.getZ(i) + pos.getZ(j) + pos.getZ(k)) / 3)) cutN += 1; else keep.push(i, j, k);
+    }
+    if (cutN) g.setIndex(keep);
+    return cutN;
+  };
+  if (gone.size || redraw.size) for (const b of walks) for (const g of b.parts) {
+    if (!g.getAttribute("position")) continue;
+    cut(g, (x, z) => { const l = labelNear(x, z); return l > 0 && (gone.has(l) || redraw.has(l)); });
+  }
+  for (const b of kerbs) for (const g of b.parts) {
+    if (!g.getAttribute("position")) continue;
+    streetShapeStats.kerb_tris_cut += cut(g, (x, z) => {
+      const l = labelNear(x, z);
+      if (l) return l > 0 && (gone.has(l) || redraw.has(l));
+      // (No walk of the street's own beside it: a plaza's or a park's paving may be, off the grid.)
+      for (const [dx, dz] of [[0, 0], [0.4, 0], [-0.4, 0], [0, 0.4], [0, -0.4]]) if (pavementTopAt(x + dx, z + dz) !== undefined) return false;
+      return true;
+    });
+  }
+  // The islands again: one slab each in its plain shape, and its kerb round it.
+  const walkMaterial = surfaceMaterial("walk", 0xffffff, 1.0), kerbMaterial = surfaceMaterial("kerb", 0xffffff, 1.0);
+  for (const { outline, top } of shapes) {
+    const flat = outline.map(([x, z]) => new THREE.Vector2(x, z)), faces = THREE.ShapeUtils.triangulateShape(flat, []);
+    const slab = new THREE.BufferGeometry(), sp = [], su = [];
+    for (const [x, z] of outline) { sp.push(x, top, z); su.push(0, 0); }
+    slab.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3)); slab.setAttribute("uv", new THREE.Float32BufferAttribute(su, 2));
+    // (Wound so the slab faces up, whichever way the outline goes round.)
+    const up = shapeRingArea(outline, true) < 0;
+    slab.setIndex(faces.flatMap(([a, b, d]) => (up ? [a, b, d] : [a, d, b]))); slab.computeVertexNormals();
+    const mesh = new THREE.Mesh(slab, walkMaterial); mesh.userData.surface = "walk";
+    addMerged("walk:island", mesh, "walk");
+    const kp = [], ku = [], ki = [], foot = ROAD_TOP_M - 0.03;
+    let run = 0;
+    for (let k = 0; k < outline.length; k += 1) {
+      const p = outline[k], q = outline[(k + 1) % outline.length], len = Math.hypot(q[0] - p[0], q[1] - p[1]), base = kp.length / 3;
+      kp.push(p[0], top, p[1], q[0], top, q[1], q[0], foot, q[1], p[0], foot, p[1]);
+      ku.push(run / WALK_UV_M, 0, (run + len) / WALK_UV_M, 0, (run + len) / WALK_UV_M, (top - foot) / WALK_UV_M, run / WALK_UV_M, (top - foot) / WALK_UV_M);
+      ki.push(base, base + 1, base + 2, base, base + 2, base + 3, base, base + 2, base + 1, base, base + 3, base + 2);
+      run += len;
+    }
+    const skirt = new THREE.BufferGeometry();
+    skirt.setAttribute("position", new THREE.Float32BufferAttribute(kp, 3)); skirt.setAttribute("uv", new THREE.Float32BufferAttribute(ku, 2));
+    skirt.setIndex(ki); skirt.computeVertexNormals();
+    const edge = new THREE.Mesh(skirt, kerbMaterial); edge.userData.surface = "kerb";
+    addMerged("kerb:island", edge, "kerb");
+  }
+  // One grid of squares for every sidewalk: square to the streets (their bearing, by length,
+  // taken four ways round), measured from one place.
+  let sx = 0, sz = 0;
+  for (const way of DATA.ways || []) {
+    if (way.kind !== "street" || !way.points || way.points.length < 2) continue;
+    for (let i = 1; i < way.points.length; i += 1) {
+      const [ax, ay] = xy(...way.points[i - 1]), [bx, by] = xy(...way.points[i]), len = Math.hypot(bx - ax, by - ay), a = Math.atan2(-(by - ay), bx - ax) * 4;
+      sx += Math.cos(a) * len; sz += Math.sin(a) * len;
+    }
+  }
+  const turn = Math.atan2(sz, sx) / 4, cs = Math.cos(turn), sn = Math.sin(turn);
+  streetShapeStats.grid_deg = +(turn * 180 / Math.PI).toFixed(2);
+  for (const [key, bucket] of MERGED) {
+    if (isBuilt(key) || bucket.material?.map !== SIDEWALK) continue;
+    for (const g of bucket.parts) {
+      const pos = g.getAttribute("position"), uv = g.getAttribute("uv");
+      if (!pos || !uv) continue;
+      tops(g, (t, i, j, k, ax, az, bx, bz, cx, cz, flat) => {
+        if (!flat) return;
+        for (const v of [i, j, k]) { const x = pos.getX(v), z = pos.getZ(v); uv.setXY(v, (x * cs + z * sn) / WALK_UV_M, (z * cs - x * sn) / WALK_UV_M); }
+      });
+      uv.needsUpdate = true;
+      streetShapeStats.squared_parts += 1;
+    }
+  }
+  return streetShapeStats;
+}
+//: The outermost of a set of points, in order round them (Andrew's chain): [[x, z], ...].
+function shapeConvexOutline(pts) {
+  const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (p.length < 3) return p;
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lower = [], upper = [];
+  for (const q of p) { while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 1e-9) lower.pop(); lower.push(q); }
+  for (let i = p.length - 1; i >= 0; i -= 1) { const q = p[i]; while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 1e-9) upper.pop(); upper.push(q); }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
+}
+function shapeRingArea(ring, signed = false) {
+  let a = 0;
+  for (let k = 0; k < ring.length; k += 1) { const p = ring[k], q = ring[(k + 1) % ring.length]; a += p[0] * q[1] - q[0] * p[1]; }
+  return signed ? a / 2 : Math.abs(a) / 2;
+}
+//: The smallest rectangle round a convex outline (one of its sides lies along one of the
+//: outline's): { ring, area }.
+function shapeTightRectangle(hull) {
+  let best = null;
+  for (let k = 0; k < hull.length; k += 1) {
+    const p = hull[k], q = hull[(k + 1) % hull.length], len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    if (len < 1e-6) continue;
+    const ux = (q[0] - p[0]) / len, uz = (q[1] - p[1]) / len;
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const r of hull) { const u = (r[0] - p[0]) * ux + (r[1] - p[1]) * uz, v = -(r[0] - p[0]) * uz + (r[1] - p[1]) * ux; u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); }
+    const area = (u1 - u0) * (v1 - v0);
+    if (!best || area < best.area) { const P = (u, v) => [p[0] + ux * u - uz * v, p[1] + uz * u + ux * v]; best = { area, ring: [P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)] }; }
+  }
+  return best;
+}
+//: An outline with the corners nearer than ``near`` to the one before left out: what was a run
+//: of small steps is one line.
+function shapeThinnedOutline(ring, near) {
+  const out = [];
+  for (const p of ring) if (!out.length || Math.hypot(p[0] - out[out.length - 1][0], p[1] - out[out.length - 1][1]) >= near) out.push(p);
+  while (out.length > 3 && Math.hypot(out[0][0] - out[out.length - 1][0], out[0][1] - out[out.length - 1][1]) < near) out.pop();
+  // (And a corner that hardly turns is no corner.)
+  const keep = out.filter((p, k) => { const a = out[(k + out.length - 1) % out.length], b = out[(k + 1) % out.length], ux = p[0] - a[0], uz = p[1] - a[1], vx = b[0] - p[0], vz = b[1] - p[1]; return Math.abs(ux * vz - uz * vx) / ((Math.hypot(ux, uz) * Math.hypot(vx, vz)) || 1) > 0.05; });
+  return keep.length >= 3 ? keep : out;
+}
+//: An outline with each corner turned in a curve: an arc from ``radius`` back along one side to
+//: ``radius`` on along the next (less where a side is short), in six steps.
+function shapeRoundedOutline(ring, radius) {
+  const out = [], n = ring.length;
+  for (let k = 0; k < n; k += 1) {
+    const a = ring[(k + n - 1) % n], p = ring[k], b = ring[(k + 1) % n];
+    const la = Math.hypot(a[0] - p[0], a[1] - p[1]), lb = Math.hypot(b[0] - p[0], b[1] - p[1]), r = Math.min(radius, la * 0.45, lb * 0.45);
+    if (!(r > 0.02)) { out.push(p); continue; }
+    const s = [p[0] + (a[0] - p[0]) * r / la, p[1] + (a[1] - p[1]) * r / la], e = [p[0] + (b[0] - p[0]) * r / lb, p[1] + (b[1] - p[1]) * r / lb];
+    for (let i = 0; i <= 6; i += 1) { const t = i / 6, u = 1 - t; out.push([u * u * s[0] + 2 * u * t * p[0] + t * t * e[0], u * u * s[1] + 2 * u * t * p[1] + t * t * e[1]]); }
+  }
+  return out;
+}
 if (performance.now() - lastYieldAt > sliceBudget()) await yieldFrame();   // between whole steps too (a hop's longest task)
 const worldSweepsDrawn = emitWorldSweeps();
+try { settleStreetShapes(); } catch (error) { streetShapeStats.error = String(error?.stack || error).slice(0, 400); console.warn("kerbside: the street shapes were left as laid", error); }
+window.kerbsideStreetShapes = () => ({ ...streetShapeStats });
 flushMerged(groups.streets, (key) => !isBuilt(key));
 flushMerged(groups.mapped3d, isBuilt);
 // A garage door is at the level of the driveway outside it, which is the street's ground there.

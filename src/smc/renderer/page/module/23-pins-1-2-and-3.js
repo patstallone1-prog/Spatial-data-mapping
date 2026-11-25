@@ -866,36 +866,104 @@ function garageSpansOnEdge(entry, edge) {
     const off = Math.abs((gx - a[0]) * -uz + (gz - a[1]) * ux);
     const u = (gx - a[0]) * ux + (gz - a[1]) * uz;
     if (off > 1.0 || u < -0.5 || u > length + 0.5) continue;
-    out.push([u, g.w || 2.6]);
+    out.push([u, g.w || 2.6, g]);
   }
   return out;
 }
+//: A garage taken down where a door the city mapped or a photograph saw is under it and has no
+//: clear wall to move to: the house's entrance is there, so its garage is not. Its kerb cut
+//: stays (the pavement is still let down). The door is drawn merged with the city's others, so
+//: its quad in the merged mesh is folded to nothing, and it no longer opens (GARAGE_DOORS).
+let garageMergedMeshes = null;
+function takeDownGarage(entry, g) {
+  const way = entry.way, list = way.garages || [];
+  const i = list.indexOf(g);
+  if (i < 0) return false;
+  list.splice(i, 1);
+  const [ax, ay] = xy(g.a[0], g.a[1]), [bx, by] = xy(g.b[0], g.b[1]);
+  const gx = ax + (bx - ax) * g.t, gz = -(ay + (by - ay) * g.t);
+  let door = null;
+  for (const d of GARAGE_DOORS.values()) {
+    if (d.building !== String(way.osm_id) || Math.hypot(d.x - gx, d.z - gz) > 1.0) continue;
+    if (!door || Math.hypot(d.x - gx, d.z - gz) < Math.hypot(door.x - gx, door.z - gz)) door = d;
+  }
+  if (!door) return true;
+  GARAGE_DOORS.delete(door.key);
+  if (!garageMergedMeshes || garageMergedMeshes.some((m) => !m.parent)) {
+    garageMergedMeshes = [];
+    scene.traverse((o) => { if (o.isMesh && o.userData?.surface === "garage" && o.geometry?.attributes?.position) garageMergedMeshes.push(o); });
+  }
+  const tx = Math.cos(door.yaw), tz = -Math.sin(door.yaw), nx = Math.sin(door.yaw), nz = Math.cos(door.yaw);
+  for (const mesh of garageMergedMeshes) {
+    const pos = mesh.geometry.attributes.position;
+    let first = -1;
+    for (let v = 0; v < pos.count; v += 1) {
+      const dx = pos.getX(v) - door.x, dz = pos.getZ(v) - door.z;
+      if (Math.abs(dx * tx + dz * tz) > door.w / 2 + 0.03 || Math.abs(dx * nx + dz * nz) > 0.06) continue;
+      if (first < 0) first = v;
+      pos.setXYZ(v, pos.getX(first), pos.getY(first), pos.getZ(first));
+    }
+    if (first >= 0) pos.needsUpdate = true;
+  }
+  garageDoorStats.takenDown += 1;
+  return true;
+}
 
-//: Every house has a usable front door, and no inferred door stands behind a garage door.
-//: A door the interior fit inferred at the middle of the street wall is moved along it to clear
-//: wall beside the garage (or dropped if there is none); a mapped or photographed door stays
-//: where it was seen. A house left with no door gets the one its facade shows (_frontDoor).
+//: Every house has a usable front door, and no door stands behind a garage door. A garage is
+//: drawn only behind its own kerb cut, and the cut is the city's measurement: where a door --
+//: inferred, mapped or photographed -- falls under one, the door is moved along its wall to
+//: clear wall beside the garage. (A door is set into the wall: there is no hall behind it to
+//: break, and the rooms stay as they are.) An inferred door with no clear wall is dropped; a
+//: mapped or photographed one with none stays where it was seen, and the garage over it is taken
+//: down (takeDownGarage) -- or, where a photograph shows that garage too, the garage stays and
+//: the door goes from under it (garageDoorStats.stuck).
+//: A house left with no door gets the one its facade shows (_frontDoor).
+const garageDoorStats = { moved: 0, measuredMoved: 0, dropped: 0, stuck: 0, takenDown: 0 };
+function moveDoorOffGarages(entry, door) {
+  const a = entry.local[door.edge], b = entry.local[door.edge + 1];
+  if (!a || !b) return door;
+  const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const spans = garageSpansOnEdge(entry, door.edge);
+  const centre = (door.t0 + door.t1) / 2 * length;
+  const clear = (u) => u >= door.width / 2 + 0.2 && u <= length - door.width / 2 - 0.2
+    && spans.every(([g, w]) => Math.abs(u - g) >= w / 2 + door.width / 2 + DOOR_CLEAR_M);
+  if (clear(centre)) return door;
+  const candidates = [];
+  for (const [g, w] of spans) {
+    const gap = w / 2 + door.width / 2 + DOOR_CLEAR_M;
+    candidates.push(g + gap, g - gap);
+  }
+  for (let s = 0.25; s <= length; s += 0.25) candidates.push(centre + s, centre - s);
+  // The nearest clear place to where it was.
+  const u = candidates.filter(clear).sort((p, q) => Math.abs(p - centre) - Math.abs(q - centre))[0];
+  if (u === undefined) {
+    if (door.source === 2) { garageDoorStats.dropped += 1; return null; }
+    // A mapped or photographed door with no clear wall beside the garage: the entrance is real,
+    // so the garage over it goes -- unless a photograph shows that garage too (both stay).
+    const over = spans.filter(([g, w]) => Math.abs(centre - g) < w / 2 + door.width / 2 + DOOR_CLEAR_M);
+    if (over.length && over.every(([, , ref]) => ref && !ref.photo)) {
+      for (const [, , ref] of over) takeDownGarage(entry, ref);
+      return door;
+    }
+    // Under a garage the photograph itself shows: the garage is measured and stays, and the door
+    // cannot be beside it on this wall -- it goes, and the house's door is found clear of it
+    // (its other doors, or the facade's front door, frontDoorSpot).
+    garageDoorStats.stuck += 1;
+    return null;
+  }
+  const moved = doorOn(entry, door.edge, u / length, door.width, door.source);
+  if (!moved) return door.source === 2 ? null : door;
+  if (door.photoEntry) { moved.photoEntry = door.photoEntry; moved.photoTangent = door.photoTangent; }
+  garageDoorStats.moved += 1;
+  if (door.source !== 2) garageDoorStats.measuredMoved += 1;
+  return moved;
+}
 function settleDoors(entry) {
   if (entry.way._structure) { entry.doors = []; return; }
   const kept = [];
   for (const door of entry.doors || []) {
-    const a = entry.local[door.edge], b = entry.local[door.edge + 1];
-    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const spans = garageSpansOnEdge(entry, door.edge);
-    const centre = (door.t0 + door.t1) / 2 * length;
-    const clear = (u) => u >= door.width / 2 + 0.2 && u <= length - door.width / 2 - 0.2
-      && spans.every(([g, w]) => Math.abs(u - g) >= w / 2 + door.width / 2 + DOOR_CLEAR_M);
-    if (clear(centre) || door.source !== 2) { kept.push(door); continue; }
-    const candidates = [];
-    for (const [g, w] of spans) {
-      const gap = w / 2 + door.width / 2 + DOOR_CLEAR_M;
-      candidates.push(g + gap, g - gap);
-    }
-    for (let s = 0.25; s <= length; s += 0.25) candidates.push(centre + s, centre - s);
-    const u = candidates.find(clear);
-    if (u === undefined) continue;
-    const moved = doorOn(entry, door.edge, u / length, door.width, door.source);
-    if (moved) kept.push(moved);
+    const settled = moveDoorOffGarages(entry, door);
+    if (settled) kept.push(settled);
   }
   // Inferred doors only, and the facade shows a front door: the shell shows that one. The fit
   // inferred its door on whichever wall it took to face the street, and that was often a side
@@ -913,13 +981,23 @@ function settleDoors(entry) {
       const d = kept[i];
       if (d.edge === photo.edge && (d.source === 2 || Math.abs((d.t0 + d.t1) / 2 - at) * length < 3)) kept.splice(i, 1);
     }
-    kept.unshift(photo);
-    entry.doors = kept;
-    return;
+    // (Off any garage, as every other door is.)
+    const settled = moveDoorOffGarages(entry, photo);
+    if (settled) {
+      kept.unshift(settled);
+      entry.doors = kept;
+      return;
+    }
   }
-  if (!kept.length && entry.way._frontDoor) {
+  // With none left (a photographed door that could not stand beside the garage over it), the
+  // door the house would have had, clear of every garage (frontDoorSpot).
+  const fallback = kept.length ? null : entry.way._frontDoor || (() => {
+    const spot = photo && typeof frontDoorSpot === "function" ? frontDoorSpot(entry.way) : null;
+    return spot ? wallPoint(spot.wall, spot.along, 0) : null;
+  })();
+  if (fallback) {
     // The edge the facade's door is on, and where along it.
-    const { x, z } = entry.way._frontDoor;
+    const { x, z } = fallback;
     let best = null;
     for (let edge = 0; edge + 1 < entry.local.length; edge += 1) {
       const a = entry.local[edge], b = entry.local[edge + 1];
@@ -938,6 +1016,29 @@ function settleDoors(entry) {
   entry.doors = kept;
 }
 
+//: The measured check of doors against garages (2026-11-24): every settled door against every
+//: garage on its own edge -- under one (overlapping) or crowding one (nearer than DOOR_CLEAR_M)
+//: -- with what settling moved, dropped and could not move. Run after the interiors' doors are in
+//: (requestInteriors), or it counts only the doors of the houses built so far.
+window.kerbsideGarageDoors = () => {
+  const out = { buildings: 0, doors: 0, under: 0, crowded: 0, garages: 0, ...garageDoorStats, where: [] };
+  for (const entry of footprintById.values()) {
+    if (!entry.doors?.length) continue;
+    out.buildings += 1;
+    for (const door of entry.doors) {
+      out.doors += 1;
+      const a = entry.local[door.edge], b = entry.local[door.edge + 1];
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1]), centre = (door.t0 + door.t1) / 2 * length;
+      for (const [g, w] of garageSpansOnEdge(entry, door.edge)) {
+        const gap = Math.abs(centre - g) - w / 2 - door.width / 2;
+        if (gap < 0) { out.under += 1; if (out.where.length < 20) out.where.push({ id: entry.way.osm_id, source: door.source, gap: +gap.toFixed(2), x: Math.round(door.cx), z: Math.round(door.cz) }); }
+        else if (gap < DOOR_CLEAR_M - 1e-6) out.crowded += 1;
+      }
+    }
+  }
+  for (const entry of footprintById.values()) out.garages += (entry.way.garages || []).length;
+  return out;
+};
 //: The front door the photograph shows (the fit's primary entry, entry_inference): on the
 //: footprint edge the fitted front lies along, at the place along it the photo puts the door.
 function photoEntryDoor(entry) {

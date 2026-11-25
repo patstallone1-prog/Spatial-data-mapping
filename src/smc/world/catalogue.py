@@ -99,8 +99,107 @@ def validate(catalogue: dict[str, Any]) -> None:
         for surface, archetype in surfaces.get(table, {}).items():
             if archetype not in archetypes:
                 problems.append(f"surface {table} {surface!r} names unknown archetype {archetype!r}")
+    problems += mechanics_problems(catalogue)
     if problems:
         raise ValueError("object catalogue: " + "; ".join(problems))
+
+
+#: What every solid substance in the mechanics section must state for the engine
+#: (docs/city/mechanics.mjs); a fluid needs only its family, density and sources.
+MECHANICS_REQUIRED = ("family", "density_kg_m3", "E_gpa", "nu", "surface", "sources")
+MECHANICS_FLUID = ("family", "density_kg_m3", "sources")
+#: What a contactor (a hand, a sole, a blade's face) states for friction.
+CONTACTOR_REQUIRED = ("adhesion", "hysteresis", "base", "moisture", "area_m2", "sources")
+
+
+#: The shapes an archetype meets a blow with (mechanics.forms; docs/62 "Object on object").
+FORM_SHAPES = ("box", "beam", "post", "panel", "round", "wall", "ground")
+
+
+def mechanics_problems(catalogue: dict[str, Any]) -> list[str]:
+    """Inconsistencies in the ``mechanics`` section: every material's substance exists, every
+    implement, contactor and strike kind names one that does, and every cited source is listed."""
+    problems: list[str] = []
+    mx = catalogue.get("mechanics")
+    if not isinstance(mx, dict):
+        return ["mechanics section missing"]
+    subs, sources = mx.get("substances", {}), mx.get("sources", {})
+    for name, m in catalogue.get("materials", {}).items():
+        key = m.get("mechanics", "missing")
+        if name == "none":
+            if key is not None:
+                problems.append("material none: mechanics must be null")
+        elif key not in subs:
+            problems.append(f"material {name}: unknown mechanics substance {key!r}")
+    for name, s in subs.items():
+        fluid = s.get("family") == "fluid"
+        for field in MECHANICS_FLUID if fluid else MECHANICS_REQUIRED:
+            if field not in s:
+                problems.append(f"substance {name}: missing {field}")
+        if not fluid and not s.get("E_gpa", 0) > 0:
+            problems.append(f"substance {name}: E_gpa must be positive")
+        if not fluid and not 0 <= s.get("nu", -1) < 0.5:
+            problems.append(f"substance {name}: nu must be in [0, 0.5)")
+        for src in s.get("sources", []):
+            if src not in sources:
+                problems.append(f"substance {name}: unlisted source {src!r}")
+    for table in ("implements", "contactors"):
+        for name, item in mx.get(table, {}).items():
+            if name == "about":
+                continue
+            if table == "implements" and item.get("substance") not in subs:
+                problems.append(f"implement {name}: unknown substance {item.get('substance')!r}")
+            if table == "contactors":
+                for field in CONTACTOR_REQUIRED:
+                    if field not in item:
+                        problems.append(f"contactor {name}: missing {field}")
+            for src in item.get("sources", []):
+                if src not in sources:
+                    problems.append(f"{table[:-1]} {name}: unlisted source {src!r}")
+    for kind, substance in mx.get("item_materials", {}).items():
+        if kind != "about" and substance not in subs:
+            problems.append(f"item material {kind}: unknown substance {substance!r}")
+    implements = mx.get("implements", {})
+    for kind, implement in mx.get("strike_kinds", {}).items():
+        if kind != "about" and implement not in implements:
+            problems.append(f"strike kind {kind}: unknown implement {implement!r}")
+    # Coats are layers of their own (docs/city/mechanics-collide.mjs): each names a substance and
+    # has a thickness and an adhesion; claddings and archetype forms name coats that exist.
+    coats = mx.get("coatings", {})
+    for name, coat in coats.items():
+        if name == "about":
+            continue
+        if coat.get("substance") not in subs:
+            problems.append(f"coat {name}: unknown substance {coat.get('substance')!r}")
+        for field in ("thickness_um", "adhesion_mpa"):
+            if not coat.get(field, 0) > 0:
+                problems.append(f"coat {name}: {field} must be positive")
+        for src in coat.get("sources", []):
+            if src not in sources:
+                problems.append(f"coat {name}: unlisted source {src!r}")
+    classes = catalogue.get("claddings", {}).get("classes", {})
+    for cladding, coat in mx.get("cladding_coats", {}).items():
+        if cladding == "about":
+            continue
+        if cladding not in classes:
+            problems.append(f"cladding coat {cladding}: unknown cladding class")
+        if coat is not None and coat not in coats:
+            problems.append(f"cladding coat {cladding}: unknown coat {coat!r}")
+    archetypes = catalogue.get("archetypes", {})
+    for arch, form in mx.get("forms", {}).items():
+        if arch == "about":
+            continue
+        if arch not in archetypes:
+            problems.append(f"form {arch}: unknown archetype")
+        if form.get("shape") not in FORM_SHAPES:
+            problems.append(f"form {arch}: unknown shape {form.get('shape')!r}")
+        if form.get("shape") in ("beam", "post", "round", "panel", "box") and not form.get("section"):
+            problems.append(f"form {arch}: a {form.get('shape')} needs a section")
+        if "substance" in form and form["substance"] not in subs:
+            problems.append(f"form {arch}: unknown substance {form['substance']!r}")
+        if form.get("coat") is not None and form["coat"] not in coats:
+            problems.append(f"form {arch}: unknown coat {form['coat']!r}")
+    return problems
 
 
 @lru_cache(maxsize=4)

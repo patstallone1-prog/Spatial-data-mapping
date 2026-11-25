@@ -76,21 +76,23 @@ def _extract(name: str, js: str) -> str:
 
 
 def test_avatar_speed_tracks_orbit_pixel_scale_but_not_first_person_zoom() -> None:
+    """One walking pace at every zoom the City allows, a quarter slower than it was (the owner,
+    2026-11-24); past 90 m of zoom -- Explore's map view -- it still grows with the distance.
+    A sprint keeps the full speed."""
     js = _page_js()
     script = "\n".join([
-        "const STREET_SPEED=8.94, FIRST_PERSON_SPEED=5.36, ARRIVAL_DIST=45;",
+        "const STREET_SPEED=8.94, FIRST_PERSON_SPEED=5.36, WALK_PACE=0.75, WALK_CONSTANT_TO_M=90;",
         "const state={dist:45,firstPerson:false};",
-        "const renderer={domElement:{clientHeight:800}};",
-        "const camera={fov:50};",
         _extract("avatarMoveSpeed", js),
         "const speeds=[]; for (const dist of [20,45,90,180]) {state.dist=dist; speeds.push(avatarMoveSpeed());}",
+        "state.dist=45; speeds.push(avatarMoveSpeed(true));",
         "state.firstPerson=true; speeds.push(avatarMoveSpeed());",
         "console.log(JSON.stringify(speeds));",
     ])
     out = subprocess.run([NODE, "--input-type=module", "-e", script],
                          capture_output=True, text=True, timeout=30)
     assert out.returncode == 0, out.stderr
-    assert json.loads(out.stdout) == pytest.approx([8.94, 8.94, 17.88, 35.76, 5.36])
+    assert json.loads(out.stdout) == pytest.approx([6.705, 6.705, 6.705, 13.41, 8.94, 4.02])
 
 
 def test_facade_window_rows_end_at_roof_even_on_fractional_storeys() -> None:
@@ -2499,13 +2501,15 @@ const CROSS_SECTION_KIND = { p: "parking", b: "bike", f: "buffer", x: "transit",
                              n: "turn", m: "median", h: "shoulder", l: "loading", u: "unresolved" };
 const CROSS_SECTION_LANE_MIN_M = 2.55;
 const CROSS_SECTION_LANE_MAX_M = 5.2;
+const PARKING_STALL_M = 2.4;
+const LANE_FIT_MIN_M = 2.9;
 function isUndergroundWay(way) { return way.tunnel_kind === "underground"; }
 function isTunnelWay(way) { return Boolean(way.tunnel_kind) && way.tunnel_kind !== "underpass"; }
 function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
 """
 
-LANE_FUNCTIONS = ("onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "halfWidthAt",
-                  "crossSectionRowAt", "crossSectionBands", "crossSectionBandsNearMiddle",
+LANE_FUNCTIONS = ("onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "kerbDeltaAt", "halfWidthAt",
+                  "crossSectionRowAt", "fitLaneBands", "crossSectionBands", "crossSectionBandsNearMiddle",
                   "crossSectionMarkKind", "travelSpanAt",
                   "travelSpan", "laneOffsets", "laneMarkingProfile", "laneMarkingPaints",
                   "bikeLaneOffset")
@@ -2646,7 +2650,10 @@ def test_a_street_is_moved_to_the_middle_of_the_citys_kerbs() -> None:
                          capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stderr
     result = json.loads(out.stdout)
-    assert result["moved"] == {"moved": 2, "widened": 2, "inherited": 0}, result  # the alley was already centred
+    # (The kerbs' profiles along the block are settled after this, and are not in this harness:
+    # tests/kerb_lines.test.mjs.)
+    moved = {key: value for key, value in result["moved"].items() if key != "profiles"}
+    assert moved == {"moved": 2, "widened": 2, "inherited": 0}, result  # the alley was already centred
     assert all(abs(y - 1.75) < 0.01 for y in result["grantY"]), result
     assert abs(result["grantRoad"] - 7.5) < 0.01 and result["grantSource"] == "official_curbs"
     assert abs(result["shift"] - 1.75) < 0.01

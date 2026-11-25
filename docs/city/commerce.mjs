@@ -195,22 +195,24 @@ export function installCommerce(CityWorld, CityError) {
   // ---- a thing's record goes where the thing goes --------------------------------------------------------
   //: Putting down: the record (and what is in it) on the ground; a delivery may be put down too,
   //: and stays the customer's in your care (only you or they may lift it).
-  W.cmd_drop = function (pid, { item, qty = 1, thing = null }) {
+  //: ``spot``: set down there (a click on the ground within reach), else at your feet.
+  W.cmd_drop = function (pid, { item, qty = 1, thing = null, spot: to = null }) {
     const p = this.player(pid), spec = this.R.items[item], B = T(this);
     qty = Math.max(1, qty | 0);
     if (!spec || !(p.inventory[item] >= qty)) fail("you are not carrying that");
+    const spot = this.placeSpot ? this.placeSpot(p, to) : { x: p.x ?? 0, z: p.z ?? 0 };
     const ids = [];
     for (let k = 0; k < qty; k += 1) {
       const recs = B.heldBy(p.account, item);
       const th = thing && k === 0 ? recs.find((r) => r.id === thing) : recs.find((r) => !r.job) || recs[0];
-      if (th) { guard(() => B.move(th, { kind: "ground", x: p.x ?? 0, z: p.z ?? 0 }, { t: this.now, why: "put down" })); ids.push(th.id); }
+      if (th) { guard(() => B.move(th, { kind: "ground", x: spot.x, z: spot.z }, { t: this.now, why: "put down" })); ids.push(th.id); }
     }
     take(p.inventory, item, qty);
     for (const slot of Object.keys(p.worn)) if (p.worn[slot] === item && !p.inventory[item]) p.worn[slot] = null;
     const id = this.id("item");
-    this.items.set(id, { id, item, qty, x: p.x ?? 0, z: p.z ?? 0, by: pid, at: this.now, things: ids, look: ids.length === 1 ? B.all.get(ids[0])?.pack || null : null });
+    this.items.set(id, { id, item, qty, x: spot.x, z: spot.z, by: pid, at: this.now, things: ids, look: ids.length === 1 ? B.all.get(ids[0])?.pack || null : null });
     if (this.items.size > 400) this.items.delete(this.items.keys().next().value);
-    return { dropped: id };
+    return { dropped: id, spot };
   };
   const pickUp = W.cmd_pick_up;
   W.cmd_pick_up = function (pid, args) {

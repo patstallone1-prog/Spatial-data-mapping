@@ -553,6 +553,125 @@ function nightRim(material) {
 function nightRimAll(object) {
   object?.traverse?.((o) => { if (!o.isMesh) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m && !isPatched(m, "kbNightRim") && "emissive" in m) nightRim(m); });
 }
+// ---- glass ---------------------------------------------------------------------------------------
+//: Glass as it is seen in the street, at the cost of one pane: nearly clear looking straight
+//: through it and a mirror at a slant (Fresnel: Schlick's power, raised a little so the slant
+//: comes on late), the sun's glint sharp on it (smooth, and its highlight several times a plain
+//: surface's), and the sky and the street in it from one picture of them made once (a cube map:
+//: glassCube) -- never the scene drawn a second time, as three.js's transmission and real-time
+//: reflections do. The picture is dimmed by night. A pane is never quite flat (float glass waves
+//: over a metre or so: the reflection ripples), its edges hold the grime a cloth misses, and it
+//: casts no shadow and bends no light.
+const GLASS = Object.freeze({
+  face_opacity: 0.05,      // looking straight through
+  edge_opacity: 0.65,      // at a grazing slant
+  fresnel_power: 4.5,      // Schlick's 5, a little softer
+  face_reflection: 0.12,   // what the pane mirrors looking straight at it: glass's own 0.04, more for
+                           // the room behind a pane being unlit here (a real one is lit, and dimmer than the street)
+  roughness: 0.05,
+  specular: 4.0,           // the sun's highlight, as a multiple of a plain dielectric's (F0 0.04 -> ~0.16)
+  reflection: 0.9,         // the cube map's share at full slant, by day
+  night_reflection: 0.12,  // ... and by night
+  ripple: 0.012,           // how far the pane's normal wanders (radians, about)
+  ripple_m: 1.1,           // over how far
+  grime: 0.28,             // the grime's opacity at the very edge of a pane
+  grime_edge: 0.08,        // how far in from the edge it goes (share of the pane)
+});
+//: The pane's opacity seen at ``cosView`` (the cosine between the view and the pane's normal).
+function glassOpacity(cosView, face = GLASS.face_opacity, edge = GLASS.edge_opacity) {
+  const f = Math.pow(1 - Math.min(1, Math.abs(cosView)), GLASS.fresnel_power);
+  return face + (edge - face) * f;
+}
+//: How much grime a point ``edge`` (its nearest distance to the pane's edge, as a share of the pane)
+//: carries: all of GLASS.grime at the edge, none past GLASS.grime_edge.
+function glassGrime(edge) {
+  const t = Math.min(1, Math.max(0, edge / GLASS.grime_edge));
+  return GLASS.grime * (1 - t * t * (3 - 2 * t));
+}
+//: The sky and the street as a pane sees them, drawn once: a blue sky paling to a hazy horizon, a
+//: band of building fronts with rows of windows, and the dark street. 64 pixels a face.
+let glassCubeMap = null;
+function glassCube() {
+  if (glassCubeMap) return glassCubeMap;
+  const S = 64, faces = [];
+  // Faces in three's order: +x, -x, +y (up), -y (down), +z, -z.
+  for (let f = 0; f < 6; f += 1) {
+    const canvas = document.createElement("canvas"); canvas.width = canvas.height = S;
+    const ctx = canvas.getContext("2d");
+    if (f === 2) { ctx.fillStyle = "#5f8fc8"; ctx.fillRect(0, 0, S, S); }
+    else if (f === 3) { ctx.fillStyle = "#2a2b2d"; ctx.fillRect(0, 0, S, S); }
+    else {
+      const sky = ctx.createLinearGradient(0, 0, 0, S / 2);
+      sky.addColorStop(0, "#5f8fc8"); sky.addColorStop(1, "#c9d6e2");
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, S, S / 2);
+      ctx.fillStyle = "#2a2b2d"; ctx.fillRect(0, S / 2, S, S / 2);
+      // The fronts across the street: blocks of a few storeys, their windows darker.
+      for (let x = 0; x < S;) {
+        const w = 6 + Math.floor(random(f * 97 + x * 7 + 1) * 12), h = 6 + Math.floor(random(f * 97 + x * 7 + 2) * 16);
+        const tone = 120 + Math.floor(random(f * 97 + x * 7 + 3) * 90);
+        ctx.fillStyle = `rgb(${tone},${tone - 6},${tone - 14})`; ctx.fillRect(x, S / 2 - h, w, h + 3);
+        ctx.fillStyle = "rgba(40,48,58,0.75)";
+        for (let y = S / 2 - h + 2; y < S / 2 - 1; y += 4) for (let wx = x + 1; wx < x + w - 1; wx += 3) ctx.fillRect(wx, y, 1.5, 2);
+        x += w;
+      }
+    }
+    faces.push(canvas);
+  }
+  glassCubeMap = new THREE.CubeTexture(faces);
+  glassCubeMap.colorSpace = THREE.SRGBColorSpace;
+  glassCubeMap.needsUpdate = true;
+  return glassCubeMap;
+}
+//: Makes ``material`` (a MeshStandardMaterial) glass. ``paneUv``: its geometry's uv runs 0 to 1
+//: across each pane (a PlaneGeometry's does), so the grime can find the pane's edge. ``face``: the
+//: opacity looking straight through (GLASS.face_opacity). A lit window at night (nightWindows)
+//: stays as opaque as that patch makes it.
+function realGlass(material, { paneUv = false, face = GLASS.face_opacity } = {}) {
+  if (!material || !material.isMeshStandardMaterial) return material;
+  material.transparent = true; material.depthWrite = false; material.opacity = face;
+  material.roughness = GLASS.roughness; material.metalness = 0; material.envMapIntensity = 0;   // its reflection is the cube map's
+  material.userData.realGlass = true;
+  const key = paneUv ? "kbGlassPane" : "kbGlass";
+  return patchMaterial(material, key, (sh) => {
+    sh.uniforms.kbNight = NIGHT.night; sh.uniforms.kbGlassCube = { value: glassCube() };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbGW; varying vec2 kbGUv;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 kbP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbP = instanceMatrix * kbP;\n#endif\nkbGW = (modelMatrix * kbP).xyz; kbGUv = uv; }");
+    const f = (v) => Number(v).toFixed(6);
+    // (A lit window's patch, nightWindows, declares kbNight too: once only, or the pane is not drawn.)
+    const night = /uniform\s+float\s+kbNight\s*;/.test(sh.fragmentShader) ? "" : "uniform float kbNight; ";
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>\nvarying vec3 kbGW; varying vec2 kbGUv;\n${night}uniform samplerCube kbGlassCube;`)
+      .replace("#include <opaque_fragment>", `{
+  vec3 kbV = normalize(vViewPosition);
+  // The pane's slow waves: a little of the normal turned, over about a metre.
+  vec3 kbQ = kbGW / ${f(GLASS.ripple_m)};
+  vec3 kbW = vec3(sin(kbQ.x * 1.7 + kbQ.y * 0.9) + sin(kbQ.z * 1.3 - kbQ.y * 1.1), sin(kbQ.y * 1.5 + kbQ.z * 0.7) + sin(kbQ.x * 0.8 - kbQ.z * 1.9), sin(kbQ.z * 1.1 + kbQ.x * 0.6));
+  vec3 kbN = normalize(normal + mat3(viewMatrix) * kbW * ${f(GLASS.ripple)});
+  float kbF = pow(1.0 - clamp(abs(dot(kbN, kbV)), 0.0, 1.0), ${f(GLASS.fresnel_power)});
+  vec3 kbRw = inverseTransformDirection(reflect(-kbV, kbN), viewMatrix);
+  float kbDay = mix(${f(GLASS.reflection)}, ${f(GLASS.night_reflection)}, kbNight);
+  // Mirrored by Schlick's curve from its face-on share: a window looked straight at still shows the sky.
+  float kbFr = ${f(GLASS.face_reflection)} + (1.0 - ${f(GLASS.face_reflection)}) * kbF;
+  vec3 kbEnv = textureCube(kbGlassCube, vec3(-kbRw.x, kbRw.yz)).rgb * kbFr * kbDay;
+  vec3 kbSpec = reflectedLight.directSpecular * ${f(GLASS.specular)};
+  vec3 kbBody = outgoingLight - reflectedLight.directSpecular - reflectedLight.indirectSpecular;
+  vec3 kbR = kbEnv + kbSpec;
+  float kbA = mix(diffuseColor.a, max(diffuseColor.a, ${f(GLASS.edge_opacity)}), kbF);
+  ${paneUv ? `// Grime where a cloth misses: the pane's edges, patchy.
+  float kbE = min(min(kbGUv.x, 1.0 - kbGUv.x), min(kbGUv.y, 1.0 - kbGUv.y));
+  float kbT = clamp(kbE / ${f(GLASS.grime_edge)}, 0.0, 1.0);
+  float kbPatch = 0.6 + 0.4 * fract(sin(dot(floor(kbGW * 9.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  float kbG = ${f(GLASS.grime)} * (1.0 - kbT * kbT * (3.0 - 2.0 * kbT)) * kbPatch;
+  vec3 kbIrr = (reflectedLight.directDiffuse + reflectedLight.indirectDiffuse) / max(diffuseColor.rgb, vec3(0.02));
+  kbBody = mix(kbBody, kbIrr * vec3(0.30, 0.28, 0.25), kbG / max(kbA + kbG * (1.0 - kbA), 1e-3));
+  kbA = kbA + kbG * (1.0 - kbA);` : ""}
+  float kbOut = clamp(kbA + dot(kbR, vec3(0.299, 0.587, 0.114)) * (1.0 - kbA), 0.0, 1.0);
+  outgoingLight = (kbBody * kbA + kbR) / max(kbOut, 1e-3);
+  diffuseColor.a = kbOut;
+}
+#include <opaque_fragment>`);
+  });
+}
+globalThis.__kerbsideRealGlass = realGlass;
 // ---- the sun's shadows and the light off the street: a low-detail stand-in for the world -------
 //
 // Nothing here casts a shadow the usual way (a shadow map draws every building, tree and kerb

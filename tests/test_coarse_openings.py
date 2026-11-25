@@ -161,8 +161,8 @@ def test_a_photographed_garage_is_drawn_without_a_kerb_cut_and_cuts_one() -> Non
     }
     const photoDropStats = { cut: 0, noKerb: 0 };
     """
-    result = _node("\n".join([pre, _const(js, "PHOTO_KERB_REACH_M"), _extract("outwardBearing", js),
-                              _extract("fitOpeningOnOutline", js), _extract("addPhotoGarages", js),
+    result = _node("\n".join([pre, _const(js, "PHOTO_KERB_REACH_M"), "const DOOR_CLEAR_M = 0.35;", _extract("outwardBearing", js),
+                              _extract("fitOpeningOnOutline", js), _extract("openingsClash", js), _extract("addPhotoGarages", js),
                               _extract("photoKerbDrop", js), """
     const stats = addPhotoGarages([way]);
     const photo = way.garages.find(g => g.photo);

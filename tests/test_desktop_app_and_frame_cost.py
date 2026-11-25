@@ -40,7 +40,7 @@ def test_no_world_renderer_uses_transmission_glass() -> None:
     for path in sources:
         text = path.read_text()
         assert not re.search(r"transmission\s*:\s*0?\.\d*[1-9]", text), path
-    assert "new THREE.MeshStandardMaterial({\n          color: p.glass" in STOREFRONT.read_text()
+    assert re.search(r"new THREE\.MeshStandardMaterial\(\{\s*color: p\.glass", STOREFRONT.read_text())
     # The renderer is fetched by its hash: a changed renderer is fetched again, not the cached one.
     manifest = json.loads(STOREFRONT_MANIFEST.read_text())
     assert manifest["renderer_sha256"] == hashlib.sha256(STOREFRONT.read_bytes()).hexdigest()[:16]

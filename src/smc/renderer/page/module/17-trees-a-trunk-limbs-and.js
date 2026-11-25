@@ -1033,6 +1033,162 @@ function cutCoverOffLots(mesh) {
   geom.computeBoundingBox(); geom.computeBoundingSphere();
   return cut;
 }
+//: A cover's triangles taken off whatever ``inside(x, z)`` says is not its ground, along the
+//: edge of it: a triangle wholly inside goes, one wholly outside stays, and one that straddles
+//: the edge is halved until each piece is one or the other or is under ``fine`` metres across
+//: (kept if its middle is outside). Off the roadway this way (recutGroundOffRoads): the paving
+//: was taken off a carriageway by dropping whole triangles, and along a street that curves the
+//: ones that straddled its edge were left as a row of pale teeth down both sides of the road
+//: (the service road off Chestnut Street, seen 2026-11-24).
+const ROAD_CUT_FINE_M = 0.3;
+//: (``only(t)``, where given, says which triangles -- by their first index -- are tested at all:
+//: the others are kept whole without a look.)
+//: (``exact(t, P)``, where given, may split a triangle exactly first -- [barycentric triangles], or
+//: null to leave it whole -- before the halving looks at what is left.)
+function cutCoverBy(mesh, inside, fine, only = null, exact = null) {
+  const geom = mesh.geometry, pos = geom.attributes.position, index = geom.getIndex();
+  const e = mesh.matrixWorld.elements, ox = e[12], oz = e[14];
+  const names = Object.keys(geom.attributes), added = names.map(() => []);
+  let next = pos.count, cut = 0;
+  const kept = [];
+  const point = (ids, w) => {
+    for (let k = 0; k < 3; k += 1) if (w[k] > 1 - 1e-9) return ids[k];
+    names.forEach((name, n) => {
+      const at = geom.attributes[name], size = at.itemSize;
+      for (let c = 0; c < size; c += 1) added[n].push(w[0] * at.getComponent(ids[0], c) + w[1] * at.getComponent(ids[1], c) + w[2] * at.getComponent(ids[2], c));
+    });
+    return next++;
+  };
+  for (let t = 0; t < index.count; t += 3) {
+    const ids = [index.getX(t), index.getX(t + 1), index.getX(t + 2)];
+    if (only && !only(t)) { kept.push(ids[0], ids[1], ids[2]); continue; }
+    const P = ids.map((i) => [pos.getX(i) + ox, pos.getZ(i) + oz]);
+    const at = (w) => [w[0] * P[0][0] + w[1] * P[1][0] + w[2] * P[2][0], w[0] * P[0][1] + w[1] * P[1][1] + w[2] * P[2][1]];
+    const whole = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], split = exact ? exact(t, P) : null;
+    const stack = split ? split.slice() : [whole], pieces = [];
+    let changed = Boolean(split);
+    while (stack.length) {
+      const q = stack.pop(), xy0 = q.map(at), inn = xy0.map(([x, z]) => (inside(x, z) ? 1 : 0)), n = inn[0] + inn[1] + inn[2];
+      const mx = (xy0[0][0] + xy0[1][0] + xy0[2][0]) / 3, mz = (xy0[0][1] + xy0[1][1] + xy0[2][1]) / 3, mid = inside(mx, mz);
+      const long = Math.max(Math.hypot(xy0[0][0] - xy0[1][0], xy0[0][1] - xy0[1][1]), Math.hypot(xy0[1][0] - xy0[2][0], xy0[1][1] - xy0[2][1]), Math.hypot(xy0[2][0] - xy0[0][0], xy0[2][1] - xy0[0][1]));
+      if (n === 0 && !mid) { pieces.push(q); continue; }
+      if ((n === 3 && mid) || long <= fine) { if (mid || n === 3) { changed = true; continue; } pieces.push(q); continue; }
+      changed = true;
+      const m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], ab = m(q[0], q[1]), bc = m(q[1], q[2]), ca = m(q[2], q[0]);
+      stack.push([q[0], ab, ca], [ab, q[1], bc], [ca, bc, q[2]], [ab, bc, ca]);
+    }
+    if (!changed) { kept.push(ids[0], ids[1], ids[2]); continue; }
+    cut += 1;
+    for (const piece of pieces) kept.push(point(ids, piece[0]), point(ids, piece[1]), point(ids, piece[2]));
+  }
+  if (!cut) return 0;
+  if (next > pos.count) names.forEach((name, n) => {
+    const at = geom.attributes[name], array = new at.array.constructor(next * at.itemSize);
+    array.set(at.array.subarray(0, pos.count * at.itemSize)); array.set(added[n], pos.count * at.itemSize);
+    geom.setAttribute(name, new THREE.BufferAttribute(array, at.itemSize, at.normalized));
+  });
+  geom.setIndex(kept);
+  geom.computeBoundingBox(); geom.computeBoundingSphere();
+  return cut;
+}
+//: Paving stops at a fence. A paved cover's triangle laid across a fence line, most of it on one
+//: side and a bit of it -- up to FENCE_BITE.most_m -- on the other, showed that bit as a sliver
+//: of concrete poking out under the fence into the lawn beyond (1,018 of them in the Marina,
+//: 2026-11-24: plazas, the setbacks' walk, the inferred paving, service yards, courts). The bit
+//: is cut off along the fence line (cutCoverBy's halving, to FENCE_BITE.fine_m); a cover that
+//: truly runs on through a gap in the fence, further than that, is left alone.
+const FENCE_BITE = { most_m: 1.5, fine_m: 0.12, slack_m: 0.03 };
+const FENCE_PAVED_SURFACES = /^(plaza|front_walk|neutral_ground|walk|inferred:paving|inferred:service|inferred:asphalt|service_yard|court|park:play_surface|park:skatepark_surface)$/;
+const fenceBiteStats = { bites: 0, meshes: 0, triangles: 0, left: 0 };
+//: The fence lines a triangle (page x / z corners) lies across, each with the side its bit is on:
+//: [{ax, az, ux, uz, L, side}] -- side the sign of the bit's offset from the line.
+//: ``lawnAt(x, z)``: whether the far side is lawn. Only a bite into a lawn is cut: paving that
+//: carries on beyond a fence (a yard paved both sides of it) keeps the triangle that lays it.
+function fenceLinesAcross(V, lawnAt = () => true) {
+  const out = [];
+  // Every fence in the cells the triangle covers (a plaza's triangle can be tens of metres long).
+  const xs = V.map((p) => p[0]), zs = V.map((p) => p[1]), C = FENCE_LINE_CELL_M, seen = new Set(), lines = [];
+  for (let i = Math.floor(Math.min(...xs) / C); i <= Math.floor(Math.max(...xs) / C); i += 1)
+    for (let j = Math.floor(Math.min(...zs) / C); j <= Math.floor(Math.max(...zs) / C); j += 1)
+      for (const line of fenceLineGrid.get(`${i}:${j}`) || []) if (!seen.has(line)) { seen.add(line); lines.push(line); }
+  for (const line of lines) {
+    const [ax, az, bx, bz] = line, L = Math.hypot(bx - ax, bz - az);
+    if (!(L > 0.3)) continue;
+    const ux = (bx - ax) / L, uz = (bz - az) / L;
+    const sd = V.map(([x, z]) => ux * (z - az) - uz * (x - ax)), along = V.map(([x, z]) => (x - ax) * ux + (z - az) * uz);
+    if (Math.max(...along) < 0 || Math.min(...along) > L) continue;
+    const hi = Math.max(...sd), lo = Math.min(...sd);
+    if (!(hi > FENCE_BITE.slack_m && lo < -FENCE_BITE.slack_m)) continue;
+    // The bit is the smaller side; a cover reaching well past on both sides runs on through.
+    const side = hi < -lo ? 1 : -1, bite = Math.min(hi, -lo);
+    if (bite > FENCE_BITE.most_m) continue;
+    // What is beyond, at the bite: a step off the line, square from the middle of its corners there.
+    const tips = V.filter((_, k) => side * sd[k] > FENCE_BITE.slack_m);
+    const ta = Math.min(L, Math.max(0, tips.reduce((t, [x, z]) => t + (x - ax) * ux + (z - az) * uz, 0) / tips.length));
+    if (!lawnAt(ax + ux * ta - uz * side * 0.3, az + uz * ta + ux * side * 0.3)) continue;
+    // ``alongside``: the triangle lies wholly beside the fence, end to end -- cut exactly on its
+    // line; one reaching past an end of it (a gap, a gate) is halved, and only beside the fence.
+    out.push({ ax, az, ux, uz, L, side, sd, along, alongside: Math.min(...along) >= -0.1 && Math.max(...along) <= L + 0.1 });
+  }
+  return out;
+}
+//: A polygon in barycentric corners clipped to where ``keep(w)`` is not negative (keep is linear).
+function clipBarycentric(poly, keep) {
+  const out = [];
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], ka = keep(a), kb = keep(b);
+    if (ka >= 0) out.push(a);
+    if ((ka >= 0) !== (kb >= 0)) { const s = ka / (ka - kb); out.push([0, 1, 2].map((c) => a[c] + (b[c] - a[c]) * s)); }
+  }
+  return out;
+}
+function cutPavingAtFences(lawnAt = () => true) {
+  const meshes = [];
+  groups.ground.traverse((o) => { if (o.isMesh && !o.isInstancedMesh && FENCE_PAVED_SURFACES.test(o.userData?.surface || "") && o.geometry?.getIndex?.()) meshes.push(o); });
+  for (const mesh of meshes) {
+    mesh.updateMatrixWorld();
+    const geom = mesh.geometry, pos = geom.attributes.position, index = geom.getIndex();
+    const e = mesh.matrixWorld.elements, ox = e[12], oz = e[14];
+    // The fences each triangle lies across, by its first index: cutCoverBy asks of a point, and
+    // the point is beyond a fence only for the triangles across that fence.
+    const across = new Map();
+    for (let t = 0; t < index.count; t += 3) {
+      const V = [0, 1, 2].map((k) => { const i = index.getX(t + k); return [pos.getX(i) + ox, pos.getZ(i) + oz]; });
+      const lines = fenceLinesAcross(V, lawnAt);
+      if (lines.length) across.set(t, lines);
+    }
+    fenceBiteStats.bites += across.size;
+    if (!across.size) continue;
+    // Each fence's bite out of the triangle, exactly: the part beyond its line and beside it --
+    // between its ends; past an end (a gap, a gate) the paving carries on.
+    const exactly = (t) => {
+      let polys = [[[1, 0, 0], [0, 1, 0], [0, 0, 1]]];
+      for (const f of across.get(t) || []) {
+        const sdOf = (w) => w[0] * f.sd[0] + w[1] * f.sd[1] + w[2] * f.sd[2];
+        const alongOf = (w) => w[0] * f.along[0] + w[1] * f.along[1] + w[2] * f.along[2];
+        const next = [];
+        for (const poly of polys) {
+          next.push(clipBarycentric(poly, (w) => -f.side * sdOf(w)));
+          const bite = clipBarycentric(poly, (w) => f.side * sdOf(w));
+          if (bite.length < 3) continue;
+          next.push(clipBarycentric(bite, (w) => -alongOf(w)));
+          next.push(clipBarycentric(clipBarycentric(bite, (w) => alongOf(w)), (w) => alongOf(w) - f.L));
+        }
+        polys = next.filter((poly) => poly.length >= 3);
+      }
+      return polys.flatMap((poly) => poly.slice(1, -1).map((_, k) => [poly[0], poly[k + 1], poly[k + 2]]));
+    };
+    const cut = cutCoverBy(mesh, () => false, FENCE_BITE.fine_m, (t) => across.has(t), exactly);
+    if (cut) { fenceBiteStats.meshes += 1; fenceBiteStats.triangles += cut; }
+    // What is left after the cut, counted the same way (the measured check: 0 when it worked).
+    const after = geom.attributes.position;
+    for (let t = 0; t < geom.index.count; t += 3) {
+      const V = [0, 1, 2].map((k) => { const i = geom.index.getX(t + k); return [after.getX(i) + ox, after.getZ(i) + oz]; });
+      if (fenceLinesAcross(V, lawnAt).some((f) => f.sd.some((d, k) => d * f.side > 0.15 && f.along[k] > 0.05 && f.along[k] < f.L - 0.05))) fenceBiteStats.left += 1;
+    }
+  }
+  return fenceBiteStats;
+}
 function recutGroundOffRoads() {
   let cut = 0;
   const meshes = [];
@@ -1044,16 +1200,8 @@ function recutGroundOffRoads() {
     mesh.updateMatrixWorld();
     const e = mesh.matrixWorld.elements, kept = [];
     const roads = ROAD_CUT_SURFACES.has(mesh.userData.surface), lotCut = lots && LOT_CUT_SURFACES.test(mesh.userData.surface || "");
-    const on = (i) => insideCarriageway(pos.getX(i) + e[12], pos.getZ(i) + e[14], 0);
-    if (roads) {
-      for (let t = 0; t < index.count; t += 3) {
-        const a = index.getX(t), b = index.getX(t + 1), c = index.getX(t + 2);
-        const cx = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3 + e[12], cz = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3 + e[14];
-        if (insideCarriageway(cx, cz, 0) && on(a) + on(b) + on(c) >= 2) { cut += 1; continue; }
-        kept.push(a, b, c);
-      }
-      if (kept.length !== index.count) geom.setIndex(kept);
-    }
+    // Off the roadway along its edge (cutCoverBy), not a whole triangle at a time.
+    if (roads) cut += cutCoverBy(mesh, (x, z) => insideCarriageway(x, z, 0), ROAD_CUT_FINE_M);
     // Off the car parks, along their outlines exactly (cutCoverOffLots).
     if (lotCut) cut += cutCoverOffLots(mesh);
   }
@@ -1088,8 +1236,15 @@ const FENCE_GROUND_STEP_M = .75;
 //: on one (treeOffFence). A trunk on a fence's line had the fence running through it -- half the
 //: tree in the park, half on the pavement (Moscone, Chestnut Street, 2026-11-22).
 const FENCE_LINE_CELL_M = 6, fenceLineGrid = new Map();
+//: Whose fence is being laid now: a property, a block of courts, a park area, a ground record.
+//: The builders set it before they lay one (fenceOwnedBy). A fence's free end is carried on only
+//: to a wall or to more of its own fence (closeFenceEnds), never to another's: a court's fence
+//: and a school's are two fences, and joining them shut a park path at Moscone (2026-11-24).
+var fenceOwnerNow = null;
+function fenceOwnedBy(owner) { fenceOwnerNow = owner == null ? null : String(owner); }
 function noteFenceLine(ax, az, bx, bz) {
   const line = [ax, az, bx, bz], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / (FENCE_LINE_CELL_M / 2)));
+  line.owner = typeof fenceOwnerNow === "undefined" ? null : fenceOwnerNow;
   for (let k = 0; k <= n; k += 1) {
     const key = Math.floor((ax + (bx - ax) * k / n) / FENCE_LINE_CELL_M) + ":" + Math.floor((az + (bz - az) * k / n) / FENCE_LINE_CELL_M);
     if (!fenceLineGrid.has(key)) fenceLineGrid.set(key, []);
@@ -1205,6 +1360,22 @@ function pathThroughFence(x, z, ux, uz) {
   }
   return false;
 }
+//: Whether (x, z) is within ``pad`` of a mapped path's tread (its drawn width, module 05): ``pad``
+//: below zero keeps to the middle of it. Grass grows off it (module 18's blades stood on the paths
+//: across Moscone, the path drawn over the lawn under them, 2026-11-25).
+function pathTreadAt(x, z, pad = 0) {
+  for (const [ax, az, bx, bz, half] of fenceLinesNear(fencePaths(), x, z)) {
+    const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz;
+    if (!(L2 > 0)) continue;
+    const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / L2));
+    if (Math.hypot(x - ax - vx * t, z - az - vz * t) < Math.max(pad < 0 ? 0.5 : 0, half + pad)) return true;
+  }
+  return false;
+}
+//: Whether (x, z) is on a mapped public path's tread, whichever way a fence there would run: no
+//: fence ever stands on one. (pathThroughFence keeps a path's way through a fence that crosses
+//: it; this keeps a fence off the path itself -- along it, or closing across it.)
+function onPublicPath(x, z) { return pathTreadAt(x, z, -0.1); }
 //: Whether a yard fence at (x, z), running (ux, uz), would stand between a street and the front
 //: of a building: the building within FENCE_FRONT.wall_m of it on one side and the roadway
 //: within FENCE_FRONT.street_m on the other. A school's or a depot's chain link fences its open
@@ -1235,7 +1406,7 @@ function fencePieces(ax, az, bx, bz, yard = false) {
   for (let k = 0; k <= n; k += 1) {
     const t0 = span * k / n, t1 = span * (k + 1) / n, tm = (t0 + t1) / 2;
     const free = k < n && !fenceAlreadyThere(ax + ux * tm, az + uz * tm, ux, uz) && !inFenceGate(ax + ux * tm, az + uz * tm)
-      && !pathThroughFence(ax + ux * tm, az + uz * tm, ux, uz) && !(yard && fenceBeforeFront(ax + ux * tm, az + uz * tm, ux, uz));
+      && !pathThroughFence(ax + ux * tm, az + uz * tm, ux, uz) && !(typeof onPublicPath === "function" && onPublicPath(ax + ux * tm, az + uz * tm)) && !(yard && fenceBeforeFront(ax + ux * tm, az + uz * tm, ux, uz));
     if (free && from === null) from = t0;
     if (!free && from !== null) {
       if (t0 - from >= FENCE_PIECE_MIN_M) pieces.push([ax + ux * from, az + uz * from, ax + ux * t0, az + uz * t0]);
@@ -1276,9 +1447,43 @@ function treeOffFence(x, z, okAt = () => true) {
   }
   return nearestFenceLine(px, pz, TREE_FENCE_CLEAR_M) ? null : [px, pz];
 }
+//: A tree's base on the ground: the round of it tested for lawn, and how far it may be moved to
+//: stand wholly on the lawn it touches (m).
+const TREE_ON_GRASS = { base_m: 0.6, reach_m: 3, step_m: 0.25, around: 8 };
+//: Where a tree at (x, z) stands wholly on grass: null where its base touches no grass (it is in
+//: paving) or is all on grass already (it stays); the nearest spot within TREE_ON_GRASS.reach_m
+//: whose whole base is grass and where ``okAt`` allows a trunk; or false where there is none.
+function treeOntoGrass(x, z, grassAt, okAt = () => true) {
+  const { base_m: r, reach_m, step_m, around } = TREE_ON_GRASS;
+  const ring = (cx, cz) => [[cx, cz], ...Array.from({ length: around }, (_, k) => {
+    const a = k * 2 * Math.PI / around; return [cx + Math.cos(a) * r, cz + Math.sin(a) * r];
+  })];
+  const here = ring(x, z).map(([px, pz]) => grassAt(px, pz));
+  if (!here.some(Boolean) || here.every(Boolean)) return null;
+  for (let d = step_m; d <= reach_m + 1e-9; d += step_m) {
+    // Round the circle at this distance, the side the grass is on first.
+    const n = Math.max(8, Math.round(2 * Math.PI * d / step_m));
+    let best = null;
+    for (let k = 0; k < n; k += 1) {
+      const a = k * 2 * Math.PI / n, cx = x + Math.cos(a) * d, cz = z + Math.sin(a) * d;
+      if (!ring(cx, cz).every(([px, pz]) => grassAt(px, pz)) || !okAt(cx, cz)) continue;
+      // Of the spots this far off, the one nearest the middle of the grass it touched.
+      const score = here.reduce((s, g, i) => s + (g && i ? Math.cos(a - (i - 1) * 2 * Math.PI / around) : 0), 0);
+      if (!best || score > best.score) best = { score, at: [cx, cz] };
+    }
+    if (best) return best.at;
+  }
+  return false;
+}
+//: Every panel laid, for the closing of the fences' free ends (closeFenceEnds): where it runs,
+//: how it stands, and the mesh it is drawn in (whose material a closing panel takes).
+var fencePanelsLaid = [];
 function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = tileU) {
   const span=Math.hypot(bx-ax,bz-az);
   if (!(span>0) || !Number.isFinite(span)) return;
+  // (A gate's leaf, swung open, is not a fence with ends to close: sink.leaf.)
+  if (!sink.closing && !sink.leaf && typeof fencePanelsLaid !== "undefined") fencePanelsLaid.push({ sink, ax, az, bx, bz, baseY, height, tileU, tileV,
+    owner: typeof fenceOwnerNow === "undefined" ? null : fenceOwnerNow });
   noteFenceLine(ax, az, bx, bz);
   const count=Math.max(1,Math.ceil(span/FENCE_GROUND_STEP_M));
   const base=sink.positions.length/3;
@@ -1296,6 +1501,115 @@ function groundedFencePanel(sink, ax, az, bx, bz, baseY, height, tileU, tileV = 
   }
 }
 
+// ---- no fence with a way round its end ----------------------------------------------------------
+//
+// A fence encloses: each end of it meets a wall or another fence, or it is a gate. Laid from
+// records of single boundary lines, many had one end -- or both -- standing in the open: a
+// school yard's chain link along two sides of the yard and stopped, a garden's fence along its
+// front and nothing down its sides; walked round (the owner, 2026-11-24). Once every fence is
+// laid, each end that meets nothing is carried on to what would close it: straight on to the
+// first wall or more of its own fence in its way within FENCE_CLOSE.ahead_m, else square off its
+// line, to either hand, to the nearest within FENCE_CLOSE.aside_m. Never onto another fence: two
+// owners' fences are two fences (a court's and a school's, joined, shut a park path at Moscone,
+// 2026-11-24), and another's fence in the way leaves the end as it is. Never across a roadway, a pavement, a
+// mapped path, a noted gate or the way from a dropped kerb to its garage; and an end at a gate
+// or a path (where the fence was parted on purpose) is left as it is.
+const FENCE_CLOSE = { meet_m: 0.45, ahead_m: 25, aside_m: 10, back_m: 0.35, step_m: 0.25, least_m: 0.5 };
+const fenceCloseStats = { ends: 0, met: 0, gates: 0, closed: 0, closed_m: 0, open: 0, other: 0 };
+function closeFenceEnds() {
+  const panels = fencePanelsLaid;
+  if (!panels.length || typeof buildingAt !== "function") return fenceCloseStats;
+  // Each panel's ends, and which of them meet another panel's end (the same fence carrying on).
+  const key = (x, z) => `${Math.round(x / 0.3)}:${Math.round(z / 0.3)}`;
+  const ends = new Map();
+  for (const q of panels) for (const [x, z] of [[q.ax, q.az], [q.bx, q.bz]]) {
+    for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) { const k = `${Math.round(x / 0.3) + dx}:${Math.round(z / 0.3) + dz}`; ends.set(k, (ends.get(k) || 0) + (dx || dz ? 0.001 : 1)); }
+  }
+  // Whether (x, z) is on a fence other than ``own`` (with ``mine``, only on more of own's fence:
+  // its owner's -- an ownerless fence has none).
+  const fenceAt = (x, z, own, reach = 0.2, mine = false) => {
+    for (const line of fenceLinesNear(fenceLineGrid, x, z)) {
+      const [ax, az, bx, bz] = line;
+      if (mine && (own?.owner == null || line.owner !== own.owner)) continue;
+      if (own && Math.abs(ax - own.ax) < 1e-6 && Math.abs(az - own.az) < 1e-6 && Math.abs(bx - own.bx) < 1e-6 && Math.abs(bz - own.bz) < 1e-6) continue;
+      const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz;
+      if (!(L2 > 0)) continue;
+      const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / L2));
+      if (Math.hypot(x - ax - vx * t, z - az - vz * t) < reach) return true;
+    }
+    return false;
+  };
+  // A public way: the roadway, a pavement, a park's paving, a mapped path's tread, a driveway.
+  const publicWay = (x, z) => insideCarriageway(x, z, 0.1) || pavementTopAt(x, z) !== undefined
+    || (typeof inDriveway === "function" && inDriveway(x, z))
+    || (typeof parkPavementAt === "function" && parkPavementAt(x, z)) || (typeof onPublicPath === "function" && onPublicPath(x, z));
+  // Along a ray from an end: how far to the first wall or more of its own fence, or null where
+  // the way is not clear to one within ``reach``. Another owner's fence in the way stops it: two
+  // fences are not joined into one (a court's and a school's shut a path between them, Moscone).
+  // (The closing panel runs along the ray, (ux, uz): a path crossing the ray crosses it. The
+  // test once took the ray's square for the panel's run, and let a closing cross the paths it
+  // was meant to keep clear of.)
+  const reachTo = (x, z, ux, uz, reach, own) => {
+    for (let d = FENCE_CLOSE.step_m; d <= reach; d += FENCE_CLOSE.step_m) {
+      const px = x + ux * d, pz = z + uz * d;
+      if (buildingAt(px, pz)) return d - FENCE_CLOSE.step_m * 0.5;
+      if (d > 0.5 && fenceAt(px, pz, own, 0.2, true)) return d;
+      if (d > 0.5 && fenceAt(px, pz, own)) { fenceCloseStats.other += 1; return null; }
+      if (publicWay(px, pz) || inFenceGate(px, pz) || pathThroughFence(px, pz, ux, uz)) return null;
+    }
+    return null;
+  };
+  const added = new Map();   // sink -> { positions, uvs, indices }
+  for (const q of panels) {
+    const span = Math.hypot(q.bx - q.ax, q.bz - q.az), ux = (q.bx - q.ax) / span, uz = (q.bz - q.az) / span;
+    for (const [x, z, sx, sz] of [[q.ax, q.az, -ux, -uz], [q.bx, q.bz, ux, uz]]) {
+      // An end another panel's end is at carries on: not an end.
+      if ((ends.get(key(x, z)) || 0) >= 2) continue;
+      fenceCloseStats.ends += 1;
+      // Met already: a wall or another fence within a step of it.
+      let met = Boolean(buildingAt(x + sx * 0.3, z + sz * 0.3)) || fenceAt(x + sx * 0.15, z + sz * 0.15, q, FENCE_CLOSE.meet_m);
+      for (const [nx, nz] of [[-sz, sx], [sz, -sx]]) met ||= Boolean(buildingAt(x + nx * 0.35, z + nz * 0.35));
+      if (met) { fenceCloseStats.met += 1; continue; }
+      // Parted on purpose: a gate, or a path through.
+      if (inFenceGate(x + sx * 0.6, z + sz * 0.6) || pathThroughFence(x + sx * 0.6, z + sz * 0.6, sx, sz) || pathThroughFence(x + sx * 1.6, z + sz * 1.6, sx, sz)) { fenceCloseStats.gates += 1; continue; }
+      // Carried on: straight ahead first, then square to either hand (the nearer).
+      let best = null;
+      const ahead = reachTo(x, z, sx, sz, FENCE_CLOSE.ahead_m, q);
+      if (ahead !== null) best = { d: ahead, ux: sx, uz: sz };
+      // (To the side from a step back along the fence: an end that stops at a pavement's edge
+      // is closed along the line behind it, not along the pavement.)
+      else for (const [nx, nz] of [[-sz, sx], [sz, -sx]]) {
+        const bx = x - sx * FENCE_CLOSE.back_m, bz = z - sz * FENCE_CLOSE.back_m;
+        const d = reachTo(bx, bz, nx, nz, FENCE_CLOSE.aside_m, q);
+        if (d !== null && (!best || d < best.d)) best = { d, ux: nx, uz: nz, x: bx, z: bz };
+      }
+      if (!best || best.d < FENCE_CLOSE.least_m) { fenceCloseStats.open += best ? 0 : 1; if (best) fenceCloseStats.met += 1; continue; }
+      let sink = added.get(q.sink);
+      if (!sink) added.set(q.sink, sink = { positions: [], uvs: [], indices: [], closing: true, from: q });
+      const fx = best.x ?? x, fz = best.z ?? z;
+      typeof fenceOwnedBy === "function" && fenceOwnedBy(q.owner);
+      groundedFencePanel(sink, fx, fz, fx + best.ux * best.d, fz + best.uz * best.d, q.baseY, q.height, q.tileU, q.tileV);
+      fenceCloseStats.closed += 1; fenceCloseStats.closed_m += best.d;
+    }
+  }
+  // Each closing panel in the material of the fence it closes.
+  for (const [from, sink] of added) {
+    const material = from.mesh?.material;
+    if (!material || !sink.indices.length) continue;
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.Float32BufferAttribute(sink.positions, 3));
+    geom.setAttribute("uv", new THREE.Float32BufferAttribute(sink.uvs, 2));
+    geom.setIndex(sink.indices); geom.computeVertexNormals();
+    const mesh = new THREE.Mesh(geom, material);
+    mesh.userData = { ...from.mesh.userData, closes: true, liftedOntoGround: true };
+    mesh.renderOrder = from.mesh.renderOrder; mesh.castShadow = from.mesh.castShadow;
+    (from.mesh.parent || groups.ground).add(mesh);
+  }
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
+  fenceCloseStats.closed_m = Math.round(fenceCloseStats.closed_m);
+  fencePanelsLaid = [];
+  return fenceCloseStats;
+}
 function buildFences(ground) { return runSteps(buildFencesSteps(ground)); }
 //: A kind at a time, and 64 segments at a time inside one (each is tested along its run against
 //: the carriageway): a city's fences in one go were a fifth of a second.
@@ -1310,6 +1624,7 @@ function* buildFencesSteps(ground) {
     const positions = [];
     const uvs = [];
     const indices = [];
+    const fenceSink = { positions, uvs, indices };
     yield;
     for (let i = 0; i + 3 < flat.length; i += 4) {
       if ((i & 255) === 252) yield;
@@ -1337,8 +1652,11 @@ function* buildFencesSteps(ground) {
         }
       }
       if (crosses) continue;
-      layFence({positions,uvs,indices},ax,az,bx,bz,YARD_Y,style.h,style.tile,style.tile,/chain/.test(String(kind)));
+      // One fence is the segments that run on end to end; the next that starts elsewhere is another.
+      if (!(i >= 4 && Math.hypot(ax - flat[i - 2], az + flat[i - 1]) < 0.05)) typeof fenceOwnedBy === "function" && fenceOwnedBy(`ground:${kind}:${i}`);
+      layFence(fenceSink,ax,az,bx,bz,YARD_Y,style.h,style.tile,style.tile,/chain/.test(String(kind)));
     }
+    typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
     if (!indices.length) continue;
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -1347,6 +1665,7 @@ function* buildFencesSteps(ground) {
     geom.computeVertexNormals();
     const fence=addGround(new THREE.Mesh(geom, fenceMaterial(style)), "fence:" + kind);
     fence.userData.liftedOntoGround=true;
+    fenceSink.mesh=fence;
     fence.userData.elevationBasis="terrain_sampled_0.75m";
   }
 }
@@ -1391,6 +1710,16 @@ const COURT_STYLE = {
   soccer:     { surround: null,     play: null,     line: 0.12 },
 };
 
+//: The plain concrete a court's slab is round its painted courts: the concrete's grey taken a
+//: third of the way to the court's own colour, so the slab reads as the court's ground and not
+//: as a car park beside it. (A tint over the concrete texture: SIDEWALK is pale, so the tint is
+//: the colour the slab comes out.)
+const COURT_SLAB_GREY = 0xb3b0a8, COURT_SLAB_TONE = 0.33;
+function courtSlabColour(style) {
+  const play = style.play ?? style.surround ?? COURT_SLAB_GREY, k = COURT_SLAB_TONE;
+  const mix = (shift) => Math.round(((COURT_SLAB_GREY >> shift) & 255) * (1 - k) + ((play >> shift) & 255) * k);
+  return (mix(16) << 16) | (mix(8) << 8) | mix(0);
+}
 function courtSurface(color) {
   // Acrylic over asphalt: an even, slightly speckled colour. The speckle is what stops a flat
   // fill reading as a decal rather than as a surface somebody laid.
@@ -1711,19 +2040,33 @@ function buildCourts(ground) {
     const park = (ground.parks || []).find((q) => pointInRing(lon, lat, q.p));
     return park ? grassVariantForRing(park.p, GRASS_VARIANTS) : null;
   };
+  // A hard court in a park is not set in the lawn either: inside its fence it is one slab, the
+  // courts' coloured acrylic laid on it and the rest of it -- the run-off, the strip by the
+  // fence -- plain concrete, unpainted, toned to the court ("slab:<colour>", courtSlabColour).
+  // Its pad was the park's grass, and a tennis court's fence held as much lawn as court
+  // (Moscone, 2026-11-24). A field (soccer: surround null) is grass still.
   const byVariant = new Map();
   for (const pitch of pitches) {
     const style = COURT_STYLE[pitch.s];
     if (!style) continue;
     const [lon, lat] = ringCentroid(pitch.p);
     const inPark = style.surround === null ? -1 : parkVariantAt(lon, lat);
-    const variant = inPark !== null ? inPark : `hard:${style.surround}`;
+    const variant = inPark === -1 ? -1 : inPark !== null ? `slab:${courtSlabColour(style)}` : `hard:${style.surround}`;
     if (!byVariant.has(variant)) byVariant.set(variant, []);
     byVariant.get(variant).push(pitch.p);
   }
   for (const [variant, rings] of byVariant) {
     const geom = ringGeometry(rings, COURT_Y);
     if (!geom) continue;
+    if (typeof variant === "string" && variant.startsWith("slab:")) {
+      const pad = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
+        map: SIDEWALK, color: Number(variant.slice(5)), roughness: 0.93, metalness: 0.0,
+        side: THREE.DoubleSide, depthWrite: false,
+      })), "court");
+      pad.renderOrder = -0.5;
+      pad.userData.courtSlab = true;
+      continue;
+    }
     if (typeof variant === "string") {
       const pad = addGround(new THREE.Mesh(geom, new THREE.MeshStandardMaterial({
         map: courtSurface(Number(variant.slice(5))), color: 0xffffff, roughness: 0.9, metalness: 0.0,
@@ -1916,11 +2259,13 @@ function buildCourts(ground) {
   const fencePositions = [];
   const fenceUvs = [];
   const fenceIndices = [];
+  const courtFenceSink = { positions: fencePositions, uvs: fenceUvs, indices: fenceIndices };
   const fencePosts = [];
   const fenceRails = [], fenceJoints = new Map();
-  for (const pitch of pitches) {
+  for (const [pitchIndex, pitch] of pitches.entries()) {
     const style = COURT_STYLE[pitch.s];
     if (!style || !style.fence) continue;
+    typeof fenceOwnedBy === "function" && fenceOwnedBy(`court:${pitch.k ?? pitchIndex}`);
     // Within a block, the fence between one sport's courts and another's (court_complexes'
     // dividers), as tall as the taller of the two; courts of one sport share open run-off.
     const runs = [...(pitch.fence_runs ? pitch.fence_runs.map(r=>[r.p,style.fence]) : [[pitch.p, style.fence]]), ...(pitch.dividers || []).map((d) => [d.p,
@@ -1932,7 +2277,7 @@ function buildCourts(ground) {
       if (Math.hypot(ex - sx, ez - sz) < 0.4) continue;
       if (insideCarriageway(sx, sz, -1.0) || insideCarriageway(ex, ez, -1.0)) continue;
       // Only what no fence or wall already carries (layFence): a court beside another shares its fence.
-      for (const [ax, az, bx, bz] of layFence({positions:fencePositions,uvs:fenceUvs,indices:fenceIndices},
+      for (const [ax, az, bx, bz] of layFence(courtFenceSink,
         sx,sz,ex,ez,COURT_Y,h,.6)) {
       const span = Math.hypot(bx - ax, bz - az);
       for (const [x,z] of courtPostPoints(ax,az,bx,bz,h,HEADSET)) {
@@ -1955,6 +2300,7 @@ function buildCourts(ground) {
       }
     }
   }
+  typeof fenceOwnedBy === "function" && fenceOwnedBy(null);
   if(!HEADSET)fencePosts.push(...fenceJoints.values());
   if(fenceRails.length) {
     const rails=new THREE.InstancedMesh(new THREE.CylinderGeometry(.026,.026,1,6),
@@ -1977,6 +2323,7 @@ function buildCourts(ground) {
     const fence=new THREE.Mesh(geom, chainlinkMaterial());
     fence.userData={surface:"fence:court",liftedOntoGround:true,elevationBasis:"terrain_sampled_0.75m"};
     groups.ground.add(fence);
+    courtFenceSink.mesh=fence;
   }
   if (fencePosts.length) {
     const post = new THREE.InstancedMesh(

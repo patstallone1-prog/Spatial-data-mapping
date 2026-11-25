@@ -1742,7 +1742,7 @@ function walkPace(move) {
   const probe = (dx, dz) => walkerGroundInfo(x + dx * PACE_PROBE_M, z + dz * PACE_PROBE_M);
   let ahead = probe(move.x, move.z);
   const stairs = here.kind === "stairs" || ahead.kind === "stairs";
-  const crossing = avatarMoveSpeed() > STREET_SPEED * 3 || state.indoors;
+  const crossing = avatarMoveSpeed(true) > STREET_SPEED * 3 || state.indoors;
   let grade = (ahead.y - here.y) / PACE_PROBE_M;
   const plain = here.kind === "terrain" && ahead.kind === "terrain";
   if (plain && !crossing && (grade > MAX_WALK_GRADE || grade < -MAX_DROP_GRADE)) {
@@ -1776,6 +1776,10 @@ function stepAvatar(now) {
   if (typeof livingCity !== "undefined" && livingCity?.riding) { updateAvatarMixer(dt); return; }
   // Inside a shop (its room is the city's own): the walk is kept to the room.
   if (typeof livingCity !== "undefined" && livingCity?.inside) { livingCity.walkInside(dt, held); updateAvatarMixer(dt); return; }
+  // On a wall, a fence or its top (the arrows climb it), and in the air (a jump carries on by
+  // itself, a little steered): the city's climb has the body (docs/city/climb-play.mjs).
+  if (typeof livingCity !== "undefined" && livingCity?.climbing) { livingCity.stepClimb(dt, held); updateAvatarMixer(dt); return; }
+  if (typeof livingCity !== "undefined" && livingCity?.airborne) { livingCity.stepAir(dt, held); updateAvatarMixer(dt); return; }
   keepWalkerOutside();
   updateDoors(dt);
   // The city walking you somewhere (over to a thing G picks up) has the legs this frame; an
@@ -1793,9 +1797,10 @@ function stepAvatar(now) {
   // you (round a curve as wide as your speed, walkTurn -- Up with Left walks a curve, and letting
   // go of Left carries on straight the way you now face), Down turns you round in two steps and
   // walks back. Left or Right alone walks the curve slower. The view eases round behind.
-  const scaled = avatarMoveSpeed();
   // The living city's bars: slowed when spent, faster sprinting (Shift) while stamina lasts.
   const vitalsPace = typeof livingCity !== "undefined" && livingCity?.walkFactor ? livingCity.walkFactor() : 1;
+  // (A sprint keeps the speed it had: the walk alone is the slower -- avatarMoveSpeed.)
+  const scaled = avatarMoveSpeed(vitalsPace > 1);
   const steered = walkSteer(dt, scaled * vitalsPace);
   if (!steered) { updateAvatarMixer(dt); return; }
   const move = steered.way;

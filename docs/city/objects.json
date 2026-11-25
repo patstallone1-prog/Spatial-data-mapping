@@ -6683,6 +6683,26 @@
     }
    ]
   },
+  "k-survival-tool-shovel": {
+   "file": "k-survival-tool-shovel.glb",
+   "bytes": 18492,
+   "provider": "Kenney",
+   "pack": "survival-kit",
+   "source": "https://kenney.nl/assets/survival-kit",
+   "license": "CC0-1.0",
+   "dims": [
+    0.171,
+    0.7,
+    0.0746
+   ],
+   "tiers": [
+    {
+     "node": "near",
+     "triangles": 124,
+     "lod": 0
+    }
+   ]
+  },
   "k-survival-tree-log": {
    "file": "k-survival-tree-log.glb",
    "bytes": 14784,
@@ -7555,6 +7575,11 @@
    "status": "generic_match",
    "asset": "k-survival-tool-axe",
    "name": "Axe"
+  },
+  "shovel": {
+   "status": "generic_match",
+   "asset": "k-survival-tool-shovel",
+   "name": "Garden spade"
   },
   "bolt_cutters": {
    "status": "generic_match",

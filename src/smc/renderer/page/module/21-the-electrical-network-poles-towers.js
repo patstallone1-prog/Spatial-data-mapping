@@ -1643,6 +1643,56 @@ function addBusZonePaint(records, plan = null) {
   return zones;
 }
 
+//: The marks that set out a metered space: at each of the city's single-space meters a white T on
+//: the road at the parking lane's outer edge -- its bar along the lane, its stem towards the
+//: kerb -- as San Francisco paints them where it meters (the owner, 2026-11-24: "the corner
+//: shaped paint that marks parking ... drawn in the roadway where it exists"). Inferred from the
+//: meter's record: the city publishes the meters, not the paint. None at a driveway, on a
+//: painted kerb (a bus zone, a loading zone, a red kerb) or in a bike lane.
+const STALL_MARK = { out_m: 2.4, bar_m: 0.6, stem_m: 0.5, line_m: 0.1, reach_m: 5 };
+function addParkingStallMarks(records) {
+  const positions = [], at = [], index = [];
+  let marks = 0;
+  const quad = (cx, cz, ux, uz, half, vx, vz, deep) => {
+    // A rectangle ``half`` either way along (ux, uz) from (cx, cz) and ``deep`` along (vx, vz).
+    const base = positions.length / 3;
+    for (const [s, t] of [[-half, 0], [half, 0], [half, deep], [-half, deep]]) {
+      const x = cx + ux * s + vx * t, z = cz + uz * s + vz * t;
+      positions.push(x, BUS_ZONE_BORDER_Y + groundLiftAt(x, z), z); at.push(cx, cz);
+    }
+    index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  for (const record of records) {
+    if (!record || !Array.isArray(record.p) || (record.meter_type && record.meter_type !== "single_space")) continue;
+    const [mx, my] = xy(record.p[0], record.p[1]), mz = -my;
+    const k = nearestKerbAt(mx, mz, STALL_MARK.reach_m);
+    if (!k || !Number.isFinite(k.ax)) continue;
+    // (At the kerb beside the meter, out into the road the width of a space.)
+    const px = k.x - k.nx * STALL_MARK.out_m, pz = k.z - k.nz * STALL_MARK.out_m;
+    if (!insideCarriageway(px, pz, 0) || !insideCarriageway(k.x - k.nx * 0.8, k.z - k.nz * 0.8, 0)) continue;
+    if (kerbParking(k.x, k.z, k.ax, k.az, 0.6) !== null) continue;
+    if (typeof insideBikeLane === "function" && (insideBikeLane(px, pz) || insideBikeLane(k.x - k.nx * 0.8, k.z - k.nz * 0.8))) continue;
+    quad(px, pz, k.ax, k.az, STALL_MARK.bar_m / 2, k.nx, k.nz, STALL_MARK.line_m);
+    quad(px + k.nx * STALL_MARK.line_m, pz + k.nz * STALL_MARK.line_m, k.ax, k.az, STALL_MARK.line_m / 2, k.nx, k.nz, STALL_MARK.stem_m);
+    marks += 1;
+  }
+  if (!index.length) return 0;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("clipAt", new THREE.Float32BufferAttribute(at, 2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+    color: 0xf2f5ef, roughness: 0.82, metalness: 0.0, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -10,
+  }));
+  mesh.material.userData.wholeClip = true;
+  mesh.userData = { surface: "marking", kind: "parking_stall", source: "sfmta_parking_meters", liftedOntoGround: true, inferred: true,
+                    provenance: "inferred_from_official_meter_inventory" };
+  groups.furniture.add(mesh);
+  return marks;
+}
+
 //: Two mapped shelters closer than this are one shelter that somebody mapped twice, or the two
 //: halves of one structure. Shorter than a shelter is long, so a genuine pair at opposite kerbs
 //: of a wide street both survive.
@@ -1944,6 +1994,7 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     stop_zone_paint: claimStopZones(paintPlan),
     parking_meters: addParkingMeters((official.parking_meters || []).concat(inferred.parking_meters || [],
       inferred.detected_parking_meters || [])),
+    parking_stall_marks: addParkingStallMarks(official.parking_meters || []),
     trolley_wires: addTrolleyWires(inferred.trolley_wires || [], lights.rows, corners),
     road_legends: paintRoadLegends(paintPlan),
     street_paint: layStreetPaint(paintPlan),

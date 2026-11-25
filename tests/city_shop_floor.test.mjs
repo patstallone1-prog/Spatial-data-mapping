@@ -44,7 +44,7 @@ test("taken off the shelf it is gone from it; paid for at a lane it is yours", a
   const near = floor.near(here, Math.PI);   // facing +z, toward the shelf
   assert.ok(near, "the product within reach");
   let acts = floor.actions(here, Math.PI, 12);
-  assert.ok(acts.some((a) => a.id === "shelf" && a.key === "G"));
+  assert.ok(acts.some((a) => a.id === "shelf" && a.key === "Click"));
   const r = await floor.take(near.item);
   assert.equal(r.ok, true, r.error);
   assert.equal(floor.state().gone, 1);

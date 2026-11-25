@@ -18,7 +18,9 @@ const homeShells = new Set();
 //: the scene a second time for every frame it is in view, so the look of it is faked on the
 //: one pane: WINDOW_GLASS's grey at its opacity, the sky's reflection, and a fine grain and a
 //: few faint smears (paneGlassTexture) that soften whatever is seen through it, from either side.
-const WINDOW_GLASS = { tint: 0x5c6468, opacity: 0.36, roughness: 0.16, envMapIntensity: 0.7 };
+//: (2026-11-25) The pane is now real glass (realGlass, module 02): nearly clear looking straight in
+//: (GLASS.face_opacity) and a mirror of the sky and the street at a slant, its edges grimy.
+const WINDOW_GLASS = { tint: 0x5c6468, opacity: GLASS.face_opacity, roughness: GLASS.roughness, envMapIntensity: 0.7 };
 let paneGlassMap = null;
 //: A pane's own surface, one picture shared by every pane: grey grain at varying alpha (half
 //: again as clear in places as in others), and soft lighter smears where a cloth or the rain
@@ -53,9 +55,11 @@ const homeGlassMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.t
   map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
 // Lit at night from within, some of them (nightWindows, module 02).
 if (typeof nightWindows === "function") nightWindows(homeGlassMaterial);
+realGlass(homeGlassMaterial, { paneUv: true });
 const homeGlassInsideMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_GLASS.tint,
   transparent: true, opacity: WINDOW_GLASS.opacity, depthWrite: false, side: THREE.FrontSide,
   map: paneGlassTexture(), roughness: WINDOW_GLASS.roughness, metalness: 0.0, envMapIntensity: WINDOW_GLASS.envMapIntensity });
+realGlass(homeGlassInsideMaterial, { paneUv: true });
 //: The frames white where nothing measured them (WINDOW_FRAME_DEFAULT), the same as the window
 //: pictures, so a house's frames do not change colour when its shell is built.
 const homeFrameMaterial = new THREE.MeshStandardMaterial({ color: WINDOW_FRAME_DEFAULT, roughness: 0.8, envMapIntensity: 0.2 });
@@ -120,6 +124,67 @@ function regularHomeWindows(length, bottom, top, seed, storeys = null) {
   return windows;
 }
 
+//: How clear of a garage door, and of a front door, a window is kept: to the side, and above
+//: its head. A window whose frame stood a hand from a garage door's, or sat on its lintel, read
+//: as a mistake (the owner, 2026-11-24): none is drawn nearer than this, whatever it came from.
+const WINDOW_CLEAR_OF = { garage: { side: 0.55, above: 0.6 }, door: { side: 0.3, above: 0.35 } };
+//: Whether window ``o`` (u, v, w, h on a wall) is too near any of the wall's reserved openings.
+function windowTooNear(o, reserved) {
+  return reserved.some((c) => { const k = WINDOW_CLEAR_OF[c.kind] || WINDOW_CLEAR_OF.door;
+    return o.u < c.u + c.w + k.side && o.u + o.w > c.u - k.side && o.v < c.v + c.h + k.above && o.v + o.h > c.v - k.above; });
+}
+//: An inferred house's windows, composed round its door and its garage (``reserved``: what the
+//: wall already has, each {u, w, v, h, kind}) instead of laid on a blind grid and thinned out
+//: where they hit one. On the storey the door and the garage are on, each stretch of clear wall
+//: between and beside them takes its windows in its own middle. On the storeys above, a window
+//: stands over the middle of the garage and one over the door -- as San Francisco's houses have
+//: them -- and the rest of the wall is shared out evenly between those; every storey above the
+//: first has the same windows, one over another.
+function designedHomeWindows(length, bottom, top, seed, storeys, reserved) {
+  const rows = storeys || Math.max(1, Math.floor((top - bottom) / 2.8));
+  const storey = (top - bottom) / rows;
+  if (length < 1.6 || storey < 2.3) return [];
+  const height = Math.min(1.65, storey - 1.1), wide = random(seed + 7) < 0.5 ? 1.2 : 1.4, END = 0.55, GAP = 0.95;
+  const out = [];
+  const put = (centre, r, w) => out.push({ u: centre - w / 2, v: bottom + r * storey + 0.8, w, h: height, kind: "window", grade: "procedural_not_measured", designed: true });
+  // The clear stretches of a storey: the wall less its ends and whatever stands on that storey.
+  const clear = (r) => {
+    const v0 = bottom + r * storey, v1 = v0 + storey;
+    const taken = reserved.filter((c) => c.v < v1 - 0.05 && c.v + c.h + (WINDOW_CLEAR_OF[c.kind] || WINDOW_CLEAR_OF.door).above > v0 + 0.8)
+      .map((c) => { const k = (WINDOW_CLEAR_OF[c.kind] || WINDOW_CLEAR_OF.door).side; return [c.u - k, c.u + c.w + k]; }).sort((a, b) => a[0] - b[0]);
+    const spans = [];
+    let from = END;
+    for (const [a, b] of taken) { if (a > from) spans.push([from, Math.min(a, length - END)]); from = Math.max(from, b); }
+    if (length - END > from) spans.push([from, length - END]);
+    return spans.filter(([a, b]) => b - a >= 1.0);
+  };
+  // So many windows in a stretch, evenly: each in the middle of its share of it.
+  const fill = (a, b, r, centres = null) => {
+    const span = b - a, n = Math.max(0, Math.floor((span + GAP) / (wide + GAP)));
+    if (!n) { if (span >= 1.0) { put((a + b) / 2, r, Math.min(wide, span - 0.1)); centres?.push((a + b) / 2); } return; }
+    for (let k = 0; k < n; k += 1) { const c = a + span * (k + 0.5) / n; put(c, r, wide); centres?.push(c); }
+  };
+  for (const [a, b] of clear(0)) fill(a, b, 0);
+  if (rows < 2) return out;
+  // Above: over the garage and over the door first, then the wall between shared out.
+  const anchors = reserved.filter((c) => c.kind === "garage" || c.kind === "door").map((c) => c.u + c.w / 2)
+    .filter((c) => c > END + wide / 2 && c < length - END - wide / 2).sort((a, b) => a - b);
+  const kept = [];
+  for (const c of anchors) if (!kept.length || c - kept[kept.length - 1] >= wide + GAP) kept.push(c);
+  const upper = [...kept], pitch = wide + GAP;
+  // (Where a window's middle may be, between the fixed ones and the wall's ends.)
+  const ranges = [];
+  let lo = END + wide / 2;
+  for (const c of kept) { ranges.push([lo, c - pitch]); lo = c + pitch; }
+  ranges.push([lo, length - END - wide / 2]);
+  for (const [a, b] of ranges) {
+    if (b < a) continue;
+    const n = Math.max(1, Math.floor((b - a) / pitch));
+    for (let k = 0; k < n; k += 1) upper.push(a + (b - a) * (k + 0.5) / n);
+  }
+  for (let r = 1; r < rows; r += 1) for (const c of upper) put(c, r, wide);
+  return out;
+}
 function setBatchedHomeVisible(id, visible) {
   for (const { mesh, start, indices } of BUILDING_VISUAL_RANGES.get(String(id)) || []) {
     const index = mesh.geometry.getIndex();
@@ -381,11 +446,12 @@ function homeWindowLayout(entry, spec) {
     const fitted = frontageWindowsOnEdge(entry, a, b, length, bottom);
     const candidates = fitted || (observed ? observed.map(([u, v, w, h, confidence]) => ({
       u, v: bottom + v, w, h, confidence, kind: "window", grade: "image_on_prior_geometry" }))
-      : regularHomeWindows(length, floor, top, spec.seed + edge * 59, storeys));
+      : designedHomeWindows(length, floor, top, spec.seed + edge * 59, storeys, reserved));
     const groundOut = (u) => terrainGroundAt(a[0] + ux * u - nx * 0.3, a[1] + uz * u - nz * 0.3);
     const windows = photographed ? [] : candidates.filter((o) => o.v >= floor + 0.15 && o.v + o.h <= top - 0.15
-      && !reserved.some((c) => o.u < c.u + c.w + 0.15 && o.u + o.w > c.u - 0.15
-        && o.v < c.v + c.h + 0.15 && o.v + o.h > c.v - 0.15)
+      // Never on a garage door or a door, nor strangely near one: clear of each by its own
+      // margin (WINDOW_CLEAR_OF), whichever source the window came from.
+      && !windowTooNear(o, reserved)
       // No window touches the ground, at either end of its sill.
       && o.v >= Math.max(groundOut(o.u), groundOut(o.u + o.w)) + WINDOW_GROUND_CLEAR_M
       // A house on a steep hill is partly in the hill on its ground storey: no window is
@@ -404,8 +470,8 @@ function homeWindowLayout(entry, spec) {
 // Clear, neutral glazing in both directions. Interior pixels in a photograph are not glass
 // colour or permanent architecture: curtains/blinds do not become painted window panes.
 function shellGlassOpacity(distance) {
-  // The same grey glass from either side at any distance; photographed curtains and blinds
-  // are not glass.
+  // The same glass from either side at any distance (its opacity looking straight through: the
+  // slant is the shader's); photographed curtains and blinds are not glass.
   return WINDOW_GLASS.opacity;
 }
 
@@ -431,6 +497,9 @@ function homeWindowShape(o,inset=0) {
 function homeWindowPaneGeometry(o) {
   if(homeWindowArchSpring(o)===null)return new THREE.PlaneGeometry(o.w,o.h);
   const geometry=new THREE.ShapeGeometry(homeWindowShape(o));
+  // Its uv 0 to 1 across the pane, as a plain pane's: the glass finds its edges by them (grime).
+  const uv=geometry.getAttribute("uv");
+  for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)/o.w,uv.getY(i)/o.h);
   geometry.translate(-o.w/2,-o.h/2,0);return geometry;
 }
 function homeWindowArchCorners(a,ux,uz,o,uvMap,inset=0) {
@@ -540,7 +609,8 @@ function buildHomeShell(entry) {
   shellPlaster.color.setHex(WALL_PAINTS[roomPaint(Math.abs(Number(entry.way.osm_id) || 0), 99)]);
   const shellGlass = homeGlassMaterial.clone();
   if (typeof nightWindows === "function") nightWindows(shellGlass);   // (a clone loses the night's patch)
-  const shellGlassInside = homeGlassInsideMaterial.clone();
+  realGlass(shellGlass, { paneUv: true });                             // (and the glass's)
+  const shellGlassInside = realGlass(homeGlassInsideMaterial.clone(), { paneUv: true });
   const shellFrame = homeFrameMaterial.clone();
   const bands=spec.appearanceBands || [{material:spec.material,tint:spec.tint,bottom:0,top:spec.height}];
   const bandMaterials=bands.map(b=>b.frontBasis ? new THREE.MeshStandardMaterial({

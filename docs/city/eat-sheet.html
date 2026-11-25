@@ -1,0 +1,66 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Eat sheet</title>
+<!-- Eating and drinking on their own (eat-play.mjs, dish-models.mjs): the walker's figure with a dish
+     or a drink, U for a mouthful (held: all of it). ?dish=beer ?sit=1 (at a table) ?auto=1 (eats
+     by itself) ?t=seconds (run on, then hold) ?view=front|side|close -->
+<style>body{margin:0;background:#cfd6da;font:12px system-ui;overflow:hidden}#hud{position:fixed;left:8px;top:8px;background:#fffd;padding:6px 8px;border-radius:6px;white-space:pre}</style>
+<script type="importmap">{"imports":{"three":"../vendor/three-0.160.0/three.module.min.js","three/addons/":"../vendor/three-0.160.0/examples/jsm/"}}</script>
+</head><body><div id="hud">loading…</div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { createEatPlay } from "./eat-play.mjs";
+const q = new URLSearchParams(location.search), dish = q.get("dish") || "beer", sit = q.get("sit") === "1";
+const hud = document.getElementById("hud");
+const R = await (await fetch("./rules.json")).json();
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(innerWidth, innerHeight); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xcfd6da);
+{
+  const env = new THREE.Scene(); env.add(new THREE.Mesh(new THREE.BoxGeometry(10, 6, 10), new THREE.MeshBasicMaterial({ color: 0x505050, side: THREE.BackSide })));
+  for (const [x, y, z] of [[0, 2.9, 0], [-4.9, 1.5, 0], [0, 1.5, -4.9]]) { const p = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 3), new THREE.MeshBasicMaterial({ color: 0xffffff })); p.material.color.multiplyScalar(4); p.position.set(x, y, z); p.lookAt(0, 0, 0); env.add(p); }
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, 0.03).texture;
+}
+scene.add(new THREE.HemisphereLight(0xffffff, 0x667766, 0.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2); sun.position.set(2, 5, 3); sun.castShadow = true; scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ color: 0x9a9a92 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+// A table in front (its top at 0.76 m), when sitting.
+const tableTop = 0.76;
+if (sit) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.7), new THREE.MeshStandardMaterial({ color: 0x7a5232, roughness: 0.6 })); t.position.set(0, tableTop - 0.02, 0.55); t.receiveShadow = true; scene.add(t); }
+const gltf = await new GLTFLoader().loadAsync("https://threejs.org/examples/models/gltf/Soldier.glb");
+const avatar = new THREE.Group(); gltf.scene.rotation.y = Math.PI; avatar.add(gltf.scene);
+gltf.scene.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+avatar.name = "walker"; scene.add(avatar);
+const mixer = new THREE.AnimationMixer(gltf.scene); mixer.clipAction(gltf.animations.find((a) => /idle/i.test(a.name)) || gltf.animations[0]).play(); mixer.update(0);
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.03, 100);
+const ctx = { THREE, avatar, standY: 0, camera: () => camera };
+const finished = [];
+const eat = createEatPlay({ THREE, ctx, R, notify: (t) => console.log(t), finish: async (id) => { finished.push(id); return true; },
+  seated: () => sit, tableAhead: () => (sit ? { point: new THREE.Vector3(0, tableTop, 0.42), toward: new THREE.Vector3(0, 0, -1) } : null) });
+eat.sync(dish);
+addEventListener("keydown", (e) => { if ((e.key === "u" || e.key === "U") && !e.repeat) eat.press(true); });
+addEventListener("keyup", (e) => { if (e.key === "u" || e.key === "U") eat.press(false); });
+if (q.get("auto") === "1") eat.press(true);
+const until = q.get("t") ? +q.get("t") : Infinity, view = q.get("view") || "side";
+let clock = 0;
+function frame(dtForce = null) {
+  const dt = dtForce ?? (clock < until ? 1 / 60 : 0);
+  clock += dt;
+  if (dt) { mixer.update(dt); eat.step(dt); }
+  avatar.updateMatrixWorld(true);
+  eat.pose();
+  const w = eat.what;
+  const head = avatar.getObjectByName("mixamorigHead")?.getWorldPosition(new THREE.Vector3()) || new THREE.Vector3(0, 1.6, 0);
+  // (side: from the walker's left, level with the mouth; front: from before it; wide: the whole figure.)
+  const off = view === "front" ? [0.25, -0.05, 1.0] : view === "wide" ? [1.9, -0.35, 0.7] : [0.95, -0.05, 0.3];
+  camera.position.set(head.x + off[0], head.y + off[1], head.z + off[2]); camera.lookAt(head.x, head.y - (view === "wide" ? 0.25 : 0.12), head.z + 0.15);
+  hud.textContent = `${dish}${sit ? " at a table" : ""} · ${w ? `${w.form}/${w.tool} ${w.action || "holding"} ${w.phase || ""} · ${(w.left * 100).toFixed(0)}% left` : finished.length ? "finished" : "-"}\nU: a mouthful (hold: all of it)`;
+  if (renderer.domElement.width !== innerWidth || renderer.domElement.height !== innerHeight) { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / Math.max(1, innerHeight); camera.updateProjectionMatrix(); }
+  renderer.render(scene, camera);
+  if (dtForce === null) requestAnimationFrame(() => frame());
+}
+window.sheet = { THREE, scene, eat, avatar, camera, get clock() { return clock; }, finished,
+  advance(seconds) { for (let i = 0; i < Math.round(seconds * 60); i += 1) frame(1 / 60); return eat.what; } };
+frame();
+</script></body></html>

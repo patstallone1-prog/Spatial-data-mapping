@@ -7,7 +7,8 @@
 //   Assets         everything you own, a picture each; pick one for its detail -- for a car,
 //                  where it is now.
 //   Relationships  everyone you have a tie to: friends, your boss, your staff, your lawyer, your
-//                  banker, the people of the city you have talked with.
+//                  banker, the people of the city you have talked with, and your family -- your
+//                  pets, each with how it is, where, whether hungry or lonely (it was the K panel).
 //
 // What the older pages held has a place in these: the building beside you (owner, value, taxes,
 // buying it) is on Assets; the city's laws, the votes and proposing a measure are on Finances;
@@ -66,7 +67,7 @@ body #city.pop .talk form{display:flex;gap:6px}body #city.pop .talk input{flex:1
 @media (max-width:640px){body #city.pop .ptabs{grid-template-columns:repeat(3,1fr)}body #city.pop .figs{grid-template-columns:repeat(2,1fr)}}`;
 
 export function profilePanel(api) {
-  const { R, h, act, row, send, notify, me, district, address, wealthOf, portrait, finance, openSide, getSide, drawSide, legacy, crossAt, editHome, redraw, peers } = api;
+  const { R, h, act, row, send, notify, me, district, address, wealthOf, portrait, finance, openSide, getSide, drawSide, legacy, crossAt, editHome, redraw, peers, family } = api;
   const ui = { tab: "you", asset: null, legacy: null, story: null };
   const money = (v) => R.fmt(Math.round(v));
   const tile = (title, ...kids) => h("section", { className: "tile" }, h("h4", { textContent: title }), ...kids.filter((k) => k !== null && k !== undefined && k !== ""));
@@ -175,7 +176,9 @@ export function profilePanel(api) {
     return [h("div", { className: "cols" }, group("Friends and players", [...players, ...here], "No friends yet: click another player, or their name in the messages, to add them."),
       group("Work and services", work, "Nobody yet: a boss when you take a job, staff when you run a business, a lawyer or a banker when you use one."),
       group("People of the city", met, "Nobody yet. Open the messages and click someone in the street to talk: talk a few times and they know you."),
-      tile("Family", note("No family on record. Households are the city's residents' for now.")),
+      // Your pets are your family here: each with how it is, where it is, whether it is hungry or
+      // lonely, and what you can do for it (animals-view.mjs draw).
+      (() => { const kin = (family?.() || []).filter(Boolean); return tile("Family", ...(kin.length ? kin : [note("No family on record yet.")])); })(),
       // Who is out of doors round you now: a name opens who they are, and a box to talk to them.
       tile("People near you now", ...legacy.people(w, p)))];
   }
