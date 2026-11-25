@@ -212,7 +212,11 @@ test("the world records harm: a car hits you, you hit someone, the online store 
   // A blow to someone: hurt, and on the record with what happened.
   const blow = w.submit("me", "strike_person", { npc: { id: "npc:b1:0", name: "Sam Lee", role: "barista", x: 1, z: 0 }, witnesses: 2 });
   assert.ok(blow.ok, blow.error);
-  assert.ok(w.harm.get("npc:b1:0").injuries.length === 1 && blow.fine === R.fines.battery);
+  assert.ok(w.harm.get("npc:b1:0").injuries.length === 1 && blow.offence.crime === "battery");
+  // Charged when caught (law.mjs): stopped by an officer after the call got through.
+  const stop = w.submit("me", "police_stop", { offences: [blow.offence.id], outcome: "arrest" });
+  assert.ok(stop.ok, stop.error);
+  assert.equal(stop.fines[0].amount, R.fines.battery);
   // The online store: twice the shop price, brought to you.
   const coffee = w.submit("me", "buy_online", { item: "coffee" });
   assert.ok(coffee.ok, coffee.error);

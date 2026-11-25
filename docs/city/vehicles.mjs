@@ -76,6 +76,9 @@ export const BODY_MIX = Object.fromEntries(Object.keys(PRIVATE_KIND_SHARE).map((
 //: not the paint's (shade x 7919.37) nor the kit's choice among its variants (shade x 997).
 export function bodyOf(model, shade = 0) {
   const kind = VEHICLE_DIMS[model] ? model : "sedan";
+  // A patrol car is the nearest body of ours to the Police Interceptor sedan -- the Sonata, a
+  // full-size four-door -- in the black-and-white (PATROL_LIVERY).
+  if (kind === "patrol" && CAR_MODELS[PATROL_BODY]) return { source: "car", id: PATROL_BODY, kind };
   const u = (((shade ?? 0) * 104729.31) % 1 + 1) % 1;
   let acc = 0;
   for (const [id, share] of BODY_MIX[kind] || []) { acc += share; if (u < acc) return { source: "car", id, kind }; }
@@ -285,6 +288,27 @@ export const paintOf = (model, shade, mix = null) => PAINTS[paintNameOf(model, s
 //: and red scheme) -- a deep red band along the sides below the windows, rising over the front
 //: under the windscreen, a red pinstripe under the roof, the rest silver. In the model's frame
 //: (front -z, 12.2 m long, the floor 0.33 m up).
+//: The body a patrol car is drawn with (bodyOf) and its paint: San Francisco's black-and-white
+//: (SFPD's patrol scheme since the 1950s: the doors and the roof white, the hood, the boot and the
+//: wings black), with the department's gold star on each front door. In the model's frame (front
+//: -z, the Sonata's 4.86 m, its floor at 0).
+export const PATROL_BODY = "sonata";
+export const PATROL_LIVERY = {
+  key: "sfpd-black-white-1",
+  colour: "#ffffff",
+  glsl: [
+    "vec3 liveryAt(vec3 p, vec3 paint) {",
+    "  vec3 black = vec3(0.018, 0.019, 0.022);",
+    "  vec3 white = vec3(0.86, 0.87, 0.88);",
+    "  vec3 gold = vec3(0.62, 0.46, 0.12);",
+    "  float doors = (1.0 - step(1.12, abs(p.z + 0.12))) * step(0.3, p.y) * (1.0 - step(0.98, p.y));",
+    "  float roof = step(1.2, p.y);",
+    "  vec3 c = mix(black, white, max(doors, roof));",
+    "  float star = (1.0 - step(0.16, length(vec2(p.z + 0.62, p.y - 0.66)))) * doors;",
+    "  return mix(c, gold, star);",
+    "}",
+  ].join("\n"),
+};
 export const BUS_LIVERY = {
   key: "muni-silver-red-1",
   colour: "#b4b8bc",

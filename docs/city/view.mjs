@@ -31,9 +31,11 @@ import { CITATIONS, CityWorld } from "./world.mjs";
 import { cityClient, cityServerUrl } from "./server-client.mjs";
 import { cityLive, syncPlan } from "./live.mjs";
 import { witnessOf } from "./enforcement.mjs";
+import { createPolice } from "./police.mjs";
+import { createCourtSession } from "./court-session.mjs";
 import { clipFor, makeBlend, newPose, stepBlend } from "./clips.mjs";
 import { REACT, drivingStyle, reactionFor, reactionTo, stepClear, temperamentOf, wetStyle } from "./temperament.mjs";
-import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleLampAnchors, wheelTurn, bodyOf, bodyFile, bodyDims, carSurface, CAR_MODELS } from "./vehicles.mjs";
+import { BIKE, BIKE_PAINT_MIX, BUS_LIVERY, PATROL_LIVERY, BUS_SIGN, FLEET_FOR, KENNEY_DEBRIS, KENNEY_FOR, RIDER, VEHICLE_DIMS, bikeParts, crankTurn, drawBusSign, fleetFile, fleetMaterial, fleetParts, kenneyGeometry, kenneyMaterial, kenneyVariant, importedKitCar, paintOf, pedalAt, riderPose, vehicleLampAnchors, wheelTurn, bodyOf, bodyFile, bodyDims, carSurface, CAR_MODELS } from "./vehicles.mjs";
 import { BIKE_DIMS, BIKE_TOP_MS, City, Drivers, PARK_LANE, Roster, TRAFFIC, harmNow, junctionAt, signalAt } from "./fleet.mjs";
 import { jumpOf, liftKg, physOf, sizeOf, swingOf, throwOf, weightClass } from "./handling.mjs";
 import { createClimbPlay } from "./climb-play.mjs";
@@ -1004,11 +1006,11 @@ diffuseColor.rgb *= kbCloth;`);
     for (const level of LEVELS[hero ? "full" : tier === MODERATE ? "mid" : "npc"]) {
       const file = bodyFile(body, level), parts = modelAt(file);
       if (!parts) continue;
-      const full = level === "full", key = `body:${file}`;
+      const full = level === "full", key = `body:${file}${kind === "patrol" ? ":patrol" : ""}`;
       if (!fleet.has(key)) {
         const cap = full ? 4 : kind === "bus" || kind === "box_truck" ? 40 : MAX_CARS;
         const meshes = parts.map((part) => {
-          const mesh = instanced(part.geometry, fleetMaterial(THREE, part, { standard: full, livery: kind === "bus" ? BUS_LIVERY : null }), cap, `city-traffic-${body.id}-${level}-${part.name}`);
+          const mesh = instanced(part.geometry, fleetMaterial(THREE, part, { standard: full, livery: kind === "bus" ? BUS_LIVERY : kind === "patrol" ? PATROL_LIVERY : null }), cap, `city-traffic-${body.id}-${level}-${part.name}${kind === "patrol" ? "-patrol" : ""}`);
           mesh.castShadow = !part.glass; if (part.glass) mesh.renderOrder = 2;
           mesh.userData.surface = carSurface(part.name);
           return { mesh, tint: part.tint };
@@ -1078,7 +1080,7 @@ diffuseColor.rgb *= kbCloth;`);
   const VIEW_FRUSTUM = new THREE.Frustum(), VIEW_PV = new THREE.Matrix4(), VIEW_AT = new THREE.Vector3(), VIEW_BODY = new THREE.Sphere(new THREE.Vector3(), 1.4);
   function peopleInView(list) {
     const cam = ctx.camera?.();
-    const floorOf = (p) => (shop.place && p.indoors === shop.place.id ? shop.frame.y : groundAt(p.x, p.z));
+    const floorOf = (p) => (Number.isFinite(p.at_y) ? p.at_y : shop.place && p.indoors === shop.place.id ? shop.frame.y : groundAt(p.x, p.z));
     if (!cam) return list.slice(0, MAX_PEOPLE).map((p) => ({ p, y: floorOf(p), d: 0 }));
     cam.getWorldPosition(VIEW_AT);
     VIEW_PV.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
@@ -1095,7 +1097,7 @@ diffuseColor.rgb *= kbCloth;`);
     // height from up to 0.7 m away had feet 5 cm or more into the pavement at 1.75% of the places
     // people stand in the Marina (10 cm at 0.9%, 42 cm at the worst: a kerb's edge, a hill;
     // measured 2026-11-25), so the crowd always had someone sunk to the ankles.
-    for (const o of out) if (!(shop.place && o.p.indoors === shop.place.id)) o.y = footAt(o.p);
+    for (const o of out) if (!(shop.place && o.p.indoors === shop.place.id) && !Number.isFinite(o.p.at_y)) o.y = footAt(o.p);
     return out;
   }
   //: The ground right under someone (the page's walker ground: the drawn surface, which the soil
@@ -1683,7 +1685,7 @@ diffuseColor.rgb *= kbCloth;`);
       // The paint: by its kind's shares of the colours new cars are bought in (vehicles.mjs
       // PAINT_MIX), from its own number; a livery's own (a taxi's, a patrol car's, Muni's silver
       // and red on the bus -- painted by the bus's material, BUS_LIVERY) as it is.
-      const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "tow_truck" ? "#e8b417" : v.model === "bus" ? BUS_LIVERY.colour : v.model === "patrol" ? "#1b2631" : paintOf(v.model, v.shade ?? 0.5);
+      const paint = f?.livery ? "#ffffff" : v.model === "taxi" ? "#f1c40f" : v.model === "tow_truck" ? "#e8b417" : v.model === "bus" ? BUS_LIVERY.colour : v.model === "patrol" ? (f?.fleet ? PATROL_LIVERY.colour : "#1b2631") : paintOf(v.model, v.shade ?? 0.5);
       C.set(paint);
       // Dented and scraped by its condition: duller, and a wreck scorched.
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
@@ -1763,7 +1765,7 @@ diffuseColor.rgb *= kbCloth;`);
   function dressFull(g, model, parts, colour) {
     clearCarBody(g);
     for (const part of parts) {
-      const mesh = new THREE.InstancedMesh(part.geometry, fleetMaterial(THREE, part, { standard: true, livery: model === "bus" ? BUS_LIVERY : null }), 1);
+      const mesh = new THREE.InstancedMesh(part.geometry, fleetMaterial(THREE, part, { standard: true, livery: model === "bus" ? BUS_LIVERY : model === "patrol" ? PATROL_LIVERY : null }), 1);
       mesh.setMatrixAt(0, M.identity());
       if (part.tint) mesh.setColorAt(0, C.set(colour));
       mesh.castShadow = !part.glass; mesh.receiveShadow = true; mesh.frustumCulled = false;
@@ -1912,7 +1914,7 @@ diffuseColor.rgb *= kbCloth;`);
   // Businesses, the law and careers: their panels (enterprise-panels.mjs), made on first use.
   let enterpriseUI = null, messagesUI = null, commerceUI = null;
   //: The messages strip at the side of the screen (messages-panel.mjs): players, NPCs, the city.
-  const messages = () => (messagesUI ||= messagesPanel({ talk: (body) => talk(body), talkBox: (...a) => finance().talkBox(...a), R, h, send, notify, me: () => myId, getView: () => view, placeArg,
+  const messages = () => (messagesUI ||= messagesPanel({ goToCourt: (id) => court.enter(id), talk: (body) => talk(body), talkBox: (...a) => finance().talkBox(...a), R, h, send, notify, me: () => myId, getView: () => view, placeArg,
     peers: () => (party.session?.players() || []).map((peer) => ({ pid: party.ids.get(peer.id), name: peer.name })),
     courtPlace: () => enterprise().courtPlace?.() }));
   const commerce = () => (commerceUI ||= commercePanels({ R, h, notify, send, self, me, getView: () => view, placeArg, nearestPlace, openSide, drawSide, getSide: () => side,
@@ -1934,7 +1936,7 @@ diffuseColor.rgb *= kbCloth;`);
       let water = null; for (const [dx, dz, d] of [[0, 0, 0], [90, 0, 90], [-90, 0, 90], [0, 90, 90], [0, -90, 90], [180, 0, 180], [-180, 0, 180], [0, 180, 180], [0, -180, 180]]) if (ctx.waterAt?.(x + dx, z + dz)) { water = d; break; }
       return { shops, water, park: false };
     } }));
-  const enterprise = () => (enterpriseUI ||= enterprisePanels({ R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
+  const enterprise = () => (enterpriseUI ||= enterprisePanels({ goToCourt: (id) => court.enter(id), R, h, act, notify, send, self, me, getView: () => view, ctx, district, address, placeArg,
     openSide, closeSide, drawSide, getSide: () => side, editInterior: editHome, todoReset: () => { todoKey = ""; drawTodo(); }, books: (...a) => finance().books(...a),
     openKitchen: (place) => { const pl = (district.places || []).find((x) => String(x.id) === String(place.id)); if (pl) { closeSide(); kitchen().open(pl); } else notify("Go to the restaurant to open its kitchen."); } }));
   let bayUI = null;
@@ -2117,6 +2119,7 @@ diffuseColor.rgb *= kbCloth;`);
   function seatClicked(ray) {
     const cands = [];
     const room = shop.room;
+    for (const st of court.seats()) cands.push(st);   // (the courthouse's chairs and pews)
     room?.updateMatrixWorld(true);
     room?.traverse((o) => { for (const st of o.userData?.seats || []) { seatPt.set(st.x, st.y, st.z); o.localToWorld(seatPt); const q = new THREE.Vector3(st.x, st.y, st.z - 1); o.localToWorld(q); cands.push({ x: seatPt.x, y: seatPt.y, z: seatPt.z, yaw: Math.atan2(-(q.x - seatPt.x), -(q.z - seatPt.z)), floor: shop.frame?.y }); } });
     if (!room && ctx.insideFitted?.()) {
@@ -2786,7 +2789,7 @@ diffuseColor.rgb *= kbCloth;`);
         noteIncident("crash", car.x + fx * l / 2, car.z + fz * l / 2, true);
         car.speed *= 0.55;
         send("collision", { kind: "hit_person", speed, where: { mine: zoneOn(car, q.x, q.z) }, npc: { id: hitAt.id, name: hitAt.person?.name, x: hitAt.x + fx * Math.min(9, 1 + speed * 0.5), z: hitAt.z + fz * Math.min(9, 1 + speed * 0.5), yaw: car.yaw } })
-          .then((r) => { district.city?.forget(hitAt.id); if (r.ok) carMarks(); notify(r.ok ? `You hit ${hitAt.person?.name || "someone"} at ${Math.round(speed * MPH)} mph: ${r.injury.type}.${r.bill ? ` Their care is billed to you: ${R.fmt(r.bill)}.` : ""}` : r.error); });
+          .then((r) => { district.city?.forget(hitAt.id); if (r.ok) carMarks(); if (r.ok && r.offence) police.crime(r.offence, hitAt, { victim: { id: hitAt.id, name: hitAt.person?.name }, plate: car.plate }); notify(r.ok ? `You hit ${hitAt.person?.name || "someone"} at ${Math.round(speed * MPH)} mph: ${r.injury.type}.${r.bill ? ` Their care is billed to you: ${R.fmt(r.bill)}.` : ""}` : r.error); });
         return;
       }
     }
@@ -2811,6 +2814,7 @@ diffuseColor.rgb *= kbCloth;`);
         .then((r) => {
           if (!r.ok) { notify(r.error); return; }
           carMarks();
+          if (r.offence) police.crime(r.offence, { x: v.x, z: v.z }, { victim: owner ? { id: owner, name: district.roster?.people.get(owner)?.name } : null, unseenVictim: Boolean(owner), plate: car.plate });
           if (owner) district.city?.forget(owner);
           notify(`Crash at ${Math.round(rel * MPH)} mph into ${v.plate || "a car"}: it is ${r.vehicle.state}${r.mine ? `, yours ${r.mine.state}` : ""}.${r.hurt ? ` -${r.hurt} health.` : ""}${r.bill ? ` Its repair is billed to you: ${R.fmt(r.bill)}.` : ""}`);
         });
@@ -2847,8 +2851,11 @@ diffuseColor.rgb *= kbCloth;`);
       if (seen && now - (car.lastCam.get(seen.id) || 0) >= 120_000) {
         car.lastCam.set(seen.id, now);
         send("speed_camera", { over_mph: mph - limitMph, mph, camera: seen.kind === "camera" ? seen.id : undefined, witness: { kind: seen.kind, id: seen.id }, key: `${myId}:${seen.id}:${Math.floor(now / 60000)}` })
-          .then((r) => r.ok && r.charged && notify(seen.kind === "camera" ? `Speed camera: ${Math.round(mph)} mph in a ${Math.round(limitMph)} — a ${R.fmt(r.charged)} notice will follow.`
-            : `Pulled over by a patrol car: ${Math.round(mph)} mph in a ${Math.round(limitMph)} — a ${R.fmt(r.charged)} citation.`));
+          .then((r) => { if (r.ok && r.pursuit && r.offence) police.speeding(r.offence, seen); else if (r.ok && r.charged) notify(`Speed camera: ${Math.round(mph)} mph in a ${Math.round(limitMph)} — a ${R.fmt(r.charged)} notice will follow.`); });
+      } else if (!seen && now - (car.lastSeenBy || 0) > 60_000 && visible.people.some((x) => Math.abs(x.x - b.x) < 25 && Math.abs(x.z - b.z) < 25)) {
+        // Past people on the pavement: a speeding offence each of them may (almost never) call in.
+        car.lastSeenBy = now;
+        send("speed_camera", { over_mph: mph - limitMph, mph, witness: { kind: "bystander", id: "street" } }).then((r) => { if (r.ok && r.offence) police.crime(r.offence, b, { plate: car.plate }); });
       }
     }
   }
@@ -3150,7 +3157,7 @@ diffuseColor.rgb *= kbCloth;`);
   const taxi = { id: null, phase: null, route: null, d: 0, at: null, dest: null, n: 0 };
   //: Everything on wheels near you: the crowd's traffic, the route buses and your taxi.
   //: (Yours and the route buses first, so a crowded street's cap never leaves them out.)
-  function wheels() { const out = taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; if (patrol.at) out.push(patrol.at); for (const r of scenes.vehicles()) out.push(r); return out; }
+  function wheels() { const out = taxi.at ? [taxi.at, ...routeBuses, ...visible.vehicles] : [...routeBuses, ...visible.vehicles]; if (patrol.at) out.push(patrol.at); for (const r of scenes.vehicles()) out.push(r); for (const u of police.vehicles()) out.push(u); return out; }
   //: Where you stand from a vehicle: how far to its right (the door side, the kerb's) and along it.
   function besideOf(v, p) {
     const fx = -Math.sin(v.yaw || 0), fz = -Math.cos(v.yaw || 0), rx = -fz, rz = fx;
@@ -3186,6 +3193,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: The Taxi button: into the one pulled up for you (or one passing), out of the one you are in,
   //: and elsewhere the ride panel to call one. (Enter does the getting in and out too.)
   function taxiKey() {
+    if (court.active || police.locked) return;
     if (transit.ride) {
       if (transit.ride.route) { notify("On the bus: Enter asks for the next stop."); return; }
       return alight();
@@ -3270,7 +3278,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: A taxi called to where you stand, from a few hundred metres off, along the streets.
   function callTaxi(dest) {
     const s = district.streets;
-    if (!s || !dest) return;
+    if (!s || !dest || court.active || police.locked) return;
     if (transit.ride) { notify("You are riding already."); return; }
     const here = me();
     // It pulls up at the kerb beside you (on your side of the street), not at the corner.
@@ -3730,7 +3738,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: Enter at the door of a building with a shop in it (the page's door, module 24): into the
   //: shop's room, or its counter where it has none; false where no shop of the city's is there.
   function enterBuilding(id) {
-    if (!self() || car.active || transit.ride) return false;
+    if (!self() || car.active || transit.ride || court.active || police.locked) return false;
     const place = district.places?.find((pl) => String(pl.id) === String(id) && storesAt(R, pl.keys).length);
     if (!place) { notify("Closed: nothing here sells to the public."); return false; }
     if (!(place.front && enterShop(place))) openStore(place);
@@ -4139,6 +4147,20 @@ diffuseColor.rgb *= kbCloth;`);
     if (!ctx.avatar.visible) return;
     // On a wall, on its top, in the air: the climb's own pose (every limb to its hold).
     if (climbPlay.pose()) return;
+    // Arrested (police.mjs): hands up to the car, then cuffed behind the back, and sat in the back.
+    const pp = police.pose;
+    if (pp) {
+      const B0 = rigBones(), k = Math.max(0, Math.min(1, pp.f ?? 1)), fwd0 = (b, a) => turn(b, -1, 0, 0, a);
+      if (pp.kind === "hands_up") { fwd0(B0.rUpper, 2.5 * k); fwd0(B0.lUpper, 2.5 * k); fwd0(B0.rFore, 0.35 * k); fwd0(B0.lFore, 0.35 * k); }
+      else {
+        fwd0(B0.rUpper, -0.5 * k); fwd0(B0.lUpper, -0.5 * k);
+        turn(B0.rUpper, 0, 0, 1, -0.28 * k); turn(B0.lUpper, 0, 0, 1, 0.28 * k);
+        turn(B0.rFore, 0, 1, 0, -0.9 * k); turn(B0.lFore, 0, 1, 0, 0.9 * k); fwd0(B0.rFore, 0.25 * k); fwd0(B0.lFore, 0.25 * k);
+        if (pp.kind === "seated_cuffed") { fwd0(B0.rThigh, 1.4 * k); fwd0(B0.lThigh, 1.4 * k); fwd0(B0.rShin, -1.4 * k); fwd0(B0.lShin, -1.4 * k); }
+      }
+      if (B0.rHand && B0.lHand) { ctx.avatar.updateMatrixWorld(true); B0.rHand.getWorldPosition(handR); B0.lHand.getWorldPosition(handL); police.placeCuffs(handR, handL); }
+      return;
+    }
     // Food or a drink in hand: held as it is held, raised to the mouth (eat-play.mjs).
     if (eatPlay.pose()) return;
     const B = rigBones(), p = self();
@@ -4400,6 +4422,7 @@ diffuseColor.rgb *= kbCloth;`);
         const name = R.items[item]?.name.toLowerCase() || "it";
         if (r.hit) {
           const h = r.hit;
+          if (h.offence) { if (h.arrest) police.arrestNow(h.offence, { x: hit.x, z: hit.z }); else { noteIncident("fight", hit.x, hit.z, true); police.crime(h.offence, { x: hit.x, z: hit.z }, { victim: { id: hit.id, name: hit.person?.name } }); } }
           if (h.down) { flings.set(hit.id, { t0: performance.now(), x: hit.x, z: hit.z, dx: fx, dz: fz, speed: 2, throw: 0.6 }); district.city?.forget(hit.id); }
           notify(`The ${name} hits ${hit.person?.name || "someone"} (${r.energy} J): ${h.injury.type}. ${h.response === "hit back" ? `They come at you: -${h.hurt} health.` : h.response === "down" ? "They go down." : h.response === "arrest" ? "A police officer: you are arrested and cited." : "They run."}${h.fine ? ` Battery: a ${R.fmt(h.fine)} citation.` : ""}`);
           if (h.response === "hit back") knockBack(Math.sin(yaw), Math.cos(yaw), 1.5);
@@ -4607,7 +4630,8 @@ diffuseColor.rgb *= kbCloth;`);
           flings.set(who.id, { t0: performance.now(), x: who.x, z: who.z, dx: fx, dz: fz, speed: r.speed_mps, throw: 0.5 + r.reach_m });
           district.city?.forget(who.id);
         } else scares.set(who.id, { until: performance.now() + 500, dx: fx * Math.min(0.6, r.reach_m * 1.5), dz: fz * Math.min(0.6, r.reach_m * 1.5), k: 0 });
-        notify(`A shove: ${r.text.replace(/^they/, name)}.${w.fine ? ` Battery: a ${R.fmt(w.fine)} citation.` : ""}`);
+        if (w.ok && w.offence) { if (w.arrest) police.arrestNow(w.offence, { x: who.x, z: who.z }); else police.crime(w.offence, { x: who.x, z: who.z }, { victim: { id: who.id, name: who.person?.name } }); }
+        notify(`A shove: ${r.text.replace(/^they/, name)}.`);
       });
       return;
     }
@@ -4779,6 +4803,7 @@ diffuseColor.rgb *= kbCloth;`);
   function drawHints(now) {
     if (!hintBox) return;
     let chips = [];
+    if (court.active || police.locked) { hintBox.replaceChildren?.(); hintBox.hidden = true; return; }
     try {
       if (ctx.enabled() && ctx.cityMode?.() !== false && !side) chips = hintChips(affordances(hintState()), { counts: hintCounts, setting: hintSetting, seenKinds: seenLabels });
     } catch (error) { console.warn("hints", error); chips = []; }
@@ -4832,6 +4857,8 @@ diffuseColor.rgb *= kbCloth;`);
     const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, age: q.person?.age ?? q.person?.base?.age, strength: re?.victim.strength, x: q.x, z: q.z, yaw: q.yaw },
       witnesses: witnessesNear(q.x, q.z) - 1, reaction: re ? { kind: re.kind, zone: re.zone, steps: re.steps, fracture: re.fracture } : null, near: { police: policeNear } });
     if (!r.ok) { notify(r.error); return; }
+    // Caught or not (law.mjs): an officer struck arrests you; otherwise it waits on who saw it.
+    if (r.offence) { if (r.arrest) police.arrestNow(r.offence, { x: q.x, z: q.z }); else police.crime(r.offence, { x: q.x, z: q.z }, { victim: { id: q.id, name: q.person?.name } }); }
     const name = q.person?.name || "them";
     // Away from you, along the blow.
     const ax = q.x - me0.x, az = q.z - me0.z, L = Math.hypot(ax, az) || 1, dx = ax / L, dz = az / L;
@@ -4856,7 +4883,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (r.response === "hit back") knockBack(dx, dz, 1.5);
     const landed = re ? ` to ${ZONE_WORD[re.zone] || "the body"}` : "";
     const body = r.down ? `${name} goes down` : re?.kind === "stumble" ? `${name} stumbles back` : re?.kind === "flinch" ? `${name} flinches` : name;
-    const what = r.response === "arrest" ? `${name} is a police officer: you are arrested and cited` : r.response === "hit back" ? `they come back at you: -${r.hurt} health`
+    const what = r.response === "arrest" ? `${name} is a police officer: "You're under arrest!"` : r.response === "hit back" ? `they come back at you: -${r.hurt} health`
       : r.response === "call police" ? "they get out their phone and call 911" : r.response === "call for help" ? "they shout for help" : r.response === "freeze" ? "they freeze"
       : r.response === "down" ? "" : "they run";
     notify(`${r.tool === "fists" ? "A punch" : "A blow"}${landed} (${r.joules} J): ${body} — ${r.injury.type}${what ? `; ${what}` : ""}.${r.fine ? ` Battery: a ${R.fmt(r.fine)} citation${r.restitution ? ` and ${R.fmt(r.restitution)} for their care` : ""}.` : ""}`);
@@ -5342,6 +5369,7 @@ diffuseColor.rgb *= kbCloth;`);
   // ---- what can be done here -------------------------------------------------------------------
   //: The actions open to you where you stand, each with its key: what the action bar shows.
   function actionsHere() {
+    if (court.active || police.locked) return [];   // (no taxis, buses or doors in court or in cuffs)
     const p = self(), here = me(), out = [];
     if (!p) return [];
     if (cycle.active) return [{ id: "bike", label: "Get off your bicycle", key: "Enter", run: dismountBicycle }];
@@ -6051,6 +6079,7 @@ diffuseColor.rgb *= kbCloth;`);
   const declined = new Set();
   let promptShown = null;
   function promptsHere() {
+    if (court.active || police.locked) return [];   // (in court, or in cuffs: nothing of the street's)
     const p = self(), here = me(), out = [];
     if (!p || car.active || car.riding || transit.ride) return out;
     const dist = (o) => Math.hypot(here.x - o.x, here.z - o.z);
@@ -6175,6 +6204,9 @@ diffuseColor.rgb *= kbCloth;`);
     } else routeBuses = [];
     stepTaxi(dt);
     stepPatrol(dt, now);
+    cityStart ||= { x: me().x, z: me().z };
+    if (!court.active) police.frame(dt);
+    court.frame(dt);
     if (district.city) { district.city.wet = wetNow(); district.city.through = R.density?.through_driven ?? THROUGH_DRIVEN; }
     if (transit.ride) followRide();
     stepWork();
@@ -6208,6 +6240,8 @@ diffuseColor.rgb *= kbCloth;`);
       try { visible = frameCity(t, dt, now, focus); } catch (error) { if (!frameFailed) { frameFailed = true; console.warn("kerbside: the living city skipped a frame", error); } }
       // Where the real routes run, the buses are theirs (the timetable's), not the crowd's.
       if (district.lines?.length) visible.vehicles = visible.vehicles.filter((v) => v.model !== "bus");
+      // (A patrol car of the city's answering a call is drawn as it answers, not on its round.)
+      if (police.active) visible.vehicles = visible.vehicles.filter((v) => !police.hidden(v.id));
       keepClear();
       syncRacks(now); syncLots(now); syncStoreSigns(now);
       stepBikes(dt, t / 1000, focus, now);
@@ -6217,9 +6251,13 @@ diffuseColor.rgb *= kbCloth;`);
       bikes = [...bikes.filter((b) => !b.resident), ...residentBikes.slice(0, Math.max(0, MAX_BIKES - bikes.length))];
       if (cycle.active && cycle.entry) bikes.push(cycle.entry);   // (yours, ridden)
       lightSignals(t / 1000, now);
-      drawPeople(bikes.length ? [...visible.people, ...bikeRiders()] : visible.people, now, focus);
+      // In court (court-session.mjs) the courthouse's people; on the street the crowd, and any
+      // officer out of their car (police.mjs).
+      drawPeople(court.active ? court.people() : [...visible.people, ...(bikes.length ? bikeRiders() : []), ...police.people()], now, focus);
       drawBikes();
-      drawCars(wheels(), lastNight);
+      const wheelsNow = court.active ? [] : wheels();
+      drawCars(wheelsNow, lastNight);
+      police.drawBars(wheelsNow, (model) => (bodyDims(bodyOf(model, 0)) || VEHICLE_DIMS[model] || VEHICLE_DIMS.sedan)[1] + 0.01);
       try { animals().frame(dt, now); } catch (error) { if (!animalsFailed) { animalsFailed = true; console.warn("kerbside: the animals skipped a frame", error); } }
       drawThings(now);
       drawDebris(dt);
@@ -6280,6 +6318,26 @@ diffuseColor.rgb *= kbCloth;`);
   // (their days are planned): the traffic keeps behind it and gives way to it as to yours.
   const patrol = { phase: null, route: null, d: 0, at: null, until: 0, inc: null, v: 0 };
   const PATROL = { speed_ms: 15, stay_s: 30, from_m: [260, 420], short_m: 9 };
+  // The police: who calls them about what you did, the car that comes, the chase, the stop and
+  // the arrest (police.mjs; what is a crime and how it is caught: law.mjs).
+  let cityStart = null;
+  const police = createPolice({ THREE, R, group, notify, send, me, car, fmt: (v) => R.fmt(v),
+    speedLimitAt, streets: () => district.streets, alongRoute, lane: (...a) => DRIVE_LANE(...a),
+    patrolCars: () => { const out = new Map(); for (const v of [...visible.vehicles, ...(scan.vehicles || [])]) if (v && v.model === "patrol" && !v.parked && Number.isFinite(v.x) && !out.has(v.id)) out.set(v.id, { id: v.id, x: v.x, z: v.z, yaw: v.yaw || 0 }); return [...out.values()]; },
+    stationAt: () => { const st = R.law.dispatch.station, [sx, sz] = ctx.fromLonLat(st.lon, st.lat), at = me(), d = Math.hypot(sx - at.x, sz - at.z); return d < 450 ? { x: sx, z: sz } : { x: at.x + (sx - at.x) / d * 450, z: at.z + (sz - at.z) / d * 450 }; },
+    exitCar: () => exitCar(), entering: () => Boolean(entry), placeAvatar: (...a) => ctx.placeAvatar(...a), avatarVisible: (on) => ctx.avatarVisible(on),
+    animateWalk: (...a) => ctx.animateWalk?.(...a), faceYaw: (y) => { ctx.avatar.rotation.y = y; },
+    groundAt: (x, z) => ctx.groundAt?.(x, z) ?? groundAt(x, z),
+    homeAt: () => {
+      const p = self(), owned = Boolean(p?.home && (p.home.building || Number.isFinite(p.home.x)));
+      const pl = owned ? (district.places || []).find((x) => String(x.id) === String(p.home.building)) : null;
+      const at = owned ? (pl?.door ? { x: pl.door.x, z: pl.door.z } : Number.isFinite(p.home.x) ? { x: p.home.x, z: p.home.z } : null) : null;
+      return at ? { ...at, label: "home" } : { ...(cityStart || { x: me().x, z: me().z }), label: "at your spawn point" };
+    } });
+  // A hearing of yours at the courthouse: brought there by the link in your summons, the case
+  // heard in Department 12, back where you were after (court-session.mjs, courthouse.mjs).
+  const courtGlass = (() => { const m = new THREE.MeshStandardMaterial({ color: 0xbcd0dc, transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0, depthWrite: false, side: THREE.DoubleSide }); globalThis.__kerbsideRealGlass?.(m, { paneUv: false }); return m; })();
+  const court = createCourtSession({ THREE, R, ctx, group, send, notify, me, glass: courtGlass, walkFactor: () => walkFactorNow(), onEnd: () => refresh() });
   function sendPatrol(inc) {
     const s = district.streets;
     if (patrol.phase || !s) return false;
@@ -6335,7 +6393,7 @@ diffuseColor.rgb *= kbCloth;`);
       Object.assign(patrol, { phase: "leaving", route: next, d: 0, v: 0 });
     }
     const pos = alongRoute(patrol.route, patrol.d, lane);
-    patrol.at = { id: "patrol:responder", model: "patrol", x: pos.x, z: pos.z, yaw: pos.yaw, speed: patrol.v, moving: patrol.v > 0.2, shade: 0, braking: false };
+    patrol.at = { id: "patrol:responder", model: "patrol", x: pos.x, z: pos.z, yaw: pos.yaw, speed: patrol.v, moving: patrol.v > 0.2, shade: 0, braking: false, siren: patrol.phase === "coming" };
   }
   const nudged = new Map();   // someone going through a door: id -> when it was swung open for them
   let drawnCars = [];
@@ -6797,6 +6855,8 @@ diffuseColor.rgb *= kbCloth;`);
           if (d > REACT.notice_m) continue;
           inc.seen.add(id);
           let kind = reactionTo(mind, inc, d, id);
+          // (Whether anyone calls about something you did is the law's to weigh: police.mjs.)
+          if (kind === "call" && inc.byYou) kind = "watch";
           // (So many do each thing and no more: the rest look on, or walk on.)
           inc.did ||= {};
           if (kind !== "carry_on" && (inc.did[kind] || 0) >= REACT.most[kind]) kind = kind !== "watch" && kind !== "flee" && (inc.did.watch || 0) < REACT.most.watch ? "watch" : "carry_on";
@@ -6833,12 +6893,14 @@ diffuseColor.rgb *= kbCloth;`);
               entry.x = re.at.x; entry.z = re.at.z; entry.moving = false; entry.yaw = Math.atan2(-ux, -uz);
               entry.activity = re.kind === "call" ? "calling 911" : re.kind === "film" ? "filming it" : "watching";
               if (re.kind !== "watch") entry.gesture = { kind: re.kind === "call" ? "phone" : "film", f: 0.5 };
-              if (re.kind === "call" && !re.inc.called && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.victim ? "The one you hit is calling 911: a patrol car is on its way." : re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
+              if (re.kind === "call" && !re.inc.called && !re.inc.byYou && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.victim ? "The one you hit is calling 911: a patrol car is on its way." : re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
             }
             if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);
           }
         }
       }
+      // A witness to something of yours: whether they call, and their phone out while they do (police.mjs).
+      police.personFrame(id, entry, () => temperamentOf(e.p), dt, Boolean(pos.down));
       // Struck (strikePerson): carried back along the blow a step at a time, or swayed and back.
       const sg = staggers.get(id);
       if (sg) {
@@ -7327,6 +7389,8 @@ diffuseColor.rgb *= kbCloth;`);
   addEventListener("keydown", (e) => {
     if (e.key === "Shift") { if (!typing(e.target)) body.sprintHeld = true; return; }
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || !ctx.enabled()) return;
+    // In court the arrows walk and Space moves the hearing on (court-session.mjs); in cuffs, nothing.
+    if (court.active || police.locked) return;
     if (e.key === " " && e.target instanceof HTMLButtonElement) return;   // Space on a focused button presses it
     // On the map the walker jumps too (Space); the game's other keys are City mode's.
     if (ctx.cityMode?.() === false) { if (e.key === " ") { e.preventDefault(); jumpKey(); } return; }
@@ -7376,10 +7440,11 @@ diffuseColor.rgb *= kbCloth;`);
     }
     const theirs = [...w.registry.assets.values()].find((a) => a.kind === "vehicle" && a.holder !== p.account && near(a));
     if (theirs) {
-      if (!globalThis.confirm?.(`This car (${theirs.attrs.plate}) is not yours. Take it anyway? That is theft: it will be reported, and you will be fined.`)) return;
+      if (!globalThis.confirm?.(`This car (${theirs.attrs.plate}) is not yours. Take it anyway? That is theft: if anyone calls it in, the police will come for you.`)) return;
       const r = await send("take", { asset: theirs.id, witnesses: Math.min(3, visible.people.filter((x) => Math.hypot(x.x - here.x, x.z - here.z) < 30).length) });
       if (!r.ok) { notify(r.error); return; }
-      notify(r.evidence.length ? `Seen: ${r.evidence.join(", ")}. A ${R.fmt(R.fines.theft)} theft citation is on its way.` : "Nobody saw.");
+      if (r.offence) police.crime(r.offence, { x: theirs.attrs.x ?? here.x, z: theirs.attrs.z ?? here.z }, { plate: theirs.attrs.plate, alarm: r.offence.alarm });
+      notify(r.offence?.alarm ? "The car's alarm goes off." : "Nobody seems to have noticed.");
       return enterCar(theirs.id);
     }
     notify(mine === undefined ? "No car of yours within a few steps. Buy one in the City panel." : "");
@@ -8301,7 +8366,8 @@ diffuseColor.rgb *= kbCloth;`);
       const place=district.placeById?.get(String(id)), kind=place && view?.kitchenKind(place);
       return kind ? restaurantService(R,kind,view.bizAt(id),view.kitchens.get(String(id))) : null;
     },
-    get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place); }, walkInside, enterBuilding, autoWalk: (dt) => stepReach(dt) || stepNav(dt), cancelAutoWalk: () => { reach.t = null; stopNav(); }, pressDown, pressUp, useDown, useUp, openPanel, closePanel, joinParty, leaveParty,
+    get driving() { return car.active || cycle.active; }, get entering() { return Boolean(entry); }, stepEntry, swim, get cycling() { return cycle.active; }, get riding() { return car.riding || transit.ride; }, get inside() { return Boolean(shop.place) || court.active || police.locked; }, walkInside: (dt, held) => (court.active ? court.walkIn(dt, held) : police.locked ? (ctx.animateWalk?.(0), true) : walkInside(dt, held)),
+    police: () => ({ units: police.units(), crimes: police.crimes(), locked: police.locked }), court: () => court.state(), goToCourt: (id) => court.enter(id), courtSkip: () => court.skip(), enterBuilding, autoWalk: (dt) => stepReach(dt) || stepNav(dt), cancelAutoWalk: () => { reach.t = null; stopNav(); }, pressDown, pressUp, useDown, useUp, openPanel, closePanel, joinParty, leaveParty,
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, climbKey,

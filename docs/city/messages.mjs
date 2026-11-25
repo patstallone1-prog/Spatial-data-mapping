@@ -448,7 +448,7 @@ export function installMessages(CityWorld, CityError, { citations = [] } = {}) {
       for (const c of this.cases.values()) {
         if (c.pid !== p.id || !c.summons || !c.court || seen[`summons:${c.id}`]) continue;
         seen[`summons:${c.id}`] = 1;
-        this.post(notices(this, p.id), { from: "system", name: N.from.court, text: fill(N.summons, { memo: c.memo || c.charge, when: when(this, c.court), court: this.mailCourtName(c) }) });
+        this.post(notices(this, p.id), { from: "system", name: N.from.court, ui: { court: c.id }, text: `${fill(N.summons, { memo: c.memo || c.charge, when: when(this, c.court), court: this.mailCourtName(c) })} The courthouse is outside the district: use the link below to go there (you are brought back when the case is over).` });
       }
       for (const c of this.cases.values()) {
         if (c.pid !== p.id || !c.verdict || seen[`verdict:${c.id}`] || c.lawyer) continue;

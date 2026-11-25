@@ -32,6 +32,8 @@ const CLAMPS = {
   sprint_s: [0, 60, false], walked_m: [0, 600, false], occupants: [1, 8, true], hours: [0, 72, false], speed: [0, 90, false],
   over_mph: [0, 200, false], mph: [0, 250, false], used_years: [0, 40, true],
   swim_s: [0, 60, false], swim_sprint_s: [0, 60, false], tread_s: [0, 60, false],
+  //: How long a witness was on the phone to 911 (law.mjs: ten seconds gets through).
+  call_s: [0, 120, false],
 };
 
 //: A command's arguments as plain, finite, bounded data (a copy). Throws Refused.

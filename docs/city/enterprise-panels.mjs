@@ -10,7 +10,7 @@ const DAY = 86_400_000;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function enterprisePanels(api) {
-  const { R, h, act, notify, send, self, me, getView, ctx, district, address, placeArg, openSide, drawSide, getSide, editInterior, todoReset } = api;
+  const { R, h, act, notify, send, self, me, getView, ctx, district, address, placeArg, openSide, drawSide, getSide, editInterior, todoReset, goToCourt } = api;
   const B = R.business;
   const when = (ms) => { const t = cityTime(ms, R.clock.zone); return `${WEEKDAYS[t.weekday]} ${t.month}/${t.date} ${t.label.slice(4)}`; };
   const date = (ms) => { const t = cityTime(ms, R.clock.zone); return `${t.month}/${t.date}/${t.year}`; };
@@ -83,7 +83,12 @@ export function enterprisePanels(api) {
     for (const c of myCases(w, p)) {
       if (c.court) {
         const due = w.now >= c.court + B.law.attend_hours[0] * 3_600_000;
-        out.push({ label: `${c.summons ? "Summons" : "Court"}: ${c.charge.replace(/_/g, " ")} ${due ? "— now" : when(c.court)}`, sub: `${court.name || "the court"}${c.lawyer ? ` · with ${c.lawyer.name}` : " · no lawyer"}`, x: court.x, z: court.z, now: due,
+        // The hearing is in the Civic Center Courthouse (courthouse.mjs), outside the city's map: the
+        // to-do takes you there (and back after) rather than pointing at a stand-in building.
+        const real = `${B.law.courthouse.name}, ${B.law.courthouse.address}`;
+        if (goToCourt) out.push({ label: `${c.summons ? "Summons" : "Court"}: ${c.charge.replace(/_/g, " ")} ${due ? "— now" : when(c.court)}`, sub: `${real}${c.lawyer ? ` · with ${c.lawyer.name}` : " · no lawyer"} · go there`, now: due,
+          run: () => goToCourt(c.id) });
+        else out.push({ label: `${c.summons ? "Summons" : "Court"}: ${c.charge.replace(/_/g, " ")} ${due ? "— now" : when(c.court)}`, sub: `${court.name || "the court"}${c.lawyer ? ` · with ${c.lawyer.name}` : " · no lawyer"}`, x: court.x, z: court.z, now: due,
           run: () => (due ? attend(c) : openCases()) });
       } else out.push({ label: `A case: ${c.charge.replace(/_/g, " ")}`, sub: "Pay, contest, or take it to a lawyer", run: openCases });
     }
@@ -114,7 +119,7 @@ export function enterprisePanels(api) {
       if (s && s.holder === p.account && !b) { out.push({ id: `reg:${pl.id}`, label: "Open a business here", key: "", run: () => { openSide("online"); getSide().cat = "business"; getSide().register = pl.id; drawSide(); } }); break; }
     }
     const court = courtPlace();
-    for (const c of myCases(w, p)) if (c.court && w.now >= c.court + B.law.attend_hours[0] * 3_600_000 && Math.hypot(here.x - court.x, here.z - court.z) < B.law.courthouse.reach_m) out.push({ id: `court:${c.id}`, label: `Attend your hearing: ${c.charge.replace(/_/g, " ")}`, key: "", run: () => attend(c) });
+    for (const c of myCases(w, p)) if (c.court && w.now >= c.court + B.law.attend_hours[0] * 3_600_000 && Math.hypot(here.x - court.x, here.z - court.z) < B.law.courthouse.reach_m) out.push({ id: `court:${c.id}`, label: `Attend your hearing: ${c.charge.replace(/_/g, " ")}`, key: "", run: () => (goToCourt ? goToCourt(c.id) : attend(c)) });
     return out;
   }
   function lease(pl) {

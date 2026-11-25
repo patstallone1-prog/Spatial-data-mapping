@@ -111,6 +111,7 @@ const C = {
 };
 //: Work that is done in its own clothes: {role: [top, bottom]} (the top in the role's uniform colour).
 export const WORK_DRESS = {
+  judge: ["suit", "suit_trousers"], court_clerk: ["button_up", "chinos"],
   police: ["button_up", "work_trousers"], security_guard: ["button_up", "work_trousers"], firefighter: ["work_jacket", "work_trousers"],
   nurse: ["scrubs", "scrubs"], pharmacist: ["button_up", "chinos"], pharmacy_tech: ["scrubs", "scrubs"],
   cook: ["chef", "work_trousers"], baker: ["chef", "work_trousers"], server: ["button_up", "work_trousers"], bartender: ["button_up", "work_trousers"],

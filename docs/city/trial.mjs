@@ -45,6 +45,11 @@ export const CHARGES = {
   trespass: { law: "Penal Code 602, trespass", did: "entered {place} after being told to leave and refused to go", lesser: "an infraction under Penal Code 602.8", things: ["the back room", "the yard", "the roof"] },
   unsafe_driving: { law: "Vehicle Code 23103, reckless driving", did: "drove with wilful disregard for safety past {place}", lesser: "an unsafe speed, Vehicle Code 22350", things: ["a crosswalk with people in it", "a school zone", "a line of stopped traffic"] },
   red_light: { law: "Vehicle Code 21453, failure to stop at a red signal", did: "drove through a red light at {place}", lesser: "a rolling right turn on red, Vehicle Code 21453(b)", things: ["the junction"] },
+  assault: { law: "Penal Code 245(a)(1), assault with a deadly weapon", did: "struck another person with {thing} outside {place}", lesser: "battery, Penal Code 242", things: ["a hammer", "a bottle", "a length of pipe", "a bat"] },
+  attempted_murder: { law: "Penal Code 664/187(a), attempted murder", did: "beat another person and left them for dead outside {place}", lesser: "assault with force likely to produce great bodily injury, Penal Code 245(a)(4)", things: ["repeated blows to the head", "a beating that put them in intensive care"] },
+  vehicular_assault: { law: "Penal Code 245(a)(1), assault with a deadly weapon (a vehicle)", did: "drove into a pedestrian at {place}", lesser: "reckless driving causing injury, Vehicle Code 23104", things: ["a crosswalk", "the pavement"] },
+  hit_and_run: { law: "Vehicle Code 20002, hit and run", did: "struck another car at {place} and drove away without stopping", lesser: "failure to exchange information, Vehicle Code 16025", things: ["a parked car", "a car at the lights"] },
+  evading: { law: "Vehicle Code 2800.1, evading a peace officer", did: "drove away from a police officer who signalled them to stop at {place}", lesser: "failure to obey a peace officer, Vehicle Code 2800", things: ["the patrol car's lights and siren"] },
   speeding: { law: "Vehicle Code 22350, unsafe speed", did: "drove faster than was safe past {place}", lesser: "a lesser speed over the limit", things: ["the limit"] },
 };
 const GENERIC = { law: "the city's ordinance", did: "{memo}", lesser: "a lesser infraction", things: ["the matter charged"] };

@@ -30,6 +30,7 @@ export const CLERK_KINDS = {
   care: { who: "receptionist", link: "shop" },
   liquor: { who: "clerk", link: "shop" },
   electronics: { who: "sales assistant", link: "shop" },
+  phone_store: { who: "specialist", link: "shop" },
   florist: { who: "florist", link: "shop" },
   fuel: { who: "attendant", link: "shop" },
   shop: { who: "clerk", link: "shop" },
@@ -40,7 +41,7 @@ const KIND_OF = {
   cafe: "cafe", bakery: "bakery", ice_cream: "ice_cream", bar: "bar", grocery: "grocery", convenience: "grocery", liquor: "liquor", wine_shop: "liquor",
   smoke_shop: "liquor", pharmacy: "pharmacy", clinic: "care", dentist: "care", optician: "care", vet: "care", gym: "care", hardware: "hardware", auto_parts: "hardware",
   clothing: "clothing", shoes: "shoes", books: "books", florist: "florist", salon: "beauty", barber: "beauty", nail_salon: "beauty", spa: "beauty", beauty: "beauty",
-  laundry: "shop", dry_cleaner: "shop", hotel: "care", fuel: "fuel", pet: "shop", pet_grooming: "beauty", electronics: "electronics", gifts: "shop", gallery: "shop",
+  laundry: "shop", dry_cleaner: "shop", hotel: "care", fuel: "fuel", pet: "shop", pet_grooming: "beauty", electronics: "electronics", phone_store: "electronics", gifts: "shop", gallery: "shop",
   jewelry: "clothing", toys: "shop", bike: "hardware", home: "shop", print_ship: "shop", general: "shop",
 };
 
@@ -88,6 +89,7 @@ const LINES = {
   beauty: ["{greet}! Do you have an appointment? Here's {link} -- what can we do for you today?", "Hi, welcome in. Take a look at {link}."],
   care: ["{greet}. Are you checked in? Here's {link}.", "Hi, how can I help you today? Here's {link}."],
   liquor: ["Hey. Need any help? {Link}. I'll need to see ID for anything with alcohol.", "{greet}. What can I get you? Here's {link}."],
+  phone_store: ["{greet}! Here for a new phone? The latest are on the tables. Here's {link}.", "Hi! Looking to upgrade? {Link} -- I can set it up for you before you go."],
   electronics: ["{greet}! Anything I can help you set up today? Here's {link}.", "Hi! Looking for anything in particular? {Link} -- I can tell you about any of it."],
   florist: ["{greet}! Something for an occasion? Here's {link}.", "Hi there. What can I put together for you? {Link}."],
   fuel: ["Hi. Pump number? Anything from inside? Here's {link}.", "{greet}. Here's {link} -- coffee's fresh."],

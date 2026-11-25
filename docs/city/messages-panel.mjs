@@ -66,7 +66,7 @@ import { exhibitSvg } from "./trial.mjs";
 const TAB_LABEL = { players: "Players", npc: "NPC", system: "System" };
 
 export function messagesPanel(api) {
-  const { h, send, notify, me, getView, peers, courtPlace, placeArg, R } = api;
+  const { h, send, notify, me, getView, peers, courtPlace, placeArg, R, goToCourt } = api;
   const doc = globalThis.document;
   if (!doc.getElementById("city-msg-css")) doc.head.append(Object.assign(doc.createElement("style"), { id: "city-msg-css", textContent: CSS }));
   const tabBtn = h("button", { id: "city-msg-tab", title: "Messages", "aria-label": "Open messages" }, h("span", { textContent: "✉" }), h("span", { className: "v", textContent: "Messages" }), h("b"));
@@ -217,6 +217,14 @@ export function messagesPanel(api) {
       }
       // Exhibits: each a link that opens it on the page, as a picture.
       if (m.ui?.exhibits?.length) el.append(h("div", { className: "exhibits" }, ...m.ui.exhibits.map((x) => h("button", { className: "exhibit", textContent: x.title, title: "Open this exhibit", onclick: () => showExhibit(x) }))));
+      // A summons to a hearing of yours: the way to the courthouse (court-session.mjs), open from
+      // the summons until the hearing is over.
+      if (m.ui?.court && goToCourt) {
+        const c = getView()?.cases?.get?.(m.ui.court), now = getView()?.now ?? Date.now(), L = R.business.law;
+        if (c && !c.closed && !c.verdict && c.court && now <= c.court + L.attend_hours[1] * 3_600_000)
+          el.append(h("div", { className: "choices" }, h("button", { className: "primary", textContent: "Go to the courthouse (400 McAllister St)", onclick: () => { close?.(); goToCourt(c.id); } })));
+        else if (c && (c.closed || c.verdict)) el.append(h("div", { className: "answered", textContent: "This case has been heard." }));
+      }
       if (m.ui?.jury) {
         const s = (getView()?.players.get(mine)?.jury || []).find((x) => x.id === m.ui.jury);
         const now = getView()?.now ?? Date.now(), L = R.business.law;
