@@ -21,6 +21,8 @@ def main(argv: list[str] | None = None) -> None:
     x.add_argument("--limit", type=int, default=40)
     x.add_argument("--restaurants", action="store_true",
                    help="only the restaurants the Qwen flow can take (no limit), all their picks")
+    x.add_argument("--retail", action="store_true",
+                   help="with --restaurants: the retail shops the readers take (not yet checked)")
     h = sub.add_parser("handoff", help="write smc.exteriors input programs for swept buildings")
     h.add_argument("--area", default="marina-union")
     h.add_argument("--corridor")
@@ -73,6 +75,8 @@ def main(argv: list[str] | None = None) -> None:
     op.add_argument("--only", nargs="+", help="a test batch: these restaurants (names or ids)")
     op.add_argument("--no-check", action="store_true", help="skip the correction turn over the drawn parts")
     op.add_argument("--dry", action="store_true", help="build and save the inputs, call nothing")
+    op.add_argument("--retail", action="store_true", help="shops too (cafes, clothing, grocery...), not only food")
+    op.add_argument("--corners", action="store_true", help="also read a corner building's other street wall")
     st = sub.add_parser("studio", help="serve the building studio (view + edit models)")
     st.add_argument("--port", type=int, default=8791)
     a = ap.parse_args(argv)
@@ -88,7 +92,8 @@ def main(argv: list[str] | None = None) -> None:
         if a.restaurants:
             from .auto.flow import candidates
             res = run_pixels(a.area, a.corridor, 10_000, per_business=8,
-                             only=candidates(a.area, a.corridor))
+                             only=(candidates(a.area, a.corridor, "retail") - candidates(a.area, a.corridor))
+                             if a.retail else candidates(a.area, a.corridor))
         else:
             res = run_pixels(a.area, a.corridor, a.limit)
     elif a.cmd == "model":
@@ -135,10 +140,11 @@ def main(argv: list[str] | None = None) -> None:
         shard = tuple(int(x) for x in a.shard.split("/")) if a.shard else None
         if a.dry:
             from .auto.opus_flow import dry
-            res = dry(a.only, a.limit)
+            res = dry(a.only, a.limit, retail=a.retail, corners=a.corners)
         else:
             from .auto.opus_flow import run as orun
-            res = orun(a.budget, a.limit, shard=shard, ids=a.only, check=not a.no_check)
+            res = orun(a.budget, a.limit, shard=shard, ids=a.only, check=not a.no_check,
+                       retail=a.retail, corners=a.corners)
     elif a.cmd == "studio":
         from .studio import serve
         serve(a.port)

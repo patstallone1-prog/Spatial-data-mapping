@@ -43,17 +43,35 @@ def _log(msg: str) -> None:
         f.write(line + "\n")
 
 
-def candidates(area: str = "marina-union", corridor: str | None = None) -> set[str]:
-    """Restaurants the flow could take, before photos are known: the pixel stage checks only
+#: retail the readers take beside restaurants (``kinds="retail"``); services, hotels and offices are left
+RETAIL_TAGS = {"shop", "clothing", "shoes", "convenience", "grocery", "supermarket", "jewelry", "florist", "pet",
+               "books", "pharmacy", "optician", "gift", "liquor", "deli", "bakery", "cafe", "hardware",
+               "furniture", "electronics", "sports", "toys", "cosmetics", "wine", "bicycle", "art", "stationery"}
+_REGISTRY_ONLY = {"name", "legal_name", "location_start_date", "business_corridor"}
+
+
+def wanted(z: dict, kinds: str = "restaurant") -> bool:
+    """Is this business a kind of place the reader takes? ``restaurant``: food; ``retail``: food
+    and shops (a generic "shop" only with more than a registry name behind it)."""
+    t = business_type(z)
+    if t["render"] == "restaurant":
+        return True
+    if kinds != "retail" or t["render"] != "storefront" or t["tag"] not in RETAIL_TAGS:
+        return False
+    return t["tag"] != "shop" or bool(set(z["fields"]) - _REGISTRY_ONLY)
+
+
+def candidates(area: str = "marina-union", corridor: str | None = None, kinds: str = "restaurant") -> set[str]:
+    """Businesses the flow could take, before photos are known: the pixel stage checks only
     these. ``corridor`` None is the businesses on no corridor (``photos_all``)."""
     biz = json.loads((OUT / area / "businesses.json").read_text())
-    return {z["id"] for z in biz if business_type(z)["render"] == "restaurant" and z.get("face")
+    return {z["id"] for z in biz if wanted(z, kinds) and z.get("face")
             and z.get("building") and z["storefront_likelihood"] >= 0.5
             and not ((z.get("address") or {}).get("upper_floor") or (z.get("address") or {}).get("suite"))
             and z.get("corridor") == corridor}
 
 
-def eligible(area: str = "marina-union") -> tuple[list[dict], dict]:
+def eligible(area: str = "marina-union", kinds: str = "restaurant") -> tuple[list[dict], dict]:
     out = OUT / area
     biz = json.loads((out / "businesses.json").read_text())
     picks: dict[str, int] = {}
@@ -72,7 +90,7 @@ def eligible(area: str = "marina-union") -> tuple[list[dict], dict]:
     biz = sorted(biz, key=lambda z: z["id"] not in reviewed)
     for z in biz:
         # recomputed, not read from the sweep: the stored type predates the category fix
-        if business_type(z)["render"] != "restaurant":
+        if not wanted(z, kinds):
             continue
         a = z.get("address") or {}
         if v(z, "operating_status") not in (None, "open"):
@@ -91,7 +109,8 @@ def eligible(area: str = "marina-union") -> tuple[list[dict], dict]:
                 no("wall already queued (shared)")
                 continue
             walls.add(w)
-            keep.append({"id": z["id"], "name": v(z, "name"), "corridor": z.get("corridor"), "wall": w})
+            keep.append({"id": z["id"], "name": v(z, "name"), "corridor": z.get("corridor"), "wall": w,
+                         "kind": business_type(z)["tag"]})
     keep.sort(key=lambda x: (x["id"] not in reviewed, x["corridor"] or "~", x["name"] or ""))
     return keep, reasons
 

@@ -252,6 +252,37 @@ def whole_wall_view(base: dict, e: int, ok: list[dict], top: float) -> dict | No
     return best[1] if best else None
 
 
+def wall_frames(base: dict, e: int, since: str | None = None, area: str = "marina-union", k: int = 6,
+                max_occluded: float = 0.35, min_span: float = 15.0) -> tuple[list[dict], list[dict]]:
+    """Clean frames for a wall the pixel stage never saw (a corner building's other street):
+    the geometry filter run against that wall, then the same pixel checks (occlusion, blur,
+    exposure, frame edge). Returns (frames in the ok_frames shape, the model's photos with the
+    new ones appended)."""
+    from ..model import photos_for_wall
+    from ..photos.pixels import assess_pixels
+    from ..sources import mapillary
+    m = {**base, "photos": list(base.get("photos") or [])}
+    _, picks, fmeta, face = photos_for_wall(m, e, k=k, area=area, since=since, detail=True)
+    out = []
+    for p in picks:
+        f = fmeta[p["frame_id"]]
+        if not p.get("ok") or float((p.get("aim") or {}).get("span_deg") or 0) < min_span:
+            continue
+        try:
+            img = mapillary.thumbnail(f["id"], "original" if f.get("camera_type") == "spherical" else 2048)
+            dets = mapillary.detections(f["id"])
+        except Exception:  # noqa: BLE001 - a missing thumbnail is a per-frame outcome
+            continue
+        px = assess_pixels(f, face, f["_cam"], base["height_m"], img, dets)
+        if px["rejects"] or (px.get("metrics") or {}).get("occluded_storefront", 0) > max_occluded:
+            continue
+        out.append({"frame_id": f["id"], "score": px["score"], "score_sign": px["score_sign"],
+                    "captured_at": f.get("captured_at"), "_view": p.get("view"), "_aim": p.get("aim") or {},
+                    "_frame": {k2: f.get(k2) for k2 in ("camera_type", "heading", "hfov", "sequence", "width")},
+                    "_range": (p.get("metrics") or {}).get("range_m", 12.0)})
+    return out, m["photos"]
+
+
 def clean_views(bid: str, corridor: str | None, area: str = "marina-union", since: str | None = None,
                 max_views: int = 4, max_occluded: float = 0.35) -> list[dict]:
     """The frames worth sending: pixel-ok, one per view, distinct. Each item has frame_id, slot,
@@ -350,7 +381,8 @@ def _r(x, n=2):
     return round(float(x), n) if isinstance(x, (int, float)) else x
 
 
-def facts(base: dict, e: int, views: list[dict], since: str | None, grid: bool, qwen: dict | None) -> str:
+def facts(base: dict, e: int, views: list[dict], since: str | None, grid: bool, qwen: dict | None,
+          extra: str | None = None) -> str:
     w = base["walls"][e]
     f = base.get("facts") or {}
     walls = "; ".join(f"wall {i}: {x['length_m']:.2f} m, {x.get('role')}{' on ' + x['street'] if x.get('street') else ''}"
@@ -376,6 +408,8 @@ def facts(base: dict, e: int, views: list[dict], since: str | None, grid: bool, 
         lines.append(f"Street: {st.get('name')}, sidewalk {st.get('sidewalk_m')} m, parking lane {st.get('parking_m')} m.")
     lines.append("Images: " + ("1 = the rectified elevation with the metric grid; then " if grid else "")
                  + "; ".join(f"photo {i + 1 + int(grid)} {v['_why']} ({str(v.get('captured_at'))[:10]})" for i, v in enumerate(views)) + ".")
+    if extra:
+        lines.append(extra)
     if qwen:
         lines.append("A cheaper model's reading of the same wall, for hints only (it often misses parts and "
                      "misplaces them): " + json.dumps(qwen, separators=(",", ":")))
@@ -682,6 +716,9 @@ def to_observations(base: dict, e: int, r: dict, frames: list[str], how: str) ->
             rows.append({"path": f"walls.{e}.{k}", "value": v, "evidence": ev})
     # shops on this wall replaced; the tenant asked about keeps its record identity
     mine = [s for s in base["storefronts"] if s["edge"] == e]
+    # the tenant's shop read on another wall can turn the corner onto this one
+    mine += [{**s, "id": f"{s['id']}-w{e}"} for s in base["storefronts"]
+             if s["edge"] != e and s.get("business_id") and s.get("business_id") == base.get("business_id")]
     from .flow import _same_name
     used, new = set(), []
     for j, s in enumerate(r["storefronts"]):
@@ -689,7 +726,7 @@ def to_observations(base: dict, e: int, r: dict, frames: list[str], how: str) ->
         if match is None and base.get("business_id"):
             # the record tenant whose span overlaps most, if its name was not read (pre-tenancy photos)
             ov = lambda m: max(0.0, min(m["u1"], s["u1"]) - max(m["u0"], s["u0"]))  # noqa: E731
-            cand = [m for m in mine if m["id"] not in used and ov(m) > 0.5 * (s["u1"] - s["u0"])]
+            cand = [m for m in mine if m["id"] not in used and m["edge"] == e and ov(m) > 0.5 * (s["u1"] - s["u0"])]
             match = max(cand, key=ov) if cand else None
         sid = match["id"] if match else f"sf-opus-w{e}-{j}"
         used.add(sid)
@@ -707,7 +744,8 @@ def to_observations(base: dict, e: int, r: dict, frames: list[str], how: str) ->
         new.append(sf)
     if not any(s.get("business_id") == base.get("business_id") for s in new):
         # the tenant asked about was not found on this wall: keep its record shop rather than lose it
-        new += [m for m in mine if m.get("business_id") == base.get("business_id") and m["id"] not in used]
+        new += [m for m in mine if m.get("business_id") == base.get("business_id") and m["id"] not in used
+                and m["edge"] == e]
     others = [s for s in base["storefronts"] if s["edge"] != e]
     rows.append({"path": "storefronts", "value": others + new, "evidence": ev})
     for key in ("seating", "street_objects"):

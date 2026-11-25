@@ -169,7 +169,12 @@ def run_pixels(area: str = "marina-union", corridor: str | None = None, limit: i
         done.append(r)
     summary = {"area": area, "corridor": corridor, "businesses": len(done),
                "pixel_verdicts": dict(verdicts)}
-    (out / f"pixels_{tag}.json").write_text(json.dumps({"summary": summary, "results": done}, default=str))
+    dest = out / f"pixels_{tag}.json"
+    if only is not None and dest.exists():
+        # a targeted run (``only``) adds to the file: other businesses' verdicts are kept
+        seen = {r["business"] for r in done}
+        done = done + [r for r in json.loads(dest.read_text())["results"] if r["business"] not in seen]
+    dest.write_text(json.dumps({"summary": summary, "results": done}, default=str))
     return summary
 
 

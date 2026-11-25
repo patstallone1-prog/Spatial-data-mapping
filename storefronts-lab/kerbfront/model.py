@@ -507,7 +507,7 @@ def write(model: dict) -> Path:
 
 
 def photos_for_wall(model: dict, edge: int, u: tuple[float, float] | None = None, k: int = 4,
-                    area: str = "marina-union", since: str | None = None) -> list[dict]:
+                    area: str = "marina-union", since: str | None = None, detail: bool = False):
     """More frames for one wall of a model (a corner building's second street, a parklet's
     stretch): the stage-1 filter run against that wall, appended to ``model["photos"]``."""
     from .faces import Face
@@ -557,6 +557,8 @@ def photos_for_wall(model: dict, edge: int, u: tuple[float, float] | None = None
                       "position_source": f.get("position_source"), "wall": edge,
                       "licence": "CC BY-SA 4.0 (c) Mapillary contributors"})
     model["photos"].extend(added)
+    if detail:  # the geometry rows too (aim, range, view), the face and frame metadata
+        return added, picks, fmeta, face
     return added
 
 
