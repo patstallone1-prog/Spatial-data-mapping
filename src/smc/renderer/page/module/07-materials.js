@@ -47,8 +47,10 @@ const MATERIALS = [
     colours: [0x9a8065, 0xa99174, 0x736959] },
   { name: "stone",    share: 0, grit: 0.19, rough: 0.94, metal: 0,
     colours: [0xa59d8e, 0xb4aa96, 0x878b89] },
-  { name: "glass",    share: 0.07, grit: 0.03, rough: 0.06, metal: 0.85,
-    colours: [0x8fb2c4, 0x7aa0b6, 0xa3c2d0, 0x6d93aa] },
+  // (Darker, and less of a metal: an office's tinted glass is a dark blue-green grey that mirrors
+  // the street at a slant -- module 02 facadeGlass -- not a sky-blue mirror face on, 2026-11-26.)
+  { name: "glass",    share: 0.07, grit: 0.03, rough: 0.06, metal: 0.35,
+    colours: [0x4f6874, 0x445c6a, 0x5a7280, 0x3b5262] },
   { name: "metal",    share: 0.05, grit: 0.06, rough: 0.24, metal: 0.95,
     colours: [0xb9c3c8, 0x9aa6ad, 0xc9d2d6, 0x8d989f] },
 ];
@@ -302,7 +304,11 @@ function facadeTexture() {
 // A window is not a dark rectangle. It is a recess with a frame, a sill catching light from
 // above, and a pane darker at the top than the bottom -- sky reflected at a grazing angle,
 // room seen at a steep one. Those three details are most of what makes a facade read.
+//: The panes painted into the picture being made (facadeFor), for its glass marking (markGlass).
+let PANE_SINK = null;
 function pane(ctx, x, y, w, h, lit, seed, options = {}) {
+  // (An arched head's corners are wall: only the pane below the arch's spring is marked whole.)
+  PANE_SINK?.push([x, options.arched ? y + w * 0.3 : y, w, options.arched ? h - w * 0.3 : h, lit]);
   ctx.fillStyle = "rgba(0,0,0,0.30)";
   ctx.fillRect(x - 2, y - 2, w + 4, h + 4);                  // the reveal
   const glass = ctx.createLinearGradient(0, y, 0, y + h);
@@ -505,8 +511,10 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.fillRect(0, h - 5, w, 5);
   }
+  const panes = [];
   if (withWindows && material.name !== "glass" && material.name !== "metal") {
-    WINDOW_STYLES[style % WINDOW_STYLES.length](ctx, seed);
+    PANE_SINK = panes;
+    try { WINDOW_STYLES[style % WINDOW_STYLES.length](ctx, seed); } finally { PANE_SINK = null; }
     trimCourse(ctx, seed, material);
   }
 
@@ -517,10 +525,28 @@ function facadeFor(material, seed, style, variant = 0, withWindows = true) {
     ctx.fillRect(random(seed + i * 3) * w, random(seed + i * 7) * h, 1, 1);
   }
 
+  if (typeof markGlass === "function") markGlass(ctx, panes, material.name === "glass", w, h);
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   if (photo) texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+//: Marks the glass in a wall's picture in its alpha (module 02 facadeGlass reads it): each pane
+//: painted (``panes``: [x, y, w, h, lit]) to FACADE_GLASS.coded -- a lit one to lit_coded -- and a
+//: glass curtain wall's every panel between its mullions. The wall is opaque, so nothing shows
+//: through; the colour is kept (canvas keeps it premultiplied, and it comes back the same).
+function markGlass(ctx, panes, curtain, w, h) {
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-out";
+  for (const [x, y, pw, ph, lit] of panes) {
+    ctx.fillStyle = lit ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.5)";
+    ctx.fillRect(x, y, pw, ph);
+  }
+  if (curtain) {
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    for (let x = 0; x < w; x += 8) for (let y = 0; y < h; y += 16) ctx.fillRect(x + 1, y + 2, 7, 14);
+  }
+  ctx.restore();
 }
 
 const FACADE_CACHE = SHARED_FACADES.facades;

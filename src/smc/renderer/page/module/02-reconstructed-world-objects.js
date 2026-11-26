@@ -583,6 +583,7 @@ const GLASS = Object.freeze({
   ripple_m: 1.1,           // over how far
   grime: 0.28,             // the grime's opacity at the very edge of a pane
   grime_edge: 0.08,        // how far in from the edge it goes (share of the pane)
+  tint_reflection: 1.4,    // how much more a dark-tinted pane mirrors face on (2026-11-26)
 });
 //: The pane's opacity seen at ``cosView`` (the cosine between the view and the pane's normal).
 function glassOpacity(cosView, face = GLASS.face_opacity, edge = GLASS.edge_opacity) {
@@ -660,7 +661,11 @@ function realGlass(material, { paneUv = false, face = GLASS.face_opacity } = {})
   vec3 kbRw = inverseTransformDirection(reflect(-kbV, kbN), viewMatrix);
   float kbDay = mix(${f(GLASS.reflection)}, ${f(GLASS.night_reflection)}, kbNight);
   // Mirrored by Schlick's curve from its face-on share: a window looked straight at still shows the sky.
-  float kbFr = ${f(GLASS.face_reflection)} + (1.0 - ${f(GLASS.face_reflection)}) * kbF;
+  // A darker tint shows more of it face on: less comes through from behind to wash the reflection
+  // out (tinted office glass is a mirror by day; clear shop glass shows the shop).
+  float kbTintDark = 1.0 - clamp(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)) * 1.6, 0.0, 1.0);
+  float kbFace = ${f(GLASS.face_reflection)} * (1.0 + ${f(GLASS.tint_reflection)} * kbTintDark);
+  float kbFr = kbFace + (1.0 - kbFace) * kbF;
   vec3 kbEnv = textureCube(kbGlassCube, vec3(-kbRw.x, kbRw.yz)).rgb * kbFr * kbDay;
   vec3 kbSpec = reflectedLight.directSpecular * ${f(GLASS.specular)};
   vec3 kbBody = outgoingLight - reflectedLight.directSpecular - reflectedLight.indirectSpecular;
@@ -682,6 +687,84 @@ function realGlass(material, { paneUv = false, face = GLASS.face_opacity } = {})
   });
 }
 globalThis.__kerbsideRealGlass = realGlass;
+// ---- glass and metal painted on a wall ----------------------------------------------------------
+//: The windows painted into a wall's picture (module 07 pane()) and a glass curtain wall are
+//: marked in the picture's alpha (FACADE_GLASS.coded: half, a lit window three quarters; the wall
+//: itself 1), which costs nothing -- the wall is opaque and its alpha was unused. Where it is
+//: marked, the wall is glass: darker than the wall's tint (``body``: a curtain wall's office glass
+//: darker still), Schlick's curve taking it from a little of the street face on (more, the darker
+//: the glass) to a mirror at a slant, the street from the one small picture of it all glass shares
+//: (glassCube). A metal wall mirrors the street too, in its own colour (a metal's reflection is
+//: tinted by it), whitening at a slant, with the faint vertical grain of rolled or brushed panels.
+//: Nothing is drawn twice and no picture is made per building (2026-11-26).
+const FACADE_GLASS = Object.freeze({
+  coded: 0.5,            // the alpha a pane is marked with (module 07)
+  lit_coded: 0.75,       // ... a lit one (half glass: it glows more than it mirrors)
+  window_body: 0.78,     // a painted window's glass, as a share of what it was
+  curtain_body: 0.42,    // a glass curtain wall's: office glass is tinted dark (2026-11-26)
+  // A curtain wall's panes are not the building's tint (its picture is grey, coloured by the
+  // building's paint): office glass is its own dark blue-green, the room behind barely seen.
+  curtain_rgb: [0.03, 0.05, 0.062], curtain_dark: 0.85,
+  curtain_frame: 0.55,   // its mullions: anodised, darker than the paint, less of the sky's mirror
+  body_tint: [0.82, 0.96, 1.0],   // float and office glass lean blue-green
+  face: 0.1,             // what it mirrors face on, at the palest
+  tint_face: 1.6,        // ... more for a darker one
+  power: 4.0,            // Schlick's 5, a little softer: the slant comes on sooner on a wall
+  day: 0.85, night: 0.1, // the street picture's share by day and by night
+  metal_reflection: 0.55, metal_grain_m: 0.9, metal_grain: 0.12,
+});
+function facadeGlass(material, kind = null) {
+  if (!material || !material.isMeshStandardMaterial || !material.map) return material;
+  const curtain = kind?.name === "glass", metal = kind?.name === "metal";
+  const body = curtain ? FACADE_GLASS.curtain_body : FACADE_GLASS.window_body;
+  const coded = !material.transparent || material.userData?.glassCoded !== false;
+  const key = `kbFacadeGlass${curtain ? "C" : metal ? "M" : ""}${coded ? "" : "T"}`;
+  const f = (v) => Number(v).toFixed(6);
+  return patchMaterial(material, key, (sh) => {
+    sh.uniforms.kbNight = NIGHT.night; sh.uniforms.kbGlassCube = { value: glassCube() };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbFW;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 kbP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbP = instanceMatrix * kbP;\n#endif\nkbFW = (modelMatrix * kbP).xyz; }");
+    const night = /uniform\s+float\s+kbNight\s*;/.test(sh.fragmentShader) ? "" : "uniform float kbNight; ";
+    const cube = /uniform\s+samplerCube\s+kbGlassCube\s*;/.test(sh.fragmentShader) ? "" : "uniform samplerCube kbGlassCube; ";
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>\nvarying vec3 kbFW;\n${night}${cube}`)
+      .replace("#include <opaque_fragment>", `{
+  float kbTa = 1.0;
+#ifdef USE_MAP
+  kbTa = texture2D(map, vMapUv).a;
+#endif
+  // Marked glass: 0.5 (a pane) is all glass, 0.75 (a lit one) about a third, 1 (the wall) none.
+  float kbM = smoothstep(0.08, 0.2, kbTa) * (1.0 - smoothstep(0.55, 0.9, kbTa));
+  vec3 kbV = normalize(vViewPosition);
+  vec3 kbN = normalize(normal);
+  float kbCos = clamp(abs(dot(kbN, kbV)), 0.0, 1.0);
+  vec3 kbRw = inverseTransformDirection(reflect(-kbV, kbN), viewMatrix);
+  vec3 kbEnv = textureCube(kbGlassCube, vec3(-kbRw.x, kbRw.yz)).rgb;
+  float kbDay = mix(${f(FACADE_GLASS.day)}, ${f(FACADE_GLASS.night)}, kbNight);
+  ${metal ? `// Metal: the street in the panel's own colour, whitening at a slant; a faint vertical grain.
+  float kbGrain = 1.0 - ${f(FACADE_GLASS.metal_grain)} * (0.5 + 0.5 * sin((kbFW.x + kbFW.z) * ${f(6.2831853 / FACADE_GLASS.metal_grain_m)} + sin(kbFW.y * 0.7) * 2.0));
+  vec3 kbF0 = clamp(diffuseColor.rgb, 0.0, 1.0);
+  vec3 kbMr = kbF0 + (vec3(1.0) - kbF0) * pow(1.0 - kbCos, 5.0);
+  float kbMs = ${f(FACADE_GLASS.metal_reflection)} * kbDay * kbGrain * (1.0 - kbM);
+  outgoingLight = outgoingLight * (1.0 - 0.35 * kbMs) + kbEnv * kbMr * kbMs;` : ""}
+  float kbF = pow(1.0 - kbCos, ${f(FACADE_GLASS.power)});
+  float kbDark = ${curtain ? f(FACADE_GLASS.curtain_dark) : "1.0 - clamp(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)) * 1.5, 0.0, 1.0)"};
+  float kbFace = ${f(FACADE_GLASS.face)} * (1.0 + ${f(FACADE_GLASS.tint_face)} * kbDark);
+  float kbFr = (kbFace + (1.0 - kbFace) * kbF) * kbDay * kbM;
+  // The glass's body: the wall's light without the sky's mirror the material laid on it (the
+  // street picture is its mirror), darker, and toward float glass's blue-green.
+  vec3 kbBody = outgoingLight - reflectedLight.indirectSpecular * kbM;
+  kbBody *= mix(vec3(1.0), ${f(body)} * vec3(${FACADE_GLASS.body_tint.map(f).join(", ")}), kbM);
+  ${curtain ? `// Office glass: its own colour, not the paint's; dimmer at night (its lit rooms are nightWindows').
+  kbBody = mix(kbBody, vec3(${FACADE_GLASS.curtain_rgb.map(f).join(", ")}) * mix(1.0, 0.3, kbNight), kbM);
+  kbBody -= reflectedLight.indirectSpecular * 0.6 * (1.0 - kbM);
+  kbBody = max(kbBody, vec3(0.0)) * mix(${f(FACADE_GLASS.curtain_frame)}, 1.0, kbM);` : ""}
+  outgoingLight = kbBody * (1.0 - kbFr) + kbEnv * kbFr;
+  ${coded ? "diffuseColor.a = mix(diffuseColor.a, opacity, kbM);   // (marked glass is still the wall: as opaque as it)" : "diffuseColor.a = mix(diffuseColor.a, clamp(diffuseColor.a + kbFr, 0.0, 1.0), kbM);"}
+}
+#include <opaque_fragment>`);
+  });
+}
+globalThis.__kerbsideFacadeGlass = facadeGlass;
 // ---- the sun's shadows and the light off the street: a low-detail stand-in for the world -------
 //
 // Nothing here casts a shadow the usual way (a shadow map draws every building, tree and kerb

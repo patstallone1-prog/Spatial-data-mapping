@@ -414,13 +414,16 @@ function roofPlanMaterials() {
     material.name = `roof-${name}`;
     return material;
   };
-  return (roofPlanMaterials._cache = {
+  (roofPlanMaterials._cache = {
     deck: make("deck", { map: planks, roughness: 0.88 }),
     screen: make("screen", { map: slats, roughness: 0.9 }),
     glass: make("glass", { color: 0xbcd6de, transparent: true, opacity: 0.3, roughness: 0.06, metalness: 0.15,
                            side: THREE.DoubleSide, depthWrite: false, envMapIntensity: 1.4 }),
     cap: make("rail-cap", { color: 0x9aa2a6, roughness: 0.38, metalness: 0.75 }),
   });
+  // The railing's glass is glass (module 02 realGlass): clear looking through it, a mirror at a slant.
+  realGlass(roofPlanMaterials._cache.glass);
+  return roofPlanMaterials._cache;
 }
 const mergeRoof = (key, geometry, material) => addMerged(`roof|plan-${key}`, new THREE.Mesh(geometry, material), "roof_furniture");
 
@@ -1126,6 +1129,8 @@ function buildingMesh(feature) {
     // gives a flat blue rectangle; the environment map is what makes it read as a window.
     envMapIntensity: material.name === "glass" ? 1.6 : material.name === "metal" ? 1.1 : 0.35,
   });
+  // Its painted windows and a glass or metal cladding mirror the street (module 02 facadeGlass).
+  facadeGlass(walls, material);
   // Fifteen thousand seven hundred buildings were fifteen thousand seven hundred draw calls.
   // They share a hundred and fifty three wall textures between them and, now that the roof is
   // neutral, sixteen roof textures -- so what actually differs between two buildings with the
@@ -1218,6 +1223,7 @@ function buildingMesh(feature) {
         bandWalls.map=partition.front ? bareFacadeTextureFor(band.material,seed) : facadeTextureFor(band.material,seed);
         bandWalls.roughness=band.material.rough;bandWalls.metalness=band.material.metal;
         bandWalls.envMapIntensity=band.material.name==="glass" ? 1.6 : band.material.name==="metal" ? 1.1 : .35;
+        facadeGlass(bandWalls,band.material);   // (a clone loses the patch: its own cladding's)
         const colour=new THREE.Color(band.tint),count=clipped.getAttribute("position").count;
         const colours=new Float32Array(count*3);
         for(let i=0;i<count;i++) colours.set([colour.r,colour.g,colour.b],i*3);

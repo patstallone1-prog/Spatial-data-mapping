@@ -752,8 +752,14 @@ function crossSectionMarks(way, sparse, cutStart) {
   // Closing every run whenever the cross-section changed anywhere -- a parking lane starting,
   // a bike lane's buffer ending -- broke the double yellow at each change, and the new run only
   // began at the next sample, which left a bare stretch of centreline mid-block.
-  let open = [];                     // {kind, offset, points}
+  let open = [];                     // {kind, offset, points, st: the stations its points stand at}
   const CONTINUE_M = 1.2;
+  // A centre line whose offset steps further than that between two stations -- the lanes either
+  // side of it changing where a street narrows (Bay, 24 m to 12 m: it jumped six metres sideways)
+  // -- is the same centre line shifted: it is led over on a taper laid back along the wider
+  // stretch, ten along for one across (MUTCD's lane-shift taper L = W S^2 / 60 at 25 mph), not
+  // ended and begun again over there. Further across than CENTRE_SHIFT_MAX_M it is another line.
+  const CENTRE_SHIFT_MAX_M = 8.0, CENTRE_TAPER_PER_M = 10;
   for (let i = 0; i < points.length; i += 1) {
     const along = cutStart + alongs[i];
     const bands = crossSectionBands(way, along, halfWidthAt(way, along));
@@ -770,22 +776,39 @@ function crossSectionMarks(way, sparse, cutStart) {
     }
     const next = [];
     for (const mark of here) {
-      const j = open.findIndex((run) => run.kind === mark.kind
+      let j = open.findIndex((run) => run.kind === mark.kind
         && Math.abs(run.offset - mark.offset) <= CONTINUE_M);
+      if (j < 0 && mark.kind === "centre") {
+        j = open.findIndex((run) => run.kind === "centre" && run.st.length >= 2
+          && Math.abs(run.offset - mark.offset) <= CENTRE_SHIFT_MAX_M
+          && !here.some((m) => m !== mark && m.kind === "centre" && Math.abs(run.offset - m.offset) <= CONTINUE_M));
+        if (j >= 0) {
+          // The taper: the stations behind, as far back as it reaches, eased over toward it.
+          const run = open[j], shift = mark.offset - run.offset;
+          const L = Math.abs(shift) * CENTRE_TAPER_PER_M;
+          let d = Math.hypot(x - run.st[run.st.length - 1][0], y - run.st[run.st.length - 1][1]);
+          for (let k = run.st.length - 1; k >= 0 && d < L; k -= 1) {
+            const s = run.st[k], u = 1 - d / L, o = s[4] + shift * u * u * (3 - 2 * u);
+            run.points[k] = lonLatFromXZ(s[0] + s[2] * o, -(s[1] + s[3] * o));
+            if (k > 0) d += Math.hypot(s[0] - run.st[k - 1][0], s[1] - run.st[k - 1][1]);
+          }
+        }
+      }
       if (j >= 0) {
         const run = open.splice(j, 1)[0];
         run.offset = mark.offset;
-        run.points.push(at(mark.offset));
+        run.points.push(at(mark.offset)); run.st.push([x, y, nx, ny, mark.offset]);
         next.push(run);
       } else {
         // A line that begins where another ended starts from the sample before, at its own
         // offset, so the change of marking happens on the road rather than a gap apart.
-        const run = { kind: mark.kind, offset: mark.offset, points: [] };
+        const run = { kind: mark.kind, offset: mark.offset, points: [], st: [] };
         if (i > 0 && open.length) {
           const [px, py] = xy(points[i - 1][0], points[i - 1][1]);
           run.points.push(lonLatFromXZ(px + nx * mark.offset, -(py + ny * mark.offset)));
+          run.st.push([px, py, nx, ny, mark.offset]);
         }
-        run.points.push(at(mark.offset));
+        run.points.push(at(mark.offset)); run.st.push([x, y, nx, ny, mark.offset]);
         next.push(run);
       }
     }
@@ -993,6 +1016,16 @@ const BIKE_CROSS_ANGLE_DEG = 25.0;
 //: the lane. The line between them is broken through it, which is what tells a rider the lane is
 //: about to be crossed.
 const BIKE_MIXING_M = 7.6;
+//: Whether a crossbike dash (two or more lon/lat points) stands on a surveyed island or divider:
+//: its middle between two island kerbs read along the dash and across it.
+function crossbikeDashOnIsland(dash) {
+  if (typeof islandKerbsAround !== "function" || !dash || dash.length < 2) return false;
+  const [ax, ay] = xy(dash[0][0], dash[0][1]);
+  const [bx, by] = xy(dash[dash.length - 1][0], dash[dash.length - 1][1]);
+  const len = Math.hypot(bx - ax, by - ay) || 1;
+  const ux = (bx - ax) / len, uz = -(by - ay) / len, mx = (ax + bx) / 2, mz = -(ay + by) / 2;
+  return !!(islandKerbsAround(mx, mz, ux, uz, 6) && islandKerbsAround(mx, mz, -uz, ux, 6));
+}
 //: A crossbike: the dashed green trail San Francisco paints across the mouth of a junction where
 //: the lane has no paint of its own.
 const BIKE_CROSSBIKE_MARK_M = 0.9;
@@ -1559,6 +1592,9 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
         // No lane lines across a junction -- the lane has no priority there and painting its
         // edges through would say it did. San Francisco marks the gap with a crossbike instead.
         for (const dash of dashRuns(run.points, BIKE_CROSSBIKE_MARK_M, BIKE_CROSSBIKE_GAP_M)) {
+          // Not on an island the trail passes over (Fillmore's median end at Bay): paint is on
+          // the road, and the rider rides round the nose or over its cut, never up its kerb.
+          if (crossbikeDashOnIsland(dash)) continue;
           const block = ribbon(dash, BIKE_LANE_M, 0xffffff, 1.0, roadTop + 0.010, 0.012, "bike");
           if (block) addMerged("bike:fill", block, "bike");
         }

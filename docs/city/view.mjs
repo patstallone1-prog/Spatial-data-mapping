@@ -77,6 +77,7 @@ import { shopFloor } from "./shop-floor.mjs";
 import { favourRun } from "./favour-run.mjs";
 import { onTheirWay } from "./npc-favours.mjs";
 import { doorHolds, swerveAhead } from "./npc-steer.mjs";
+import { PLAN as WALK_PLAN, paceAt, planWalk, stepLift } from "./walk-plan.mjs";
 import { NO_POCKETS, figurePlan, figureReach, npcFigures } from "./npc-figures.mjs";
 import { BOTTOM_CODE, TOP_CODE, dressFor, looksOf } from "./wardrobe.mjs";
 import { strideBodies } from "./stride.mjs";
@@ -1234,7 +1235,7 @@ diffuseColor.rgb *= kbCloth;`);
       // its wheels have gone.)
       const bike = p.ride === "bike" ? p.bike : null;
       const mv = crowdMoveFor(p, clip), move = mv && figures.canMove?.(mv.name) ? mv : null;
-      return { id: p.id, move: move?.name || null, moveKey: move?.key ?? null, x: p.x, y: y + (bike ? 0 : p.lift || 0), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
+      return { id: p.id, move: move?.name || null, moveKey: move?.key ?? null, x: p.x, y: y + (bike ? 0 : (p.lift || 0) + (p.stepLift || 0)), z: p.z, yaw: p.yaw, height: body.height, build: body.build, female: body.female,
         moving: Boolean(p.moving), speed: p.speed ?? (RUNNING.test(p.activity || "") ? 3.6 : p.person.pace), look,
         clip, talking, ride: Boolean(bike), crank: bike ? crankTurn(bike.odo || 0) : 0 };
     }), now, dtFig, ready, want);
@@ -1282,7 +1283,7 @@ diffuseColor.rgb *= kbCloth;`);
         stepBlend(st, clip, dtc, POSE, BLEND_OPTS);
       }
       const bob = clip ? 0 : p.moving && !p.ride ? Math.abs(Math.sin(phase)) * 0.03 * s : 0;
-      const b = base(p.x, y + (p.lift || 0) + bob, p.z, p.yaw + Math.PI, s);
+      const b = base(p.x, y + (p.lift || 0) + (p.stepLift || 0) + bob, p.z, p.yaw + Math.PI, s);
       if (clip && (POSE.sway || POSE.bob)) b.multiply(TM.makeTranslation(POSE.sway, POSE.bob, 0));
       if (!p.indoors && !p.ride) shadeAt(peopleShade, SHADE_PEOPLE, p.x, y, p.z, p.yaw, p.down ? 0.9 : 0.8, p.down ? 1.9 : 0.8);
       if (body.build !== 1) b.multiply(TM.makeScale(body.build, 1, 0.92 + body.build * 0.08));
@@ -1390,7 +1391,7 @@ diffuseColor.rgb *= kbCloth;`);
         if (body.build !== 1) b.multiply(TM.makeScale(body.build, 1, 0.92 + body.build * 0.08));
         return b;
       }
-      const b = base(p.x, y + (p.lift || 0) + bob, p.z, p.yaw + Math.PI, s);
+      const b = base(p.x, y + (p.lift || 0) + (p.stepLift || 0) + bob, p.z, p.yaw + Math.PI, s);
       if (body.build !== 1) b.multiply(TM.makeScale(body.build, 1, 0.92 + body.build * 0.08));
       if (p.down) b.multiply(RM.makeRotationX(-(p.fall ?? 1) * Math.PI / 2 * 0.96)).multiply(TM.makeTranslation(0, (p.fall ?? 1) * 0.12, 0));
       // A cyclist leans to the bars.
@@ -6725,6 +6726,62 @@ diffuseColor.rgb *= kbCloth;`);
     }
     return aheadNear;
   }
+  //: The next few seconds planned (walk-plan.mjs), for the walkers drawn near you: their route
+  //: ahead read in 3D (its slope sets their pace through it, its kerbs where they step), the
+  //: line they take round whoever will be in the way and the one they change to if that goes bad,
+  //: and a stop planned short of what will not clear, for as long as it lasts. id -> {plan, at, d0,
+  //: key, side (eased), want, stopAt, recheck}. A few dozen numbers a walker; dropped once unseen.
+  const walkPlans = new Map();
+  let walkPlansSwept = 0;
+  function stepPlan(id, entry, pos, now, dt) {
+    const w = pos.walk, city = district.city;
+    if (!w?.pave || !city?.walkEnds) return null;
+    let P = walkPlans.get(id);
+    const every = WALK_PLAN.every_s * 1000 * (0.85 + 0.3 * ((hash32(id) % 1000) / 1000));
+    if (!P || P.key !== w.key || now - P.at > every || now >= P.recheck) {
+      const end = w.pave.length;
+      const along = (m) => (w.d + m <= end + 0.01 ? city.walkEnds(w.pave, w.d + m, 0, null, null) : null);
+      const people = [];
+      for (const o of aheadOf(entry)) if (!o.down && !o.indoors) {
+        const v = o.moving ? o.speed || o.person?.pace || 1.3 : 0;
+        people.push({ x: o.x, z: o.z, vx: -Math.sin(o.yaw || 0) * v, vz: -Math.cos(o.yaw || 0) * v });
+      }
+      const cars = [];
+      for (const v of lastTraffic) if (Math.abs(v.x - entry.x) < 30 && Math.abs(v.z - entry.z) < 30) cars.push({ x: v.x, z: v.z, vx: -Math.sin(v.yaw) * (v.speed || 0), vz: -Math.cos(v.yaw) * (v.speed || 0), half: ((VEHICLE_DIMS[v.model] || VEHICLE_DIMS.sedan)[2] || 4.4) / 2 });
+      if (car.active) cars.push({ x: car.x, z: car.z, vx: -Math.sin(car.yaw) * car.speed, vz: -Math.cos(car.yaw) * car.speed, half: ((VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2] || 4.4) / 2 });
+      swerveFrom = entry;
+      const plan = planWalk({ speed: entry.person?.pace || 1.3 }, { along, ground: (x, z) => ctx.groundAt?.(x, z) ?? groundAt(x, z), people, cars, free: swerveFree });
+      P = { plan, at: now, d0: w.d, key: w.key, side: P?.key === w.key ? P.side : 0, want: plan.side, stopAt: null, recheck: Infinity };
+      walkPlans.set(id, P);
+    }
+    // Someone stepped into the line taken since the look: over to the alternative now, and look again soon.
+    if (P.want !== P.plan.alt) {
+      const fx = -Math.sin(pos.yaw), fz = -Math.cos(pos.yaw);
+      for (const o of aheadNear) {
+        const dx = o.x - entry.x, dz = o.z - entry.z, ahead = dx * fx + dz * fz, side = dx * fz - dz * fx;
+        if (ahead > 0.3 && ahead < 2.2 && Math.abs(-side - P.want) < 0.4) { P.want = P.plan.alt; P.recheck = now + 500; break; }
+      }
+    }
+    // The line, eased across over about a second (never a jump to it).
+    P.side += (P.want - P.side) * Math.min(1, dt * 1.6);
+    const m = w.d - P.d0;
+    // The kerb ahead: the body raised to it (or let down from it) over the last stride.
+    entry.stepLift = stepLift(P.plan.steps, m);
+    // A stop planned: from where it starts, for as long as it was planned.
+    let stop = false;
+    const st = P.plan.stop;
+    if (st && m >= st.m - 0.05) {
+      P.stopAt ??= now;
+      stop = now - P.stopAt < st.for_s * 1000;
+      if (!stop && P.recheck === Infinity) P.recheck = now;   // the stop is over: look again before going on
+    }
+    return { side: P.side, stop, kind: st?.kind || null, slow: Math.max(0, 1 - paceAt(P.plan, m)) };
+  }
+  function sweepWalkPlans(now) {
+    if (now - walkPlansSwept < 5000) return;
+    walkPlansSwept = now;
+    for (const [id, P] of walkPlans) if (now - P.at > 10_000) walkPlans.delete(id);
+  }
   function keepApart(people, you, dt) {
     const cells = apartCells, near = apartNear;
     for (const list of cells.values()) list.length = 0;
@@ -7117,6 +7174,17 @@ diffuseColor.rgb *= kbCloth;`);
         const was0 = swerved.get(id) || 0, s2 = was0 + (want - was0) * Math.min(1, dt * 3);
         if (Math.abs(s2) > 0.01) { swerved.set(id, s2); entry.x += Math.cos(pos.yaw) * s2; entry.z -= Math.sin(pos.yaw) * s2; } else if (was0) swerved.delete(id);
       }
+      // Their next few seconds planned (stepPlan): the line taken, eased in on top of any step round
+      // someone (the larger of the two, not both), a stop planned, the slope's pace, the kerb's step.
+      let planned = null;
+      if (pos.walk && pos.moving && !held && !favoured && !walkedIn && !pos.indoors && !pos.through && !pos.down && tier !== LOW) {
+        planned = stepPlan(id, entry, pos, now, dt);
+        if (planned) {
+          const sw = swerved.get(id) || 0, ps = planned.side;
+          const add = Math.abs(sw) < 0.05 || Math.sign(ps) === Math.sign(sw) ? Math.sign(ps) * Math.max(0, Math.abs(ps) - Math.abs(sw)) : 0;
+          if (Math.abs(add) > 0.005) { entry.x += Math.cos(pos.yaw) * add; entry.z -= Math.sin(pos.yaw) * add; }
+        }
+      }
       // Their own mind (temperament.mjs), near you only: clear of a car that is not stopping,
       // and what they make of a crash or a fight.
       let busy = false;
@@ -7218,8 +7286,14 @@ diffuseColor.rgb *= kbCloth;`);
       if (pos.walk && pos.moving && !pos.down && !held && !busy) {
         const hold = waitsAtKerb(pos.walk, tsec, pos);
         // (One placed only now and then is held for the time since it was last placed.)
-        c.holdWalk(pos.walk.key, Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25), hold);
+        const span = Math.min(was?.seen ? Math.max(dt, (now - was.seen) / 1000) : dt, 0.25);
+        // A stop their plan made (stepPlan) is a wait like the kerb's; up a slope their walk's clock
+        // runs at the slope's pace (the share it is slower held back), not the flat's.
+        if (hold || planned?.stop) c.holdWalk(pos.walk.key, span, true);
+        else if (planned?.slow > 0.02) c.holdWalk(pos.walk.key, span * planned.slow, true);
+        else c.holdWalk(pos.walk.key, span, false);
         if (hold) { entry.moving = false; entry.activity = "waiting to cross"; }
+        else if (planned?.stop) { entry.moving = false; entry.activity = planned.kind === "car" ? "waiting for the car to pass" : "letting them by"; }
       }
       const f = flings.get(entry.id);
       if (f?.kind) {
@@ -7291,6 +7365,7 @@ diffuseColor.rgb *= kbCloth;`);
       if (e.walk) c.holdWalk(e.walk.key, Math.min(dt, 0.25), true);
     }
     keepApart(people, you, dt);
+    sweepWalkPlans(now);
     spreadClumps(people, c, now, dt);
     drawnTiers.clumps = clumps;
     if (shop.frame?.store) floor.step({ x: you.x, z: you.z }, dt);
@@ -8700,6 +8775,9 @@ diffuseColor.rgb *= kbCloth;`);
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, climbKey,
     //: The people drawn within ``r`` metres, nearest first, and the act under way, for checks.
     peopleNear: (r = 10) => { const at = me(); return visible.people.map((q) => ({ id: q.id, x: q.x, z: q.z, yaw: q.yaw, d: Math.hypot(q.x - at.x, q.z - at.z), moving: Boolean(q.moving), indoors: Boolean(q.indoors), down: Boolean(q.down), name: q.person?.name, activity: q.activity || null, gesture: q.gesture?.kind || null, phone: carriesPhone(q.person), figure: figures.stateOf?.(q.id) || null })).filter((q) => q.d <= r).sort((a, b) => a.d - b.d); },
+    //: The walkers' plans held now (walk-plan.mjs), for checks: how many, and each one's line,
+    //: alternative, steps and stop.
+    walkPlans: () => [...walkPlans].map(([id, P]) => ({ id, side: +P.side.toFixed(2), want: P.want, alt: P.plan.alt, steps: P.plan.steps.length, stop: P.plan.stop, pts: P.plan.pts.length, age: Math.round(performance.now() - P.at) })),
     //: An arrest on the spot, for checks (as when you strike an officer at arm's length).
     arrestDrill: () => police.arrestNow({ id: `drill:${Date.now()}`, crime: "battery", severity: 4 }, { x: me().x + 1.6, z: me().z + 0.8 }),
     //: Someone down in the street a few metres ahead, kept down for ``s`` seconds, for checks of the

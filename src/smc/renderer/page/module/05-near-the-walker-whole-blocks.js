@@ -554,7 +554,7 @@ function kerbStreetSide(left, right) {
   return l === r ? 0 : l > r ? 1 : -1;
 }
 
-function ribbon(points, widthOrWidths, color, opacity, y, thickness = 1.4, surface = null) {
+function ribbon(points, widthOrWidths, color, opacity, y, thickness = 1.4, surface = null, stripePhase = null) {
   const edges = mitredEdges(points, widthOrWidths);
   if (!edges) return new THREE.Group();
   const { left, right, distances } = edges;
@@ -562,7 +562,7 @@ function ribbon(points, widthOrWidths, color, opacity, y, thickness = 1.4, surfa
     ? widthOrWidths.reduce((a, b) => a + b, 0) / widthOrWidths.length : widthOrWidths;
   const [scaleU, scaleV] = surfaceScale(surface, width);
   const phaseU = surface === "crossing"
-    ? crossingStripePhase(distances[distances.length - 1] || 0) : 0;
+    ? (stripePhase ?? crossingStripePhase(distances[distances.length - 1] || 0)) : 0;
   const top = y + thickness / 2;
   const bottom = y - thickness / 2;
 
@@ -1456,8 +1456,23 @@ function crossingPaintLegs(points) {
   if (points.overDivider?.[0]) legs[0][0] = 0;
   if (points.overDivider?.[1]) legs[legs.length - 1][1] = length;
   const out = legs.filter(([t0, t1]) => t1 - t0 >= CROSSING_LEG_MIN_M)
-    .map(([t0, t1]) => [lonLatFromXZ(ax + dx * t0, az + dz * t0), lonLatFromXZ(ax + dx * t1, az + dz * t1)]);
+    .map(([t0, t1]) => Object.assign([lonLatFromXZ(ax + dx * t0, az + dz * t0), lonLatFromXZ(ax + dx * t1, az + dz * t1)], { along: [t0, t1] }));
   return out.length ? out : [points];
+}
+
+//: The bars of a crossing broken at an island are one crossing's bars: each leg's phase is
+//: where its painted start falls in the whole crossing's run of bars, centred kerb to kerb as
+//: one ribbon's would be (crossingStripePhase) -- not each leg centred on its own length, which
+//: left the gap where two halves meet a bar's width off the rest (2026-11-26). ``trim``: what is
+//: cut off each end of a leg before it is painted. Null for a leg drawn on its own.
+function crossingLegPhases(legs, trim = 0) {
+  if (!legs || legs.length < 2 || !legs.every((leg) => leg?.along)) return legs ? legs.map(() => null) : [];
+  // (As trimWay cuts: never more than a third of a leg, and nothing under 0.2 m.)
+  const cut = (leg) => { const c = Math.min(trim, (leg.along[1] - leg.along[0]) / 3); return c > 0.2 ? c : 0; };
+  const first = legs[0], last = legs[legs.length - 1];
+  const S0 = first.along[0] + cut(first), S1 = last.along[1] - cut(last);
+  const whole = crossingStripePhase(Math.max(0, S1 - S0));
+  return legs.map((leg) => (((whole + (leg.along[0] + cut(leg) - S0) / CROSSING_PERIOD_M) % 1) + 1) % 1);
 }
 
 indexOfficialCurbGeometry(OFFICIAL_GEOMETRY.curb_lines || []);

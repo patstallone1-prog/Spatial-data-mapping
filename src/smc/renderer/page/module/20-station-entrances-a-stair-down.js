@@ -748,7 +748,12 @@ function approachCrosswalk(a) {
         const side = (pose.x - a.jx) * rx + (pose.z - a.jz) * rz;
         if (along < 1.5 || along > 24 || Math.abs(side) > a.half + 2.5) continue;
         if (pose.length < a.half) continue;            // a crossing of part of the road only
-        if (!best || along < best.along) best = { along, width: pose.width || 3.7 };
+        // Its slant to the approach: how far along its middle line moves for each metre across
+        // (``slope``), so the bar can be laid parallel to it, 4 ft behind it at both ends.
+        const cx = Math.cos(pose.bearing), cz = Math.sin(pose.bearing);
+        const ca = cx * a.ux + cz * a.uz, cs = cx * rx + cz * rz;
+        const slope = Math.abs(cs) > 1e-6 ? Math.max(-0.4, Math.min(0.4, ca / cs)) : 0;
+        if (!best || along < best.along) best = { along, side, slope, width: pose.width || 3.7 };
       }
     }
   }
@@ -813,10 +818,18 @@ function paintRoadLegends(plan) {
     let o0 = a.oneway ? -a.half + 0.25 : 0.2, o1 = a.half - 0.25;
     if (o1 - o0 < ROAD_LEGEND.laneMin - 0.6) continue;
     if (o1 - o0 > 4 * ROAD_LEGEND.laneMax) continue;   // wider than four lanes: not a road's arrivals
-    const at = (along, side) => [a.jx + a.ux * along + rx * side, a.jz + a.uz * along + rz * side];
+    // (Laid parallel to its crosswalk, as MUTCD has it: ``skew`` is how far the bar's line moves
+    // along for each metre across, at the crosswalk's slant. Square to the lane, a bar behind a
+    // skewed crosswalk ran across it at one end -- (-1970, -880), 2026-11-26.)
+    let skew = 0, skewAt = 0;
+    const at = (along, side) => { const s2 = along + (side - skewAt) * skew; return [a.jx + a.ux * s2 + rx * side, a.jz + a.uz * s2 + rz * side]; };
     const crosswalk = approachCrosswalk(a);
     let b0;
-    if (crosswalk) b0 = crosswalk.along + crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing;
+    if (crosswalk) {
+      skew = crosswalk.slope; skewAt = crosswalk.side;
+      // Behind it measured square to its lines (a slanted crossing's band is wider along the lane).
+      b0 = crosswalk.along + (crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing) * Math.hypot(1, skew);
+    }
     else if (a.city && kind === "stop") {
       // The city's record is the evidence here, not a mapped crosswalk: half the stop signs in
       // the Marina stood over bare asphalt because nobody had mapped a crossing in front of them.
