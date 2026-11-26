@@ -353,6 +353,36 @@ function setAppMode(mode) {
       //: one, and where its hand reaches furthest (moves.json: {hand, at_s, ahead_m, up_m}).
       playMove: (name, options) => (typeof playWalkerMove === "function" ? playWalkerMove(name, options) : null),
       stopMove: (name) => { if (typeof stopWalkerMove === "function") stopWalkerMove(name); },
+      //: The nearest wall to (x, z) within ``r`` m -- a building's, a station's, a hedge's -- as
+      //: the point on it and the way out of it toward (x, z): {x, z, nx, nz}, or null.
+      wallNear: (x, z, r = 5) => {
+        if (typeof wallSegmentsNear !== "function") return null;
+        let best = null;
+        for (const [ax, az, bx, bz] of wallSegmentsNear(x, z)) {
+          const sx = bx - ax, sz = bz - az, L2 = sx * sx + sz * sz;
+          if (L2 < 0.04) continue;
+          const t = Math.max(0, Math.min(1, ((x - ax) * sx + (z - az) * sz) / L2));
+          const px = ax + sx * t, pz = az + sz * t, d = Math.hypot(x - px, z - pz);
+          if (d > r || d < 1e-3 || (best && d >= best.d)) continue;
+          // (Square to the wall where the foot of the perpendicular is on it; at a corner, out
+          // from the corner.)
+          const L = Math.sqrt(L2);
+          let nx = -sz / L, nz = sx / L;
+          if ((x - px) * nx + (z - pz) * nz < 0) { nx = -nx; nz = -nz; }
+          if (t <= 0 || t >= 1) { nx = (x - px) / d; nz = (z - pz) / d; }
+          best = { x: px, z: pz, nx, nz, d };
+        }
+        return best;
+      },
+      //: The move playing slowed to ``speed`` for ``ms`` and then back: a blow's moment of impact.
+      holdMove: (speed, ms) => {
+        const m = typeof WALKER_MOVES !== "undefined" ? WALKER_MOVES.active : null;
+        if (!m || !(ms > 0)) return;
+        const was = m.action.timeScale;
+        m.action.timeScale = was * speed;
+        m.end += ms * (1 - speed);
+        setTimeout(() => { if (WALKER_MOVES.active === m) m.action.timeScale = was; }, ms);
+      },
       hasMove: (name) => Boolean(typeof avatarActions !== "undefined" && avatarActions[name] && typeof WALKER_MOVES !== "undefined"),
       moveActive: () => (typeof WALKER_MOVES !== "undefined" ? WALKER_MOVES.active?.name || null : null),
       moveDuration: (name) => (typeof avatarActions !== "undefined" && avatarActions[name] ? avatarActions[name].getClip().duration : null),

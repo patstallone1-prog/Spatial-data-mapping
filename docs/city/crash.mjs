@@ -228,7 +228,10 @@ export function stretcherAt(k) {
   if (k < 0.3) return { reach: k / 0.3, carried: false, lift: 0.75, in: false };
   if (k < 0.55) { const u = (k - 0.3) / 0.25; return { reach: 1, carried: u > 0.5, lift: 0.75 - 0.6 * Math.sin(u * Math.PI), in: false }; }
   if (k < 0.85) return { reach: 1 - (k - 0.55) / 0.3, carried: true, lift: 0.75, in: false };
-  return { reach: 0, carried: true, lift: 0.75 + 0.25 * (k - 0.85) / 0.15, in: k > 0.93 };
+  // (In at the back: raised to the floor's height and run in on its wheels, the legs folding
+  // under it as it goes -- ``slide`` 0 at the doors, 1 all the way in.)
+  const u = clamp01((k - 0.85) / 0.1);
+  return { reach: 0, carried: true, lift: 0.75 + 0.25 * clamp01((k - 0.85) / 0.04), slide: u * u * (3 - 2 * u), in: k > 0.95 };
 }
 //: The tow at ``k`` of a wreck's hooking (workAt): the boom's drop (``boom`` 0 stowed .. 1 down),
 //: the cable out to the car (``cable`` 0..1), whether it is hooked, and how far the car's near

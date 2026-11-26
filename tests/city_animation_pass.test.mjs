@@ -23,7 +23,10 @@ test("at an arrest people watch or film; nobody calls the police already there o
 test("a punch is landed on contact, from where the fist is, not on whoever was aimed at", () => {
   const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
   const lands = view.slice(view.indexOf("function punchLands"), view.indexOf("function punchLands") + 1400);
-  assert.match(lands, /getWorldPosition\(handR\)/);
+  // (Where the fist is: fistTo, the hand bone's world position against the one in reach.)
+  const fist = view.slice(view.indexOf("function fistTo"), view.indexOf("function fistTo") + 600);
+  assert.match(fist, /getWorldPosition\(handR\)/);
+  assert.match(lands, /fistTo\(q, hand\)/);
   assert.match(lands, /BODY_R \+ FIST_TOUCH/);
   assert.match(lands, /misses/);
   // Empty-handed blows on people go through it, captured or not.
@@ -79,4 +82,22 @@ test("held swings, digging and pushing are captured moves fitted to the act, not
 test("the crowd sits and leans on its own bodies", () => {
   assert.ok(CROWD_MOVES.includes("SeatIdle") && CROWD_MOVES.includes("LeanWall"));
   assert.match(view, /sit: "SeatIdle", sit_phone: "SeatIdle", lean_wall: "LeanWall"/);
+});
+
+test("a punch from a little further than arm's length steps through: the guard up, a step in, the arm still bent on contact", () => {
+  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.match(view, /PUNCH_REACH_M = 1\.75/);
+  assert.match(view, /const PUNCH_BENT = 0\.86/);
+  const step = view.slice(view.indexOf("function stepInFor"), view.indexOf("function stepInFor") + 1200);
+  assert.match(step, /PUNCH_BENT/);
+  assert.match(view, /function punchStep\(now\)/);
+});
+
+test("an arrest is the whole of it: against a wall, cuffed, walked to the car, the door held, the officer round to the driver's side", () => {
+  const police = readFileSync(new URL("../docs/city/police.mjs", import.meta.url), "utf8");
+  for (const step of ["grab", "wall", "cuff", "escort", "door", "seat", "close", "around", "drive_in", "away"]) assert.match(police, new RegExp(`"${step}"`), step);
+  assert.match(police, /hands_wall/);
+  assert.match(police, /function carDoor\(u, which, open\)/);
+  // (The walked figure kept at the yaw it was placed at, not turned to -yaw.)
+  assert.doesNotMatch(police, /animateWalk\?\.\(st, Math\.sin\(-yaw\)/);
 });

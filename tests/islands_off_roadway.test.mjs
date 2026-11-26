@@ -9,7 +9,12 @@ import { test } from "node:test";
 const M16 = readFileSync(new URL("../src/smc/renderer/page/module/16-the-rest-of-the-roadway.js", import.meta.url), "utf8");
 const M09 = readFileSync(new URL("../src/smc/renderer/page/module/09-where-openstreetmap-says-there-is.js", import.meta.url), "utf8");
 const slice = (src, from, to) => src.slice(src.indexOf(from), src.indexOf(to, src.indexOf(from)));
+const M14 = readFileSync(new URL("../src/smc/renderer/page/module/14-public-stairways.js", import.meta.url), "utf8");
 const pip = slice(M09, "function pointInRing(", "\n}\n") + "\n}\n";
+// What a strip in the middle of the road is (medianKind: refuge or divider), and the divider's
+// nose cut (out of the box; no crossings here) and its beds.
+const kinds = slice(M14, "const REFUGE_MIN_W_M", "//: The island kerbs either side")
+  + "\nfunction dividerNoseCut(x, z) { return insideJunctionBox(x, z); }\nvar DIVIDER_BEDS = [];\nconst ROAD_TOP_M = 0, MEDIAN_KERB_M = 0.126;\n";
 const body = slice(M16, "const ISLAND_TRIM_STEP_M", "function addClosedOfficialIslandSurfaces");
 // The roadway: a street along x, z in [-5, 5]; no junction boxes.
 const make = new Function(`
@@ -54,7 +59,7 @@ test("a sliver left after the trim is not drawn", () => {
 });
 
 test("every island the page lays goes through the trim", () => {
-  assert.match(M16, /\.map\(\(ring\) => \(ring \? islandRingOffRoadway\(ring\) : null\)\)/);
+  assert.match(M16, /\.flatMap\(\(ring\) => \{ const r = islandRingOffRoadway\(ring\);/);
 });
 
 test("a median down the street it divides is kept, cut only out of the junction box", () => {
@@ -66,10 +71,12 @@ test("a median down the street it divides is kept, cut only out of the junction 
     const insideJunctionBox = (x) => x < 10;
     const nearestCarriagewaySegment = () => [0, 0, 100, 0];
     ${pip}
+    ${kinds}
     ${body}
-    return { islandRingOffRoadway, islandStats };`);
+    return { islandRingOffRoadway, islandStats, medianKindStats, DIVIDER_BEDS };`);
   const { islandRingOffRoadway, islandStats } = withAxis();
-  const kept = islandRingOffRoadway(box(4, -1, 60, 1));
+  // (30 m of a 2 m strip: room to wait on, a refuge -- kept whole but for the box.)
+  const kept = islandRingOffRoadway(box(4, -1, 34, 1));
   assert.ok(kept, "the median is drawn");
   assert.equal(islandStats.medians, 1);
   assert.ok(kept.every(([x]) => x >= 10), "nothing left in the junction box");
@@ -95,4 +102,28 @@ test("an island a crossing lands on keeps the part under the crossing's end", ()
   assert.ok(kept, "kept");
   assert.ok(kept.some(([x, z]) => z < 5 && Math.abs(x - 10) < 2), "the landing stays");
   assert.ok(!kept.some(([x, z]) => z < 5 && Math.abs(x - 10) > 3), "the rest of the road part is cut");
+});
+
+test("a long thin strip down the street is a divider: out of the box, rounded at its noses, its bed noted for a hedge", () => {
+  const withAxis = new Function(`
+    const insideCarriageway = (x, z) => Math.abs(z) <= 5;
+    const insideJunctionBox = (x) => x < 10;
+    const nearestCarriagewaySegment = () => [0, 0, 100, 0];
+    ${pip}
+    ${kinds}
+    ${body}
+    return { islandRingOffRoadway, medianKindStats, DIVIDER_BEDS, medianKind };`);
+  const { islandRingOffRoadway, medianKindStats, DIVIDER_BEDS, medianKind } = withAxis();
+  // Lombard's: 1.2 m wide, too thin to wait on.
+  const out = islandRingOffRoadway(box(4, -0.6, 60, 0.6));
+  assert.equal(medianKindStats.divider, 1);
+  const rings = Array.isArray(out?.[0]?.[0]) ? out : [out];
+  assert.ok(rings.length >= 1 && rings.every((r) => r.length > 8), "pieces with rounded noses");
+  assert.ok(rings.every((r) => r.every(([x]) => x >= 10 - 1e-6)), "nothing in the junction box");
+  assert.equal(DIVIDER_BEDS.length, rings.length);
+  // The kinds: a bus stop makes a refuge; short islands are refuges; long and thin is a divider.
+  assert.equal(medianKind({ width: 1.2, length: 60, busStop: true }).kind, "refuge");
+  assert.equal(medianKind({ width: 1.2, length: 3 }).kind, "refuge");
+  assert.equal(medianKind({ width: 2.4, length: 120 }).kind, "divider");
+  assert.equal(medianKind({ width: 3.6, length: 30 }).kind, "refuge");
 });

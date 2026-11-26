@@ -117,3 +117,27 @@ test("a car coming across is braked for, and not run into", () => {
   assert.ok(calm.minGap > 2.2, `never nearer than ${calm.minGap.toFixed(2)} m`);
   assert.ok(calm.d > 100, `and went on once it had gone by (${calm.d.toFixed(0)} m)`);
 });
+
+test("someone with no phone on them never calls or films an incident: they look on instead", () => {
+  const ev = { id: "inc:1", kind: "crash" };
+  let called = 0, calledWith = 0, calledAvg = 0;
+  for (let i = 0; i < 3000; i += 1) {
+    const t = temperamentOf({ id: `p${i}`, age: 20 + (i % 60) });
+    const none = reactionTo(t, ev, 6, `p${i}`, { phone: false });
+    assert.ok(none !== "call" && none !== "film", none);
+    if (reactionTo(t, ev, 6, `p${i}`, { phone: true }) === "call") calledWith += 1;
+    if (reactionTo(t, ev, 6, `p${i}`) === "call") calledAvg += 1;
+    called += none === "watch" ? 1 : 0;
+  }
+  assert.ok(calledWith > calledAvg, `${calledAvg} -> ${calledWith}`);
+  assert.ok(called > 0);
+});
+
+test("a siren going by turns heads for a moment and nothing more: nobody calls, films or runs from it", () => {
+  const ev = { id: "siren:1", kind: "siren" };
+  const seen = new Set();
+  for (let i = 0; i < 2000; i += 1) seen.add(reactionTo(temperamentOf({ id: `s${i}`, age: 30 }), ev, 8, `s${i}`, { phone: true }));
+  assert.deepEqual([...seen].sort(), ["carry_on", "glance"]);
+  const t = temperamentOf({ id: "g", age: 40 }), s = reactionFor(t, "glance");
+  assert.ok(s >= REACT.glance_s[0] && s <= REACT.glance_s[1]);
+});

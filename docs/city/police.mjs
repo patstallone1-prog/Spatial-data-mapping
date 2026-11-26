@@ -106,7 +106,7 @@ export function createPolice(api) {
     if (out) { entry.activity = "stepping out of the officer's way"; entry.yaw = Math.atan2(-(y.ox - entry.x), -(y.oz - entry.z)); }
     return true;
   }
-  function personFrame(id, entry, mindOf, dt, down = false) {
+  function personFrame(id, entry, mindOf, dt, down = false, phone = null) {
     if (units.size && !down) giveWay(id, entry, dt);
     if (!crimes.length) return false;
     let mind = null;
@@ -119,7 +119,7 @@ export function createPolice(api) {
         const role = c.victim && String(c.victim.id) === String(id) ? "victim" : "bystander";
         if (c.callers.size < 3) {
           mind ||= typeof mindOf === "function" ? mindOf() : mindOf;
-          const plan = callPlan(R, c.kind, { role, temperament: mind, alarm: c.alarm, fought: role === "victim", seed: `${c.id}:${id}` });
+          const plan = callPlan(R, c.kind, { role, temperament: mind, alarm: c.alarm, fought: role === "victim", seed: `${c.id}:${id}`, phone: role === "victim" && c.victim?.phone != null ? c.victim.phone : phone });
           if (plan.calls) c.callers.set(id, { plan, name: entry.person?.name || "someone", role });
         }
       }
@@ -214,7 +214,7 @@ export function createPolice(api) {
     if (!route) { done(u); return; }
     u.route = route; u.d = 0; u.v = Math.max(u.v, 3);
   }
-  function done(u) { units.delete(u.id); hidden.delete(u.fromId); }
+  function done(u) { units.delete(u.id); hidden.delete(u.fromId); dropDoors(u); }
 
   //: Each car a frame on: by the route (coming, leaving), along your trail (a chase), stopped.
   function stepUnit(u, dt) {
@@ -338,64 +338,209 @@ export function createPolice(api) {
     if (S.step === "back") { if (walkTo(o, { x: u.x, z: u.z }, Q.officer_walk_ms, dt)) { u.officer = null; leave(u); } return; }
     arrested(u, dt);
   }
-  //: The arrest, step by step (the steps' lengths in seconds): a hand on your arm (grab), the
-  //: cuffs on behind your back (cuff), walked to the car's back door (escort), put in (seat),
-  //: the car off with you in it (away) -- and, once it is out of sight, home (respawn).
+  //: The arrest, step by step. The officer walks you to the nearest wall (or the side of the
+  //: patrol car where there is none near) and stands you facing it, your hands on it, a hand on
+  //: your back (wall); the cuffs on behind your back (cuff); the two of you walked to the car's
+  //: back door, the hand still on your back (escort); the door opened (door); you sat in
+  //: (seat); the door shut and the hand taken off (close); the officer round the back of the car
+  //: to the driver's door (around), in (drive_in), and the car off with you in it (away) -- and,
+  //: once it is out of sight, home (respawn).
+  //: (The car's frame: ``ahead`` along its nose, ``side`` +1 its left -- the driver's, as doorOf
+  //: has it -- and -1 its right, the kerb side, where the one arrested is put in behind the
+  //: front passenger; a point in it is carAt(u, side_m, ahead_m).)
+  const carAhead = (u) => ({ x: -Math.sin(u.yaw), z: -Math.cos(u.yaw) });
+  const carSide = (u) => ({ x: -Math.cos(u.yaw), z: Math.sin(u.yaw) });
+  const carAt = (u, side, ahead) => { const a = carAhead(u), l = carSide(u); return { x: u.x + l.x * side + a.x * ahead, z: u.z + l.z * side + a.z * ahead }; };
+  const yawTo = (from, to) => Math.atan2(-(to.x - from.x), -(to.z - from.z));
+  //: Where you are put in the back: standing at the open door, then sat on the seat.
+  const AT_DOOR = { side: -1.08, ahead: -0.5 }, IN_SEAT = { side: -0.42, ahead: -0.5 }, WAIT_DOOR = { side: -1.25, ahead: -1.45 };
+  //: Where the officer stands to hold the back door (by its open end), and to get in at the front.
+  const HOLD_DOOR = { side: -1.75, ahead: -0.15 }, DRIVER_DOOR = { side: 1.5, ahead: 0.35 }, DRIVER_SEAT = { side: 0.4, ahead: 0.3 };
+  const STALL_S = 1.2;
   function arrested(u, dt) {
     const S = u.stop, o = u.officer, you = me();
-    const behind = (yaw, at, m) => ({ x: at.x + Math.sin(yaw) * m, z: at.z + Math.cos(yaw) * m });
+    const behind = (yaw, at, m, aside = 0) => ({ x: at.x + Math.sin(yaw) * m - Math.cos(yaw) * aside, z: at.z + Math.cos(yaw) * m + Math.sin(yaw) * aside });
+    const walkYou = (to, speed) => {
+      const d = dist(you, to), st = Math.min(d, speed * dt), yaw = yawTo(you, to);
+      const nx = you.x + ((to.x - you.x) / (d || 1)) * st, nz = you.z + ((to.z - you.z) / (d || 1)) * st;
+      placeAvatar(nx, groundAt(nx, nz), nz, yaw);
+      if (st > 1e-4 && !S.walking && api.playMove?.("Walk", { loop: true, speed: 0.8, fade: 0.2 })) S.walking = true;
+      // (animateAvatar turns the figure to atan2(dx, dz): this keeps it at ``yaw``, as placed --
+      // sin(-yaw), cos(-yaw) turned it to -yaw, side-on or backwards on any slant of the street.)
+      api.animateWalk?.(st, Math.sin(yaw), Math.cos(yaw));
+      return { d: d - st, yaw, x: nx, z: nz, st };
+    };
+    const stopWalking = () => { if (S.walking) { api.stopMove?.("Walk"); S.walking = false; } };
+    //: Arrived: within ``near`` m, or no nearer for STALL_S (the walker kept off the car's body or
+    //: a kerb by the page's own collision), so that no step of it can hang.
+    const arrived = (d, near = 0.08) => {
+      if (d < near) return true;
+      if (!S.best || d < S.best.d - 0.03) S.best = { d, t: S.t };
+      return S.t - S.best.t > STALL_S && d < 1.2;
+    };
+    const watched = (x, z) => { if (!S.seen || performance.now() - S.seen > 5000) { S.seen = performance.now(); api.incident?.("arrest", x, z); } };
     if (S.step === "grab") {
-      S.yaw ??= Math.atan2(-(u.x - you.x), -(u.z - you.z)) + Math.PI;   // facing away from the car: hands to the roof
-      const to = behind(S.yaw, you, 0.62);
-      walkTo(o, to, Q.officer_walk_ms * 1.4, dt);
-      o.gesture = { kind: "grab", f: Math.min(1, S.t / 0.8) };
+      // Where to: a wall near (the officer's choice), else the car's side.
+      if (!S.spot) {
+        const w = api.wallNear?.(you.x, you.z, A.wall_m ?? 6);
+        if (w) { S.spot = { x: w.x + w.nx * 0.62, z: w.z + w.nz * 0.62 }; S.yaw = Math.atan2(w.nx, w.nz); S.at = "wall"; }
+        else {
+          const s0 = Math.sign((you.x - u.x) * carSide(u).x + (you.z - u.z) * carSide(u).z) || 1;
+          S.spot = carAt(u, s0 * 1.6, 0.6); S.yaw = yawTo(S.spot, carAt(u, 0, 0.6)); S.at = "car";
+        }
+      }
+      const step = dist(you, S.spot) > 0.06 ? walkYou(S.spot, 1.1) : { d: 0, yaw: S.yaw, x: you.x, z: you.z, st: 0 };
+      // Walked there with the officer's hand on your back, a step behind you.
+      const back = behind(step.yaw, step, 0.55, 0.22);
+      walkTo(o, back, Q.officer_walk_ms * 1.6, dt);
+      o.yaw = yawTo(o, step); o.work = "escort"; o.gesture = null;
+      pose = { kind: "cuffed", f: 0 };
+      watched(step.x, step.z);
+      if (arrived(step.d) || S.t > 9) { stopWalking(); S.step = "wall"; S.t = 0; S.best = null; }
+    } else if (S.step === "wall") {
       faceYaw?.(S.yaw);
-      pose = { kind: "hands_up", f: Math.min(1, S.t / 0.6) };
-      // An arrest in the street: those near stop to watch, and some film it (temperament.mjs).
-      if (!S.seen || performance.now() - S.seen > 5000) { S.seen = performance.now(); api.incident?.("arrest", you.x, you.z); }
-      if (S.t > 1.3) { S.step = "cuff"; S.t = 0; book(u); }
+      pose = { kind: "hands_wall", f: Math.min(1, S.t / 0.6) };
+      walkTo(o, behind(S.yaw, you, 0.5, 0.18), Q.officer_walk_ms, dt);
+      o.yaw = S.yaw; o.work = "escort"; o.gesture = null;
+      watched(you.x, you.z);
+      if (S.t > 1.7) { S.step = "cuff"; S.t = 0; book(u); }
     } else if (S.step === "cuff") {
-      o.moving = false; o.gesture = { kind: "cuffing", f: Math.min(1, S.t / 0.5) };
+      faceYaw?.(S.yaw);
+      o.moving = false; o.work = null; o.gesture = { kind: "cuffing", f: Math.min(1, S.t / 0.5) };
       pose = { kind: "cuffed", f: Math.min(1, S.t / 0.9) };
       if (S.t > 0.9) cuffsOn(true);
-      if (S.t > 2.8) { S.step = "escort"; S.t = 0; const side = 1; S.door = { x: u.x - Math.cos(u.yaw) * 1.25 * side + Math.sin(u.yaw) * 0.55, z: u.z + Math.sin(u.yaw) * 1.25 * side + Math.cos(u.yaw) * 0.55 }; }
+      if (S.t > 2.8) {
+        S.step = "escort"; S.t = 0; S.door = carAt(u, WAIT_DOOR.side, WAIT_DOOR.ahead);
+        // Round the car, not through it: by its corners where you stand on its other side.
+        const l = carSide(u), a = carAhead(u), side = (you.x - u.x) * l.x + (you.z - u.z) * l.z, ahead = (you.x - u.x) * a.x + (you.z - u.z) * a.z;
+        const end = ahead >= 0 ? 2.9 : -2.9;
+        S.route = side < -1.1 ? [S.door] : [...(side > 1.0 ? [carAt(u, 1.5, end)] : []), carAt(u, -1.5, end), S.door];
+      }
     } else if (S.step === "escort") {
-      const d = dist(you, S.door), st = Math.min(d, 1.05 * dt), yaw = Math.atan2(-(S.door.x - you.x), -(S.door.z - you.z));
-      const nx = you.x + ((S.door.x - you.x) / (d || 1)) * st, nz = you.z + ((S.door.z - you.z) / (d || 1)) * st;
-      placeAvatar(nx, groundAt(nx, nz), nz, yaw);
-      // Walked, not slid: the walk held as a move (the page's own step puts the idle back each
-      // frame it has no keys), at the escort's pace.
-      if (!S.walking && api.playMove?.("Walk", { loop: true, speed: 0.8, fade: 0.2 })) S.walking = true;
-      api.animateWalk?.(st, Math.sin(-yaw), Math.cos(-yaw));   // (faces the way; its clip waits on the move)
-      if (S.t > 0.3 && performance.now() - (S.seen || 0) > 5000) { S.seen = performance.now(); api.incident?.("arrest", nx, nz); }
-      const at = behind(yaw, { x: nx, z: nz }, 0.55);
-      o.x = at.x + Math.cos(yaw) * 0.35; o.z = at.z - Math.sin(yaw) * 0.35; o.yaw = yaw; o.moving = st > 1e-4; o.gesture = { kind: "grab", f: 1 };
+      while (S.route.length > 1 && dist(you, S.route[0]) < 0.2) S.route.shift();
+      const step = walkYou(S.route[0], 1.05);
+      if (S.route.length > 1) step.d += dist(S.route[0], S.route[S.route.length - 1]);
+      watched(step.x, step.z);
+      const at = behind(step.yaw, step, 0.52, 0.3);
+      o.x = at.x; o.z = at.z; o.yaw = step.yaw; o.moving = step.st > 1e-4; o.work = "escort"; o.gesture = null;
       pose = { kind: "cuffed", f: 1 };
-      if (d < 0.08) { S.step = "seat"; S.t = 0; if (S.walking) { api.stopMove?.("Walk"); S.walking = false; } }
+      if (arrived(step.d) || S.t > 20) { stopWalking(); S.step = "door"; S.t = 0; S.best = null; }
+    } else if (S.step === "door") {
+      // The officer's hand off your back to the door handle, and the door swung open; you wait
+      // just behind it.
+      faceYaw?.(yawTo(you, carAt(u, AT_DOOR.side, AT_DOOR.ahead)));
+      pose = { kind: "cuffed", f: 1 };
+      const hold = carAt(u, HOLD_DOOR.side, HOLD_DOOR.ahead);
+      const there = walkTo(o, hold, Q.officer_walk_ms, dt) || S.t > 3;
+      o.work = "door"; o.gesture = null;
+      if (there) { S.open ??= S.t; o.yaw = yawTo(o, carAt(u, -0.9, -0.2)); }
+      const k = S.open === undefined ? 0 : Math.min(1, (S.t - S.open) / 0.8);
+      carDoor(u, "rear", k * k * (3 - 2 * k));
+      if (k >= 1) { S.step = "seat"; S.t = 0; }
     } else if (S.step === "seat") {
-      // Put in: the back to the open door, sat down into the seat -- lowered as the body goes in,
-      // the officer's hand on the head -- and only then out of sight inside. (They were turned
-      // where they stood, the legs bent, and vanished: docs/71.)
-      const SIT = A.seat_s ?? 1.7;
-      S.from ??= { x: you.x, z: you.z };
-      S.seatAt ??= { x: u.x - Math.cos(u.yaw) * 0.42 + Math.sin(u.yaw) * 0.55, z: u.z + Math.sin(u.yaw) * 0.42 + Math.cos(u.yaw) * 0.55 };
+      // In: a step to the opening, turned with the back to the seat, sat down into it -- lowered
+      // as the body goes in, the officer's hand on you -- and only then out of sight inside.
+      const SIT = A.seat_s ?? 1.7, door = carAt(u, AT_DOOR.side, AT_DOOR.ahead), seat = carAt(u, IN_SEAT.side, IN_SEAT.ahead);
+      carDoor(u, "rear", 1);
+      o.work = "escort"; o.gesture = null; o.moving = false;
+      o.yaw = yawTo(o, door);
+      if (!S.atDoor) {
+        const step = walkYou(door, 0.9);
+        pose = { kind: "cuffed", f: 1 };
+        if (arrived(step.d, 0.06) || S.t > 4) { stopWalking(); S.atDoor = true; S.t0 = S.t; S.best = null; }
+        return;
+      }
+      const t = S.t - S.t0;
       if (!S.sitting) { S.sitting = true; S.mocap = Boolean(api.playMove?.("SitDown", { fade: 0.2, out: 0.1 })); }
-      const k = Math.max(0, Math.min(1, (S.t - 0.35) / (SIT - 0.5))), e = k * k * (3 - 2 * k);
-      const x = S.from.x + (S.seatAt.x - S.from.x) * e, z = S.from.z + (S.seatAt.z - S.from.z) * e;
+      const k = Math.max(0, Math.min(1, (t - 0.35) / (SIT - 0.5))), e = k * k * (3 - 2 * k);
+      const x = door.x + (seat.x - door.x) * e, z = door.z + (seat.z - door.z) * e;
       placeAvatar(x, groundAt(x, z), z, null);
-      faceYaw?.(u.yaw - Math.PI / 2);   // facing out of the door: the back to the seat
-      pose = S.mocap ? { kind: "cuffed", f: 1 } : { kind: "seated_cuffed", f: Math.min(1, S.t / 1.2) };
-      o.gesture = { kind: "grab", f: 1 };
-      if (S.t > SIT) { S.step = "away"; S.t = 0; S.scene = { x: you.x, z: you.z }; avatarVisible(false); cuffsOn(false); notify("Put in the back of the patrol car."); }
+      faceYaw?.(yawTo(seat, door));   // facing out of the door: the back to the seat
+      pose = S.mocap ? { kind: "cuffed", f: 1 } : { kind: "seated_cuffed", f: Math.min(1, t / 1.2) };
+      if (t > SIT) { S.step = "close"; S.t = 0; }
+    } else if (S.step === "close") {
+      // The hand off, the door shut on you.
+      o.work = "door"; o.gesture = null;
+      const k = Math.min(1, S.t / 0.6);
+      carDoor(u, "rear", 1 - k * k);
+      if (k >= 1) {
+        carDoor(u, "rear", 0);
+        S.step = "around"; S.t = 0; S.scene = { x: you.x, z: you.z };
+        avatarVisible(false); cuffsOn(false); notify("Put in the back of the patrol car.");
+        S.route = [carAt(u, -1.6, -3.1), carAt(u, 1.6, -3.1), carAt(u, DRIVER_DOOR.side, DRIVER_DOOR.ahead)];
+      }
+    } else if (S.step === "around") {
+      // Round the back of the car to the driver's door.
+      o.work = null; o.gesture = null;
+      if (S.route.length && walkTo(o, S.route[0], Q.officer_walk_ms * 1.2, dt)) S.route.shift();
+      if (!S.route.length || S.t > 12) { S.step = "drive_in"; S.t = 0; o.moving = false; Object.assign(o, carAt(u, DRIVER_DOOR.side, DRIVER_DOOR.ahead)); }
+    } else if (S.step === "drive_in") {
+      // The driver's door opened, the officer in, the door shut.
+      const k = Math.min(1, S.t / 0.5);
+      carDoor(u, "driver", S.t < 1.5 ? k * k * (3 - 2 * k) : Math.max(0, 1 - (S.t - 1.5) / 0.45));
+      if (o) {
+        o.work = S.t < 0.5 ? "door" : null; o.gesture = null;
+        if (S.t > 0.5) {
+          const seat = carAt(u, DRIVER_SEAT.side, DRIVER_SEAT.ahead), m = Math.min(1, (S.t - 0.5) / 0.8);
+          const from = carAt(u, DRIVER_DOOR.side, DRIVER_DOOR.ahead);
+          o.x = from.x + (seat.x - from.x) * m; o.z = from.z + (seat.z - from.z) * m; o.yaw = u.yaw; o.moving = m < 1;
+          if (m >= 1) u.officer = null;
+        } else o.yaw = yawTo(o, carAt(u, 0.9, 0.35));
+      }
+      if (S.t > 2) { carDoor(u, "driver", 0); dropDoors(u); S.step = "away"; S.t = 0; u.officer = null; }
     } else if (S.step === "away") {
-      if (o && walkTo(o, doorOf(u.yaw, u, -1), Q.officer_walk_ms * 1.3, dt)) u.officer = null;
-      if (!u.officer && !S.leaving) { S.leaving = true; u.siren = false; u.leaveRoute = routeAway(u); u.d = 0; u.v = 0; }
+      if (!S.leaving) { S.leaving = true; u.siren = false; u.leaveRoute = routeAway(u); u.d = 0; u.v = 0; }
       if (u.leaveRoute) {
         const R0 = u.leaveRoute; u.v = Math.min(u.v + 3 * dt, speedLimitAt(u.x, u.z)); u.d = Math.min(R0.length, u.d + u.v * dt);
         const p = alongRoute(R0, u.d, lane); u.x = p.x; u.z = p.z; u.yaw = p.yaw;
       }
       // The car with you in it, out of sight: home.
       if (S.t > 2 && (dist(u, S.scene) > A.out_of_sight_m || S.t > A.out_of_sight_s)) respawn(u);
+    }
+  }
+  //: The patrol car's doors, drawn over the car while one is open (its model has none to open):
+  //: the leaf swung out on its front hinge, and the dark of the inside where it was. ``which``:
+  //: "rear" (the back door, on the kerb side) or "driver"; ``open`` 0 shut .. 1 open (70 degrees).
+  const DOORS = { rear: { side: -1, hinge: 0.02, len: 0.92 }, driver: { side: 1, hinge: 1.12, len: 1.05 } };
+  const doorMeshes = new Map();
+  let doorMats = null;
+  function carDoor(u, which, open) {
+    const key = `${u.id}:${which}`, D = DOORS[which];
+    let m = doorMeshes.get(key);
+    if (!m) {
+      doorMats ||= { body: new THREE.MeshStandardMaterial({ color: 0xeeeeea, roughness: 0.35, metalness: 0.4 }),
+        glass: new THREE.MeshStandardMaterial({ color: 0x1b2328, roughness: 0.1, metalness: 0.6 }),
+        dark: new THREE.MeshBasicMaterial({ color: 0x0b0c0e, side: THREE.DoubleSide }) };
+      const leaf = new THREE.Group();
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(D.len, 0.6, 0.05), doorMats.body);
+      panel.position.set(D.len / 2, 0.66, 0);
+      const pane = new THREE.Mesh(new THREE.BoxGeometry(D.len * 0.82, 0.34, 0.03), doorMats.glass);
+      pane.position.set(D.len * 0.47, 1.14, 0);
+      leaf.add(panel, pane);
+      const gap = new THREE.Mesh(new THREE.PlaneGeometry(D.len, 0.92), doorMats.dark);
+      m = { leaf, gap };
+      for (const x of [panel, pane, gap]) { x.castShadow = false; x.receiveShadow = false; }
+      group.add(leaf, gap);
+      doorMeshes.set(key, m);
+    }
+    const hinge = carAt(u, D.side * 0.91, D.hinge), y = groundAt(hinge.x, hinge.z);
+    const a = 1.22 * Math.max(0, Math.min(1, open)), back = carAhead(u), out = carSide(u);
+    // The leaf runs back from the hinge when shut, swung out about it as it opens.
+    const dx = -back.x * Math.cos(a) + out.x * D.side * Math.sin(a), dz = -back.z * Math.cos(a) + out.z * D.side * Math.sin(a);
+    m.leaf.position.set(hinge.x, y, hinge.z);
+    m.leaf.rotation.set(0, Math.atan2(-dz, dx), 0);
+    m.leaf.visible = open > 0.01;
+    const mid = carAt(u, D.side * 0.915, D.hinge - D.len / 2);
+    m.gap.position.set(mid.x, y + 0.82, mid.z);
+    m.gap.rotation.set(0, Math.atan2(out.x * D.side, out.z * D.side), 0);
+    m.gap.visible = open > 0.01;
+  }
+  function dropDoors(u) {
+    for (const [key, m] of doorMeshes) {
+      if (!key.startsWith(`${u.id}:`)) continue;
+      group.remove(m.leaf, m.gap);
+      m.leaf.traverse((x) => x.geometry?.dispose()); m.gap.geometry.dispose();
+      doorMeshes.delete(key);
     }
   }
   //: Booked: the world's arrest (law.mjs cmd_police_stop) as the cuffs go on.
@@ -439,7 +584,9 @@ export function createPolice(api) {
       const o = u.officer;
       if (!o) continue;
       out.push({ id: `officer:${u.id}`, x: o.x, z: o.z, yaw: o.yaw, moving: Boolean(o.moving), speed: o.run ? Q.officer_run_ms : Q.officer_walk_ms, activity: o.run ? "running after you" : u.stop?.step === "talk" ? "talking with you" : "on duty",
-        gesture: o.gesture || null, person: { id: `officer:${u.fromId}`, name: `Officer ${u.name}`, role: "police", age: 34, pace: 1.4 }, role: "police" });
+        gesture: o.gesture || null, work: o.work || null,
+        // (Hands on you at an arrest: not pushed off you by the crowd's keeping apart.)
+        through: Boolean(u.stop && arrest === u && u.stop.step !== "out"), person: { id: `officer:${u.fromId}`, name: `Officer ${u.name}`, role: "police", age: 34, pace: 1.4 }, role: "police" });
     }
     return out;
   }

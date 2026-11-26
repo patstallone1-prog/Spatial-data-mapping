@@ -392,7 +392,10 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     const poseRun = (t) => { sample("Run", t); update(); };
     // ---- the phone: held at the ear, up ahead to film, in front to read; and in the pocket
     const PH = {
-      call: { at: "head", off: [-0.085, 0.07, 0.01], L: [0, 0.8, -0.6], N: [1, 0, 0], pole: [-1, -0.6, 0.25], head: rotZ(0.12) },
+      // (At the ear: its middle on the cheek between the ear and the mouth, out clear of the face --
+      // 8.5 cm out and over the ear it lay inside the head, only its edges through the skin, and
+      // the hand over it: nobody on the phone was seen holding one, 2026-11-26.)
+      call: { at: "head", off: [-0.108, 0.035, 0.05], L: [0, 0.9, -0.43], N: [1, 0, 0], pole: [-1, -0.6, 0.25], head: rotZ(0.12) },
       record: { at: "neck", off: [-0.11, 0.12, 0.4], L: [0, 1, 0.05], N: [0, 0.12, -1], pole: [-0.9, -1, -0.1] },
       text: { at: "spine2", off: [-0.05, -0.04, 0.3], L: [0, 0.55, 0.83], N: [0, 0.83, -0.55], pole: [-0.7, -1, -0.3], head: rotX(0.32) },
     };
@@ -482,6 +485,20 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
         { name: "Idle:chop", frames: n(0.5), duration: 0.5, pose: (t) => { poseIdle(0); const u = (1 - Math.cos((t / 0.5) * Math.PI * 2)) / 2; arms(W3(0.14, T + 0.05, 0.45), W3(-0.05, T + 0.05 + 0.1 * u, 0.44), 0.14); } },
         { name: "Idle:stir", frames: n(1.2), duration: 1.2, pose: (t) => { poseIdle(t); const a = (t / 1.2) * Math.PI * 2; arms(W3(0.21, T + 0.07, 0.36), W3(-0.03 + 0.05 * Math.cos(a), T + 0.12, 0.45 + 0.05 * Math.sin(a)), 0.1); } },
         { name: "Idle:pour", frames: n(1), duration: 1, pose: (t) => { poseIdle(t); const u = Math.sin((t / 1) * Math.PI * 2) * 0.015; arms(W3(0.09, T + 0.24 + u, 0.42), W3(-0.09, T + 0.26 + u, 0.4), 0.08); } },
+      );
+    }
+    // ---- an officer's hands at an arrest (police.mjs): the right hand on the back of the one
+    // walked in front (escort, standing and walking), and out to a car door's handle (door).
+    if (B.rightarm && stand.size) {
+      const W3 = (x, y, z) => new THREE.Vector3(x, y, z);
+      const one = (target, pole) => ik(B.rightarm, B.rightforearm, B.righthand, target, pole);
+      // (The officer walks a step behind and to the left of the one held: their back is ahead and
+      // to the officer's right, -x in this frame.)
+      const onBack = (t) => W3(-0.16, 1.2 + 0.012 * Math.sin(t * 2 * Math.PI / walkD), 0.42);
+      jobs.push(
+        { name: "Idle:escort", frames: n(idleD), duration: idleD, pose: (t) => { poseIdle(t); one(onBack(0), W3(-0.8, -0.6, -0.3)); } },
+        { name: "Walk:escort", frames: n(walkD), duration: walkD, pose: (t) => { poseWalk("Walk", t); one(onBack(t), W3(-0.8, -0.6, -0.3)); } },
+        { name: "Idle:door", frames: n(idleD), duration: idleD, pose: (t) => { poseIdle(t); one(W3(-0.32, 0.98, 0.42), W3(-1, -0.4, -0.5)); } },
       );
     }
     // ---- the moves: sampled as they were captured (in place, like every clip here).
@@ -839,7 +856,7 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     const gait = v < 0.2 ? "Idle" : "Walk";
     // At work: the clip asked for (carrying walks as it carries), started again for each new ask.
     if (q.work) {
-      want = q.work === "carry" ? `${gait}:carry` : `Idle:${q.work}`;
+      want = q.work === "carry" || q.work === "escort" ? `${gait}:${q.work}` : `Idle:${q.work}`;
       if (table[want]) {
         if (want === a.clip && q.workKey !== a.workKey && ONCE.test(want)) { a.prev = a.clip; a.pt = a.t; a.t = 0; a.fade = 0; }
         a.workKey = q.workKey;

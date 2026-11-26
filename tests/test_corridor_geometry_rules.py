@@ -1059,6 +1059,7 @@ BIKE_FUNCTIONS = (
     "cyclewayIsLane",
     "cyclewaySides",
     "onewaySign",
+    "laneFlow",
     "laneCountForWay",
     "nominalRoadWidth",
     "renderedRoadWidth",
@@ -1089,7 +1090,8 @@ const BIKE_END_TRIM_M = 2.0;
 const BIKE_CROSS_ANGLE_DEG = 25.0;
 const BIKE_JOIN_FACING = -0.5;
 const BIKE_MIXING_M = 7.6;
-const BIKE_KERB_STEP_M = 2.0, BIKE_TAPER_M = 6.0, BIKE_KERB_TRUST_M = 5.0, BIKE_FAR_JOIN_M = 9, BIKE_FAR_SIDE_M = 7;
+const BIKE_KERB_STEP_M = 2.0, BIKE_TAPER_M = 6.0, BIKE_KERB_TRUST_M = 5.0, BIKE_FAR_JOIN_M = 9, BIKE_FAR_SIDE_M = 11.5;
+const BIKE_WIDER_M = 2.0, BIKE_DRIFT_MAX_M = 45, BIKE_DRIFT_RATIO = 1.5, BIKE_BOX_STEP_MIN_M = 8;
 const bikeLaneStats = { lanes: 0, kerbFollowed: 0, stations: 0, read: 0, farJoins: 0 };
 const bikeJoinGrid = new Map();
 const BIKE_AREA_CELL = 4.0;

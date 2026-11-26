@@ -123,6 +123,8 @@ export function blowOn(M, blow, victim) {
 //: strength), severity (0-3: the injury's), witnesses (people near who saw), police_near (an
 //: officer or a patrol car within sight), phone (they carry one), role, seed }.
 //: Returns { act: "down" | "arrest" | "fight" | "call_police" | "run" | "call_help" | "freeze", scores }.
+//: What a phone in the pocket adds to calling the police (instinct's score).
+export const PHONE_LEAN = 0.1;
 export function instinct(t, ctx = {}) {
   const re = ctx.reaction || { kind: "flinch" };
   if (ctx.role === "police" || ctx.role === "patrol") return { act: "arrest", scores: {} };
@@ -136,8 +138,10 @@ export function instinct(t, ctx = {}) {
     // Little nerve, outmatched or hurt: they get away.
     run: 0.9 * (1 - t.nerve) - 0.4 * edge + 0.25 * hurt + shaken * 0.5,
     // The street is their business (civic) and they are careful: the police, if they have a phone
-    // -- more so with an officer near enough to come at once.
-    call_police: phone ? 0.65 * t.civic + 0.3 * t.care - 0.25 * t.temper + 0.15 * Math.max(0, -edge) + (ctx.police_near ? 0.25 : 0) : -Infinity,
+    // on them (a pocket for it: npc-figures.mjs NO_POCKETS) -- and having it in reach makes the
+    // call the readier (PHONE_LEAN: the phoneless share no longer calls) -- more so with an officer
+    // near enough to come at once.
+    call_police: phone ? PHONE_LEAN + 0.65 * t.civic + 0.3 * t.care - 0.25 * t.temper + 0.15 * Math.max(0, -edge) + (ctx.police_near ? 0.25 : 0) : -Infinity,
     // People round to call to: the fewer nerve they have, the louder they call.
     call_help: seen ? 0.25 + 0.08 * seen + 0.35 * (1 - t.nerve) + 0.15 * t.civic - 0.2 * t.temper : -Infinity,
     // Frozen to the spot: the rarest, and only the timid.
