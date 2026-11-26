@@ -64,13 +64,19 @@ export const CAR_MODELS = {
 //: PRIVATE_MIX, kept equal by tests/city_vehicle_fleet.test.mjs).
 export const CA_REGISTRATIONS_2024 = 1759200;
 export const PRIVATE_KIND_SHARE = { economy: 0.3, sedan: 0.22, suv: 0.2, compact_ev: 0.14, pickup: 0.07, delivery_van: 0.05, sports: 0.02 };
-//: How many of a kind's cars each model is: its share of all the cars sold, over its kind's share
-//: of the city's -- a Civic is 3.0% of California's new cars and the sedans 22% of the city's, so
-//: 13.7% of its sedans are Civics. The rest of a kind are the bodies it had: the fleet's model
+//: How many of a kind's cars each bought-in model is. In California's order (a Civic the
+//: commonest car of all, 3.0% of new cars and 13.7% of the city's sedans by registrations), but
+//: drawn up well past it, so the street is mostly the detailed models, not the kit's toy-like
+//: ones (2026-11-26: "increase the imported cars' share"): the Civic and the Sonata stand in for
+//: the economy cars and the small electric ones as well. The rest of a kind are the fleet's model
 //: (FLEET_FOR), else the Kenney kit's variants, a car taking one by its number.
-export const BODY_MIX = Object.fromEntries(Object.keys(PRIVATE_KIND_SHARE).map((kind) => [kind,
-  Object.entries(CAR_MODELS).filter(([, m]) => m.kind === kind)
-    .map(([id, m]) => [id, Math.min(1, m.registrations / CA_REGISTRATIONS_2024 / PRIVATE_KIND_SHARE[kind])])]).filter(([, list]) => list.length));
+export const BODY_MIX = {
+  sedan: [["civic", 0.45], ["sonata", 0.3]],
+  economy: [["civic", 0.35]],
+  compact_ev: [["civic", 0.35], ["sonata", 0.25]],
+  suv: [["glk", 0.45]],
+  pickup: [["frontier", 0.75]],
+};
 //: The body a car of ``model`` (its kind) whose number is ``shade`` is drawn with, the same at
 //: every tier and on every visit: { source: "car" | "fleet" | "kit", id, kind }. Its own digits,
 //: not the paint's (shade x 7919.37) nor the kit's choice among its variants (shade x 997).
@@ -251,22 +257,38 @@ export function kenneyMaterial(THREE, map) {
 // is drawn from its kind's shares by its own number (``shade``), so it is the same every time
 // and in every browser.
 
-//: The paints (sRGB), named.
+//: The paints (sRGB), named: the whites, the blacks and blue-blacks, four greys and two silvers
+//: (a car park is mostly these), and the colours -- reds from candy to maroon, dark greens, dark
+//: blues and navies, a lighter blue -- that a street has a few of.
 export const PAINTS = {
-  white: "#eeeeea", pearl: "#e3dfd3", grey: "#6b7076", graphite: "#3f4348", black: "#141518", silver: "#b4b8bc",
-  blue: "#1f3d70", skyblue: "#5a86b8", red: "#9e1b1f", green: "#2e4a37", beige: "#8b7355", gold: "#c9a227", orange: "#d4661c", yellow: "#e2b51b",
+  white: "#eeeeea", pearl: "#e3dfd3", black: "#141518", blueblack: "#0f1622",
+  silver: "#b4b8bc", lightsilver: "#c9ccce", lightgrey: "#8e9398", grey: "#6b7076", graphite: "#3f4348", gunmetal: "#2b2f34",
+  red: "#9e1b1f", candy: "#b5121b", maroon: "#5a1418", darkgreen: "#1f3a2c", green: "#2e4a37",
+  blue: "#1f3d70", darkblue: "#1a2c52", navy: "#131f3b", skyblue: "#5a86b8",
+  beige: "#8b7355", gold: "#c9a227", orange: "#d4661c", yellow: "#e2b51b",
 };
-const NORTH_AMERICA = [["white", 26], ["pearl", 5], ["grey", 13], ["graphite", 8], ["black", 19], ["blue", 7], ["skyblue", 3], ["silver", 8], ["red", 7], ["green", 2], ["beige", 1.5], ["gold", 0.5]];
+//: The city's mix: the real order -- white first, then black, the greys and silver, then blue and
+//: red (Axalta's 2025 report for North America: white 31%, black 19%, grey, blue 10%, silver, red
+//: 7%) -- with the colours drawn up and the neutrals down a little, so a street reads as a street
+//: with some colour in it rather than a grey one (2026-11-26: "a bit more exaggerated towards the
+//: colourful cars"). Neutrals 61% here against about 80% sold.
+const CITY_MIX = [
+  ["white", 16], ["pearl", 4], ["black", 12], ["blueblack", 4],
+  ["silver", 5], ["lightsilver", 2], ["lightgrey", 5], ["grey", 6], ["graphite", 5], ["gunmetal", 2],
+  ["red", 7], ["candy", 3], ["maroon", 3], ["darkgreen", 5], ["green", 1.5],
+  ["blue", 5], ["darkblue", 5], ["navy", 4], ["skyblue", 2.5], ["beige", 1.5], ["gold", 0.5], ["orange", 0.5], ["yellow", 0.5],
+];
+const NORTH_AMERICA = CITY_MIX;
 //: Each kind's shares (percent; the kinds with a livery of their own -- taxi, patrol, bus -- are
 //: not in it).
 export const PAINT_MIX = {
-  economy: NORTH_AMERICA, sedan: NORTH_AMERICA,
-  compact_ev: [["white", 28], ["pearl", 6], ["grey", 15], ["graphite", 9], ["black", 14], ["blue", 8], ["skyblue", 5], ["silver", 8], ["red", 5], ["green", 2]],
-  suv: [["white", 25], ["pearl", 5], ["grey", 13], ["graphite", 9], ["black", 21], ["blue", 7], ["skyblue", 2], ["silver", 7], ["red", 6], ["green", 3], ["beige", 2]],
-  pickup: [["white", 31], ["pearl", 2], ["grey", 10], ["graphite", 7], ["black", 22], ["silver", 9], ["red", 9], ["blue", 6], ["skyblue", 1], ["green", 2], ["beige", 1]],
-  sports: [["white", 15], ["pearl", 3], ["grey", 10], ["graphite", 8], ["black", 18], ["silver", 8], ["red", 16], ["blue", 9], ["skyblue", 3], ["yellow", 5], ["orange", 3], ["green", 2]],
-  delivery_van: [["white", 85], ["silver", 6], ["grey", 4], ["black", 3], ["blue", 2]],
-  box_truck: [["white", 74], ["red", 6], ["blue", 6], ["silver", 5], ["black", 4], ["green", 2], ["yellow", 2], ["orange", 1]],
+  economy: CITY_MIX, sedan: CITY_MIX,
+  compact_ev: [["white", 22], ["pearl", 5], ["black", 9], ["blueblack", 3], ["silver", 5], ["lightgrey", 6], ["grey", 7], ["graphite", 5], ["red", 6], ["candy", 3], ["darkgreen", 4], ["blue", 9], ["darkblue", 5], ["navy", 3], ["skyblue", 6], ["yellow", 1], ["orange", 1]],
+  suv: [["white", 15], ["pearl", 4], ["black", 15], ["blueblack", 5], ["silver", 5], ["lightsilver", 2], ["lightgrey", 4], ["grey", 6], ["graphite", 6], ["gunmetal", 3], ["red", 5], ["maroon", 4], ["darkgreen", 7], ["green", 2], ["blue", 4], ["darkblue", 5], ["navy", 5], ["beige", 2], ["gold", 1]],
+  pickup: [["white", 22], ["pearl", 2], ["black", 15], ["blueblack", 3], ["silver", 7], ["lightgrey", 4], ["grey", 6], ["graphite", 5], ["gunmetal", 3], ["red", 9], ["candy", 2], ["maroon", 3], ["darkgreen", 6], ["blue", 4], ["darkblue", 4], ["navy", 3], ["beige", 2]],
+  sports: [["white", 11], ["pearl", 3], ["black", 12], ["blueblack", 3], ["silver", 5], ["grey", 5], ["graphite", 5], ["red", 17], ["candy", 6], ["blue", 8], ["darkblue", 4], ["skyblue", 4], ["darkgreen", 4], ["yellow", 7], ["orange", 6]],
+  delivery_van: [["white", 82], ["silver", 6], ["lightgrey", 4], ["black", 3], ["blue", 2], ["darkblue", 2], ["red", 1]],
+  box_truck: [["white", 70], ["red", 6], ["blue", 6], ["darkblue", 3], ["silver", 5], ["black", 4], ["darkgreen", 3], ["yellow", 2], ["orange", 1]],
 };
 //: Bicycle frames: brighter than cars (approx., the makers' ranges).
 export const BIKE_PAINT_MIX = [["black", 26], ["white", 10], ["grey", 10], ["graphite", 6], ["red", 12], ["blue", 12], ["skyblue", 4], ["green", 7], ["orange", 7], ["yellow", 4], ["silver", 2]];

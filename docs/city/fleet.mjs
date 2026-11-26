@@ -2404,7 +2404,7 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // jam, known for ``jam_known_s`` (a street found shut, for ``shut_known_s``: those behind the
   // one put on past it follow after ``shut_jump_s``, not each after the full wait); a driver
   // takes another way round it (``jam_cost_s`` dearer), looked for every ``reroute_every_s``.
-  jam_cars: 3, jam_tail_m: 28, jam_stood_s: 30, jam_share: 0.4, jam_min_s: 8, jam_known_s: 30, shut_known_s: 120, shut_jump_s: 5, jam_cost_s: 240, reroute_every_s: 5, reroute_look_m: 160,
+  jam_cars: 3, jam_tail_m: 28, jam_stood_s: 30, jam_share: 0.4, jam_min_s: 8, jam_known_s: 30, crash_known_s: 150, shut_known_s: 120, shut_jump_s: 5, jam_cost_s: 240, reroute_every_s: 5, reroute_look_m: 160,
   // The day's milestones: ``late_s`` behind, a driver goes at the limit to catch up; ``hopeless_s``
   // behind and out of your sight, it is put where its day has it. Two cars in each other's way for
   // ``deadlock_s``: one backs off; stood blocked ``teleport_s`` (after SUMO's time-to-teleport) it
@@ -3438,8 +3438,9 @@ export class Drivers {
               target: { x: op.x, z: op.z, yaw: op.yaw }, context: { tsec, dt, route: c.key, segment: segInfo(c.route, st), d: st.d, lane: st.lane, speed: st.v, otherSpeed, reason, junction: J?.key ?? null, signal: J?.kind === "signal" ? signalAt(this.streets, J.node, Math.atan2(J.inU[0], J.inU[1]), tsec, T) : null,
                 other: ost ? { route: ost.key, segment: segInfo(op.c.route, ost), d: ost.d, lane: ost.lane, reason: ost.reason } : null } };
             st.d = d1; st.v = 0;
-            if (ost) { ost.hit = { id: st.hit.id, who: c.id, until }; ost.v = 0; const drawn = out.find((o) => o.id === who); if (drawn) { drawn.v = 0; drawn.hit = ost.hit; } }
+            if (ost) { ost.hit = { id: st.hit.id, who: c.id, until }; ost.v = 0; ost.avoidNext = true; const drawn = out.find((o) => o.id === who); if (drawn) { drawn.v = 0; drawn.hit = ost.hit; } }
             this.tally.crashes = (this.tally.crashes || 0) + 1;
+            this.crashedOn(c, st, tsec);
             hits.push({ car: c.id, ...st.hit });
             out.push({ id: c.id, d: st.d, v: 0, hit: st.hit, route: st.route });
             continue;
@@ -3792,6 +3793,17 @@ export class Drivers {
       if (!at.leader) return Boolean(at.byBlocker && at.v < 0.5);
     }
     return false;
+  }
+  //: A crash on ``c``'s block: known to everyone at once as a block to keep off (``crash_known_s``),
+  //: every driver looks again for another way now (not at its next ``reroute_every_s``), and the
+  //: two in it take another way from their next junction once they drive on -- nobody comes back
+  //: into the same wreck, or the next one in behind it (2026-11-26).
+  crashedOn(c, st, tsec) {
+    const T = this.T, key = edgeKey(c.route, segOf(c.route, st.d));
+    if (key) this.jams.set(key, tsec + T.crash_known_s);
+    st.avoidNext = true;
+    for (const o of this.cars.values()) o.nextRoute = 0;
+    this.tally.crashReroutes = (this.tally.crashReroutes || 0) + 1;
   }
   //: A car stopped where it is (a crash): it goes no further on this leg.
   stop(id, hit) { const st = this.cars.get(id); if (st) { st.hit = hit; st.v = 0; } }

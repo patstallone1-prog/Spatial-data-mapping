@@ -46,15 +46,12 @@ test("the page's record of each car is the build's", () => {
   assert.deepEqual(PRIVATE_KIND_SHARE, Object.fromEntries(PRIVATE_MIX));
 });
 
-test("each model is as common in the traffic as in California's sales, the rest the bodies there were", () => {
-  // A Civic: 53,049 of 1,759,200 (3.0%), over the sedans' 22% of the city's cars.
-  const share = (kind, id) => BODY_MIX[kind].find(([k]) => k === id)[1];
-  assert.ok(Math.abs(share("sedan", "civic") - 53049 / CA_REGISTRATIONS_2024 / 0.22) < 1e-9);
-  assert.ok(share("sedan", "civic") > 0.13 && share("sedan", "civic") < 0.145);
-  assert.ok(share("sedan", "sonata") > 0.012 && share("sedan", "sonata") < 0.02);
-  assert.ok(share("suv", "glk") > 0.02 && share("suv", "glk") < 0.035);
-  assert.ok(share("pickup", "frontier") > 0.04 && share("pickup", "frontier") < 0.055);
-  // Counted over many cars: the shares, and no kind all one body.
+test("the bought-in models are most of the street, in California's order, the rest the fleet's and the kit's", () => {
+  const share = (kind, id) => BODY_MIX[kind].find(([k]) => k === id)?.[1] || 0;
+  // California's order kept (the Civic the commonest), drawn up well past its registrations.
+  assert.ok(share("sedan", "civic") > share("sedan", "sonata"));
+  assert.ok(share("sedan", "civic") > 53049 / CA_REGISTRATIONS_2024 / 0.22 * 2);
+  for (const [kind, list] of Object.entries(BODY_MIX)) assert.ok(list.reduce((a, [, s]) => a + s, 0) <= 1, kind);
   const N = 40000, counts = {};
   for (let i = 0; i < N; i += 1) {
     const shade = (i * 0.6180339887 + 0.137) % 1;
@@ -66,12 +63,13 @@ test("each model is as common in the traffic as in California's sales, the rest 
   for (const [kind, list] of Object.entries(BODY_MIX)) for (const [id, s] of list) {
     assert.ok(Math.abs(counts[`${kind}:car:${id}`] / N - s) < 0.01, `${kind} ${id}: ${counts[`${kind}:car:${id}`] / N} vs ${s}`);
   }
-  // The rest: the fleet's model for a kind it draws, the kit's variants (all of them) otherwise.
-  assert.ok(counts["suv:fleet:jeep"] / N > 0.9);
-  assert.equal(counts["economy:fleet:cuore"], N);
-  for (const v of KENNEY_FOR.sedan) assert.ok(counts[`sedan:kit:${v}`] / N > 0.3, `sedan ${v}`);
-  for (const v of KENNEY_FOR.compact_ev) assert.ok(counts[`compact_ev:kit:${v}`] / N > 0.3, `compact_ev ${v}`);
-  assert.ok(counts["pickup:kit:truck"] / N > 0.9);
+  // Most private cars are bought-in or fleet models; the kit's are the rest.
+  const imported = (kind) => Object.entries(counts).filter(([k]) => k.startsWith(`${kind}:`) && !k.includes(":kit:")).reduce((a, [, n]) => a + n, 0) / N;
+  for (const kind of ["sedan", "suv", "pickup", "economy"]) assert.ok(imported(kind) >= 0.7, `${kind}: ${imported(kind)}`);
+  assert.ok(counts["suv:fleet:jeep"] / N > 0.5);
+  assert.ok(counts["economy:fleet:cuore"] / N > 0.6);
+  for (const v of KENNEY_FOR.sedan) assert.ok(counts[`sedan:kit:${v}`] / N > 0.08, `sedan ${v}`);
+  assert.ok(counts["pickup:kit:truck"] / N > 0.2);
   // The same car the same body, whatever the tier or the visit.
   assert.deepEqual(bodyOf("sedan", 0.4242), bodyOf("sedan", 0.4242));
   assert.equal(bodyOf("sedan", 0).id, "civic", "a car of yours (number 0) is the commonest model");

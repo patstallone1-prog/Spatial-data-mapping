@@ -701,10 +701,19 @@ const FACADE_GLASS = Object.freeze({
   coded: 0.5,            // the alpha a pane is marked with (module 07)
   lit_coded: 0.75,       // ... a lit one (half glass: it glows more than it mirrors)
   window_body: 0.78,     // a painted window's glass, as a share of what it was
-  curtain_body: 0.42,    // a glass curtain wall's: office glass is tinted dark (2026-11-26)
+  curtain_body: 0.78,    // a glass curtain wall's: treated office glass, tinted but light
   // A curtain wall's panes are not the building's tint (its picture is grey, coloured by the
-  // building's paint): office glass is its own dark blue-green, the room behind barely seen.
-  curtain_rgb: [0.03, 0.05, 0.062], curtain_dark: 0.85,
+  // building's paint): office glass is its own colour -- a light blue, each pane a shade off its
+  // neighbours and the whole turning toward teal, green or violet with the angle, as coated glass
+  // does -- and face on it shows the floor behind it (curtain_room). Dark blue-green at 0.42 read
+  // as black and not see-through even straight on (2026-11-26).
+  curtain_rgb: [0.2, 0.3, 0.4], curtain_dark: 0.35,
+  curtain_shift: [[0.16, 0.34, 0.38], [0.2, 0.36, 0.3], [0.26, 0.24, 0.42]],   // teal, green, violet
+  curtain_pane_m: [1.5, 3.6],   // a pane's width and a storey's height, for the shade per pane
+  // The room seen through it face on (interior mapping: the floor behind each pane found from the
+  // ray, no geometry): bay width, storey height, depth to the back wall; how much of it shows face
+  // on; its surfaces' tones; and the share of rooms with their blinds down.
+  curtain_room: { bay_m: 4.5, storey_m: 3.6, depth_m: 7.0, show: 0.62, ceiling: 0.72, floor: 0.2, back: 0.42, side: 0.36, lights: 0.55, blinds: 0.3 },
   curtain_frame: 0.55,   // its mullions: anodised, darker than the paint, less of the sky's mirror
   body_tint: [0.82, 0.96, 1.0],   // float and office glass lean blue-green
   face: 0.1,             // what it mirrors face on, at the palest
@@ -755,7 +764,42 @@ function facadeGlass(material, kind = null) {
   vec3 kbBody = outgoingLight - reflectedLight.indirectSpecular * kbM;
   kbBody *= mix(vec3(1.0), ${f(body)} * vec3(${FACADE_GLASS.body_tint.map(f).join(", ")}), kbM);
   ${curtain ? `// Office glass: its own colour, not the paint's; dimmer at night (its lit rooms are nightWindows').
-  kbBody = mix(kbBody, vec3(${FACADE_GLASS.curtain_rgb.map(f).join(", ")}) * mix(1.0, 0.3, kbNight), kbM);
+  // Each pane a shade off its neighbours, the whole leaning teal, green or violet with the angle.
+  vec3 kbNw = normalize(inverseTransformDirection(normal, viewMatrix));
+  vec3 kbTw = normalize(cross(vec3(0.0, 1.0, 0.0), kbNw) + vec3(1e-4, 0.0, 0.0));
+  vec2 kbPane = floor(vec2(dot(kbFW, kbTw) / ${f(FACADE_GLASS.curtain_pane_m[0])}, kbFW.y / ${f(FACADE_GLASS.curtain_pane_m[1])}));
+  float kbH = fract(sin(dot(kbPane, vec2(12.9898, 78.233))) * 43758.5453);
+  vec3 kbTint = vec3(${FACADE_GLASS.curtain_rgb.map(f).join(", ")}) * (0.86 + 0.28 * kbH);
+  float kbAng = 1.0 - kbCos;
+  vec3 kbShift = mix(vec3(${FACADE_GLASS.curtain_shift[0].map(f).join(", ")}), vec3(${FACADE_GLASS.curtain_shift[1].map(f).join(", ")}), smoothstep(0.2, 0.6, kbAng));
+  kbShift = mix(kbShift, vec3(${FACADE_GLASS.curtain_shift[2].map(f).join(", ")}), smoothstep(0.55, 0.95, kbAng) * (0.5 + 0.5 * kbH));
+  kbTint = mix(kbTint, kbShift, 0.55 * smoothstep(0.1, 0.8, kbAng));
+  // The floor behind the pane, by the ray (interior mapping): ceiling, floor, back and side walls.
+  vec3 kbD = normalize(kbFW - cameraPosition);
+  float kbDu = dot(kbD, kbTw), kbDv = kbD.y, kbDw = max(dot(kbD, -kbNw), 0.05);
+  vec2 kbCell = vec2(dot(kbFW, kbTw) / ${f(FACADE_GLASS.curtain_room.bay_m)}, kbFW.y / ${f(FACADE_GLASS.curtain_room.storey_m)});
+  vec2 kbIn = fract(kbCell);
+  float kbTu = ((kbDu > 0.0 ? 1.0 : 0.0) - kbIn.x) * ${f(FACADE_GLASS.curtain_room.bay_m)} / (abs(kbDu) > 1e-4 ? kbDu : 1e-4);
+  float kbTv = ((kbDv > 0.0 ? 1.0 : 0.0) - kbIn.y) * ${f(FACADE_GLASS.curtain_room.storey_m)} / (abs(kbDv) > 1e-4 ? kbDv : 1e-4);
+  float kbTd = ${f(FACADE_GLASS.curtain_room.depth_m)} / kbDw;
+  float kbT = min(min(abs(kbTu), abs(kbTv)), kbTd);
+  float kbRoomH = fract(sin(dot(floor(kbCell), vec2(39.3468, 11.1353))) * 24634.6345);
+  vec3 kbRoom;
+  if (kbT == kbTd) kbRoom = vec3(${f(FACADE_GLASS.curtain_room.back)}) * (0.85 + 0.3 * kbRoomH);
+  else if (kbT == abs(kbTv)) {
+    vec2 kbAt = (kbFW + kbD * kbT).xz;
+    // The ceiling's lights in rows, the floor's carpet.
+    float kbLamp = step(0.82, fract(dot(kbAt, kbTw.xz) / 1.5)) * step(0.7, fract(dot(kbAt, kbNw.xz) / 2.4));
+    kbRoom = kbDv > 0.0 ? vec3(${f(FACADE_GLASS.curtain_room.ceiling)}) + vec3(${f(FACADE_GLASS.curtain_room.lights)}) * kbLamp : vec3(${f(FACADE_GLASS.curtain_room.floor)}) * vec3(0.95, 0.97, 1.0);
+  } else kbRoom = vec3(${f(FACADE_GLASS.curtain_room.side)}) * (0.9 + 0.2 * kbRoomH);
+  kbRoom *= 1.0 - 0.55 * smoothstep(0.0, 1.0, kbT / (${f(FACADE_GLASS.curtain_room.depth_m)} * 1.6));
+  // Blinds down in some: a pale slatted face just behind the glass.
+  float kbBlind = step(1.0 - ${f(FACADE_GLASS.curtain_room.blinds)}, kbRoomH);
+  kbRoom = mix(kbRoom, vec3(0.62, 0.62, 0.58) * (0.8 + 0.2 * step(0.5, fract(kbFW.y * 12.0))), kbBlind);
+  kbRoom *= mix(1.0, 0.18, kbNight);
+  // Face on the room shows through the tint; at a slant the glass is its own colour.
+  float kbSee = ${f(FACADE_GLASS.curtain_room.show)} * kbCos * kbCos;
+  kbBody = mix(kbBody, mix(kbTint, kbRoom * (kbTint * 1.9 + 0.12), kbSee) * mix(1.0, 0.3, kbNight), kbM);
   kbBody -= reflectedLight.indirectSpecular * 0.6 * (1.0 - kbM);
   kbBody = max(kbBody, vec3(0.0)) * mix(${f(FACADE_GLASS.curtain_frame)}, 1.0, kbM);` : ""}
   outgoingLight = kbBody * (1.0 - kbFr) + kbEnv * kbFr;

@@ -79,8 +79,10 @@ function boundsInside(ring,x,z,w,d) {
 export function planRestaurant({width,depth,outline,doorX=0,windows=[]},service) {
   const half=width/2, rect=[[-half,0],[half,0],[half,depth],[-half,depth],[-half,0]];
   const polygons=outline?.length>=3 ? clipping.intersection([rect],[outline]) : [[rect]];
-  const ring=polygons.find(poly=>inside(poly[0],doorX,.15))?.[0] || polygons[0]?.[0];
-  if(!ring) return null;
+  // The piece with the door in it; else the one that reaches the front (the first piece could be
+  // the back of the building: the room 15 m behind its own windows, 2026-11-26); else the rectangle.
+  const front=poly=>Math.min(...poly[0].map(p=>p[1]))<.5;
+  const ring=polygons.find(poly=>inside(poly[0],doorX,.15))?.[0] || polygons.find(front)?.[0] || rect;
   const aisle = Math.max(-half+.58,Math.min(half-.58,doorX));
   const available = Math.max(...ring.map(p=>p[1]));
   // The dining room's share of the depth by tier, but never so much that the kitchen is too

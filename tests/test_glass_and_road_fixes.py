@@ -50,11 +50,17 @@ def test_wall_glass_mirrors_more_at_a_slant_and_more_the_darker_it_is() -> None:
     assert "facadeGlass(homeDecalMaterial)" in js
 
 
-def test_office_glass_is_darker_and_less_of_a_mirror_than_it_was() -> None:
+def test_office_glass_is_light_blue_tinted_and_shows_the_floor_behind_it() -> None:
     js = _page_js()
     start = js.index("const FACADE_GLASS = Object.freeze(")
     block = js[start:js.index("});", start)]
-    assert "curtain_body: 0.42" in block and "curtain_rgb: [0.03, 0.05, 0.062]" in block
+    # Lighter than the 0.42 dark blue-green that read as black (2026-11-26), and blue.
+    assert "curtain_body: 0.78" in block and "curtain_rgb: [0.2, 0.3, 0.4]" in block
+    assert "curtain_shift:" in block and "curtain_room:" in block
+    glass = _extract("facadeGlass", js)
+    # A shade per pane, a shift with the angle, and the room behind found from the ray.
+    assert "kbPane" in glass and "kbShift" in glass
+    assert "kbD = normalize(kbFW - cameraPosition)" in glass and "kbSee" in glass
 
 
 @needs_node

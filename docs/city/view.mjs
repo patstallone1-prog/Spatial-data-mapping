@@ -1011,9 +1011,13 @@ diffuseColor.rgb *= kbCloth;`);
   //: at the level its ring wants (detail.mjs: FULL the npc file, MODERATE the mid one; ``hero``,
   //: the bus or the cab you ride in, the full one); the kit's one model at every level.
   const fleetOf = (model, shade = 0, tier = FULL, hero = false) => {
-    const body = bodyOf(model, shade), kind = body.kind;
+    const chosen = bodyOf(model, shade);
+    // (A bought-in or fleet body not loaded yet: the kit's model for its kind meanwhile -- never a
+    // box of our own making.)
+    const body = chosen.source !== "kit" && !LEVELS[hero ? "full" : tier === FULL ? "npc" : "mid"].some((level) => modelAt(bodyFile(chosen, level)))
+      ? { source: "kit", id: kenneyVariant(chosen.kind, shade), kind: chosen.kind } : chosen, kind = body.kind;
     if (body.source === "kit") {
-      const kit = kenney.get(body.id);
+      const kit = body.id && kenney.get(body.id);
       if (!kit) return null;
       const key = `kenney:${kit.name}`;
       if (!fleet.has(key)) {
@@ -1024,7 +1028,9 @@ diffuseColor.rgb *= kbCloth;`);
       }
       return fleet.get(key);
     }
-    for (const level of LEVELS[hero ? "full" : tier === MODERATE ? "mid" : "npc"]) {
+    // (The low ring, the farthest drawn, takes the mid file too: the bought-in model's own coarse
+    // cut, not a box.)
+    for (const level of LEVELS[hero ? "full" : tier === FULL ? "npc" : "mid"]) {
       const file = bodyFile(body, level), parts = modelAt(file);
       if (!parts) continue;
       const full = level === "full", key = `body:${file}${kind === "patrol" ? ":patrol" : ""}`;
@@ -1584,8 +1590,6 @@ diffuseColor.rgb *= kbCloth;`);
   //: The traffic's tiers (detail.mjs): the kit's body nearest, the code-built one next, and one
   //: box of the car's size and paint further off; at most so many of each.
   const CAR_CAPS = [80, 170, MAX_CARS];
-  const lowCars = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), lambert({ color: 0xffffff }), MAX_CARS);
-  lowCars.count = 0; lowCars.frustumCulled = false; lowCars.instanceMatrix.setUsage(THREE.DynamicDrawUsage); lowCars.name = "city-traffic-low"; group.add(lowCars);
   const CAR_FRUSTUM = new THREE.Frustum(), CAR_SPHERE = new THREE.Sphere(new THREE.Vector3(), 3);
   //: Which of ``list`` are drawn, and how finely: in view only (a car behind you, or round the
   //: corner of the frame, is not sent to the GPU at all), at its tier; the one you ride -- the bus,
@@ -1656,7 +1660,7 @@ diffuseColor.rgb *= kbCloth;`);
   globalThis.__kerbsideProxyLight?.captureHooks?.add({
     before() {
       if (!group.parent) return;
-      const bodies = new Set([lowCars]);
+      const bodies = new Set();
       for (const f of fleet.values()) for (const part of f.parts) if (!part.mesh.material?.transparent) bodies.add(part.mesh);
       standInShown.length = 0;
       for (const child of group.children) { standInShown.push(child, child.visible); child.visible = child.visible && bodies.has(child); }
@@ -1667,7 +1671,7 @@ diffuseColor.rgb *= kbCloth;`);
     after() { for (let i = 0; i < standInShown.length; i += 2) standInShown[i].visible = standInShown[i + 1]; standInShown.length = 0; },
   });
   function drawCars(list, night) {
-    let n = 0, heads = 0, tails = 0, lo = 0;
+    let n = 0, heads = 0, tails = 0;
     for (const f of fleet.values()) f.n = 0;
     for (const s of signs.values()) s.n = 0;
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
@@ -1679,8 +1683,10 @@ diffuseColor.rgb *= kbCloth;`);
     for (const { v, detail: tier } of [...full, ...mid, ...low]) {
       if (n >= MAX_CARS) break;
       const [w, hgt, l] = CAR_DIMS[v.model] || CAR_DIMS.sedan;
-      const f = tier === LOW ? null : fleetOf(v.model, v.shade, tier, v.id === transit.ride?.vehicle || v.mine === true);
-      if (f && f.n >= f.cap) continue;
+      // Every car at every distance is an imported model (its own, or the kit's while its own
+      // loads): one not loaded at all is not drawn rather than drawn as a box.
+      const f = fleetOf(v.model, v.shade, tier, v.id === transit.ride?.vehicle || v.mine === true);
+      if (!f || f.n >= f.cap) continue;
       const y = tier === FULL ? feetNear.at(v, performance.now(), true) : groundAt(v.x, v.z);
       // A car in a crash rocks on its springs; a wreck sits a little down on one side; one on a
       // tow truck's hook has its front lifted (crash-scene.mjs).
@@ -1706,7 +1712,6 @@ diffuseColor.rgb *= kbCloth;`);
         const s = signOf(v.sign);
         if (s.n < s.mesh.instanceMatrix.count) s.mesh.setMatrixAt(s.n++, SIGN_M.multiplyMatrices(M, TM.makeTranslation(0, f.fleet ? BUS_SIGN.y : hgt - 0.3, f.fleet ? BUS_SIGN.z : -l / 2 - BUS_SIGN.coded_z)));
       }
-      if (!f) lowCars.setMatrixAt(lo, M.multiply(TM.makeScale(w, hgt * 0.92, l)));
       // The paint: by its kind's shares of the colours new cars are bought in (vehicles.mjs
       // PAINT_MIX), from its own number; a livery's own (a taxi's, a patrol car's, Muni's silver
       // and red on the bus -- painted by the bus's material, BUS_LIVERY) as it is.
@@ -1715,7 +1720,7 @@ diffuseColor.rgb *= kbCloth;`);
       // Dented and scraped by its condition: duller, and a wreck scorched.
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
       if (bent) { for (const o of bent.g.children) if (o.userData.tint) { o.setColorAt(0, C); o.instanceColor.needsUpdate = true; } }
-      else if (f) { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; } else { lowCars.setColorAt(lo, C); lo += 1; }
+      else { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; }
       if (night && f) {
         f.lamps ||= vehicleLampAnchors(THREE, f.parts.filter((p) => !p.mesh.material.transparent).map((p) => p.mesh.geometry), f.dims || [w, hgt, l]);
         B.copy(M);
@@ -1736,7 +1741,6 @@ diffuseColor.rgb *= kbCloth;`);
     headLights.count = heads; tailLights.count = tails; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
     for (const mesh of [driverBody, driverHead]) { mesh.count = drivers; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
     drawnTiers.drivers = drivers;
-    lowCars.count = lo; lowCars.instanceMatrix.needsUpdate = true; if (lowCars.instanceColor) lowCars.instanceColor.needsUpdate = true;
   }
   // Speed cameras: a grey pole and a box on it, at the kerb.
   const camGroup = new THREE.Group(); group.add(camGroup);
@@ -3799,6 +3803,7 @@ diffuseColor.rgb *= kbCloth;`);
     // its trade and its space) is walked into as that interior; its staff, at work, get the room
     // their tasks are laid out in.
     if (!asStaff && !isMyWorkplace(place) && ctx.enterFittedShop?.(place.id)) { notify(`In ${storesAt(R, place.keys).map((x) => x.name).join(" and ") || place.name || "the shop"}. Walk up to whoever is serving and they'll ask what you want; click a chair to sit. Walk out through the door to leave.`); refresh(); return true; }
+    dropShopPreview(String(place.id));   // (the room seen from the street: the same one, built again for you in it)
     shop.place = place; shop.frame = F; shop.staff = asStaff || isMyWorkplace(place) || view.bizAt(place.id)?.owner === self()?.account;
     if(F.restaurant) (district.placeById?.get(place.id) || place).diningFrame=F;
     shop.room = buildRoom(place, F); group.add(shop.room);
@@ -3822,13 +3827,7 @@ diffuseColor.rgb *= kbCloth;`);
     floor.close();
     const F = shop.frame;
     delete (district.placeById?.get(shop.place.id) || shop.place).diningFrame;
-    shop.room?.removeFromParent();
-    shop.room?.traverse((o) => {
-      // The kit's models are shared with every other shop and the street: only the shelf's own
-      // instance buffers go.
-      if (o.userData?.shared || o.parent?.userData?.shared) { if (o.isInstancedMesh) o.dispose?.(); return; }
-      o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); }
-    });
+    disposeRoom(shop.room);
     shop.place = null; shop.room = null; shop.frame = null;
     ctx.setFloor?.(null);
     if (!shop.was) ctx.firstPerson?.(false);
@@ -3837,6 +3836,84 @@ diffuseColor.rgb *= kbCloth;`);
     if (side?.kind === "store") closeSide();
     if (!quiet) notify("Back out on the street.");
     refresh();
+  }
+  function disposeRoom(room) {
+    room?.removeFromParent();
+    room?.traverse((o) => {
+      // The kit's models are shared with every other shop and the street: only the shelf's own
+      // instance buffers go.
+      if (o.userData?.shared || o.parent?.userData?.shared) { if (o.isInstancedMesh) o.dispose?.(); return; }
+      o.geometry?.dispose?.(); if (o.material) for (const m of [].concat(o.material)) { m.map?.dispose?.(); m.dispose?.(); }
+    });
+  }
+  //: The shops round you have their rooms, seen through their windows from the street: the same
+  //: room you walk into (buildRoom, at the shop's own front; or the building's fitted interior, the
+  //: page's), so what is seen through the glass is what is there, and whoever is in the shop
+  //: (INDOOR_SEEN_M) is in it and sees you back. Only the ``most`` nearest within ``near_m``, one
+  //: built every ``every_ms``, on foot; taken down past ``keep_m``, or once you drive (2026-11-26).
+  //: (A drawn room behind the glass -- interior mapping -- was tried first: what it showed was not
+  //: the room you then walked into, nor anyone in it.)
+  const SHOP_PREVIEW = { near_m: 26, keep_m: 36, most: 4, every_ms: 400 };
+  const shopPreviews = new Map();   // place id -> {room, x, z} (room null: the page's interior, or none)
+  let shopPreviewAt = 0;
+  function dropShopPreview(id) {
+    const pv = shopPreviews.get(id);
+    if (pv?.room) disposeRoom(pv.room);
+    shopPreviews.delete(id);
+  }
+  function previewShops(now) {
+    if (now - shopPreviewAt < SHOP_PREVIEW.every_ms) return;
+    shopPreviewAt = now;
+    const you = me(), away = car.active || transit.ride;
+    for (const [id, pv] of shopPreviews) if (away || String(shop.place?.id) === id || Math.hypot(pv.x - you.x, pv.z - you.z) > SHOP_PREVIEW.keep_m) dropShopPreview(id);
+    if (away) return;
+    let built = 0;
+    for (const pv of shopPreviews.values()) if (Math.hypot(pv.x - you.x, pv.z - you.z) <= SHOP_PREVIEW.near_m) built += 1;
+    if (built >= SHOP_PREVIEW.most) return;
+    let best = null, bestD = SHOP_PREVIEW.near_m;
+    for (const pl of district.places || []) {
+      if (!pl.shops?.length || !(pl.front || pl.inside) || shopPreviews.has(String(pl.id)) || String(shop.place?.id) === String(pl.id)) continue;
+      const d = Math.hypot(pl.x - you.x, pl.z - you.z);
+      if (d < bestD && storesAt(R, pl.keys).length) { bestD = d; best = pl; }
+    }
+    if (!best) return;
+    const id = String(best.id);
+    // A building with its interior fitted shows that one (the page builds it, as it does a house's).
+    if (ctx.showFittedShop?.(best.id)) { shopPreviews.set(id, { room: null, x: best.x, z: best.z }); return; }
+    let room = null;
+    try {
+      const F = shopFrame(best);
+      if (F) { room = buildRoom(best, F); room.name = "city-shop-seen"; group.add(room); shopPreviews.set(id, { room, F, x: best.x, z: best.z }); return; }
+    } catch (error) { console.warn("kerbside: a shop's room from the street", error); }
+    shopPreviews.set(id, { room, x: best.x, z: best.z });
+  }
+  //: Whoever is in a shop seen from the street stands where its room has them: its staff behind the
+  //: counter or at the till, facing the front; anyone else at the counter, or on the shop's floor
+  //: (each by their id, so they keep their place). Their day says they are in the shop; the room
+  //: says where in it.
+  function placeInShop(pos, person, id, F) {
+    const h = (k) => (hash32(String(id), `in:${k}`) % 1000) / 1000;
+    const staff = String(person?.work ?? "") === String(pos.indoors) || /counter|kitchen|till|serv|shift|work/i.test(pos.activity || "");
+    let u, v;
+    const P = F.restaurant, S = F.store;
+    if (P) {
+      const half = Math.max(0.6, F.W / 2 - 0.8);
+      if (staff) { u = Math.min(P.depth - 0.4, P.counterZ + 0.55 + h(1) * Math.max(0.2, Math.min(2.2, P.kitchenDepth - 0.9))); v = -half + h(2) * 2 * half; }
+      else { u = Math.max(0.6, P.counterZ - 0.75); v = -half + h(2) * 2 * half; }
+    } else if (S) {
+      const till = S.fixtures?.find((f) => f.role === "till" || f.role === "bar");
+      if (staff && till) { u = till.z + till.d / 2 + 0.35; v = till.x; }
+      else {
+        for (let k = 0; k < 8 && u === undefined; k += 1) {
+          const tv = (h(10 + k) - 0.5) * (F.W - 1), tu = 0.8 + h(20 + k) * Math.max(0.5, (S.floorEnd || F.D) - 1.4);
+          if (canWalkStore(S, tv, tu, false)) { u = tu; v = tv; }
+        }
+        if (u === undefined) { u = 1.0; v = S.doorX || 0; }
+      }
+    } else { u = staff ? Math.max(0.8, F.L.counter + 0.5) : Math.max(0.6, F.L.counter - 0.7); v = (h(2) - 0.5) * (F.W - 1.2); }
+    const at = F.at(u, v);
+    pos.x = at.x; pos.z = at.z; pos.at_y = F.y; pos.moving = false;
+    pos.yaw = staff ? Math.atan2(F.I.nx, F.I.nz) : Math.atan2(-F.I.nx, -F.I.nz);
   }
   function isMyWorkplace(place) { const j = self()?.job; return Boolean(j && place && j.place.id === place.id); }
   //: Walking inside: the arrows as outside, kept to the room (and in front of the counter, unless
@@ -6656,6 +6733,8 @@ diffuseColor.rgb *= kbCloth;`);
     portal: personPortal,
     // Thrown, falling, carried or lying: moved by their own physics already, only followed.
     free: (e) => Boolean(e.down || e.fall || e.lift),
+    // Nobody close by is walked into a building (one indoors, or in its doorway, is in it already).
+    open: (x, z, e) => Boolean(e?.indoors || e?.through) || !wallAt(x, z),
     along: (w, d) => district.city?.walkEnds(w.pave, d, 0, null, null),
     // Out past the ring: their day has them again, as far along as it says (no time owed).
     release: (e) => { if (e?.walk?.key) district.city?.walkLags.delete(e.walk.key); },
@@ -7088,6 +7167,7 @@ diffuseColor.rgb *= kbCloth;`);
     holdFrame(ms, now);
     closeFocus = { x: focus.x, z: focus.z };
     peopleLock.frame(focus, now); carsLock.frame(focus, now);
+    previewShops(now);
     // (``tsec``: the real second, for the lights and the traffic's rules, which never stand still.
     // Where each car is on its leg is by its owner's own time -- everyone's, unless the clock is held.)
     const reach = Math.max(R.routine.visible_radius_m, scanReach || 0), tsec = ms / 1000;
@@ -7129,6 +7209,8 @@ diffuseColor.rgb *= kbCloth;`);
       const seg = e.seg && tp.minute < e.seg.t1 && tp.minute >= e.seg.t0 ? e.seg : undefined;
       const pos = c.personAt(e.p, tp, seg, focus);
       if (!pos || Math.abs(pos.x - focus.x) > reach || Math.abs(pos.z - focus.z) > reach) { personTiers.delete(id); continue; }
+      // In a shop whose room is seen from the street: where the room has them (placeInShop).
+      if (pos.indoors && String(pos.indoors) !== String(shop.place?.id)) { const seen = shopPreviews.get(String(pos.indoors)); if (seen?.F) placeInShop(pos, e.p, id, seen.F); }
       // In a shop and not the one you are in: seen through its window from close by, or not at all.
       let tier = detailNow ? detailNow.tier("people", pos.x, pos.z, was?.tier) : FULL;
       if (pos.indoors && pos.indoors !== shop.place?.id && Math.hypot(pos.x - you.x, pos.z - you.z) > INDOOR_SEEN_M) tier = TRACKED;

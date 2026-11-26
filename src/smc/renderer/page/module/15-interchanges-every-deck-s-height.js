@@ -561,6 +561,9 @@ for (const way of DRAW_ORDER) {
   // plaza, a mis-tagged footway. Painted as ladders they laid bars clear across the scene.
   if (isCrossing && wayLength(way.points) > 40) continue;
   const isSidewalk = way.kind === "sidewalk";
+  // A mapped sidewalk along a street's own kerbside walk: the street lays it, kerb to property
+  // line, at its height (addKerbsidePavement); drawn again it was a second slab on the first.
+  if (isSidewalk && typeof mappedSidewalkIsStreetWalk === "function" && mappedSidewalkIsStreetWalk(way)) continue;
   // White for everything: the value now comes from the texture, and tinting a photograph of
   // concrete amber to say "this is a crossing" was a legend, not a street.
   const color = 0xffffff;
