@@ -44,9 +44,16 @@ test("the traffic comes out in the shares new cars are bought in", () => {
   const sedan = shares("sedan");
   const want = Object.fromEntries(PAINT_MIX.sedan.map(([name, w]) => [name, w / 100]));
   for (const [name, w] of Object.entries(want)) assert.ok(Math.abs((sedan[name] || 0) - w) < 0.01, `${name}: ${sedan[name]} vs ${w}`);
-  // Axalta 2025, North America: white first (pearl with it), then black, grey a distant second.
-  assert.ok(sedan.white + sedan.pearl > 0.29 && sedan.white + sedan.pearl < 0.33);
-  assert.ok(sedan.black > 0.17 && sedan.black < 0.21);
+  // Axalta 2025, North America's order -- white first, then black -- drawn toward the colours:
+  // more red, green and blue than sold, the neutrals still most of the street.
+  assert.ok(sedan.white + sedan.pearl > 0.17 && sedan.white + sedan.pearl < 0.24);
+  assert.ok(sedan.black + sedan.blueblack > 0.13 && sedan.black + sedan.blueblack < 0.19);
+  const neutral = ["white", "pearl", "black", "blueblack", "silver", "lightsilver", "lightgrey", "grey", "graphite", "gunmetal"].reduce((a, k) => a + (sedan[k] || 0), 0);
+  assert.ok(neutral > 0.5 && neutral < 0.7, `neutrals ${neutral}`);
+  const reds = sedan.red + sedan.candy + sedan.maroon, blues = sedan.blue + sedan.darkblue + sedan.navy + sedan.skyblue;
+  assert.ok(reds > 0.1 && blues > 0.14 && sedan.darkgreen > 0.03, `reds ${reds} blues ${blues}`);
+  // Several shades of each: greys and silvers, dark blues and blue-blacks.
+  for (const k of ["lightgrey", "grey", "graphite", "gunmetal", "silver", "lightsilver", "darkblue", "navy", "blueblack", "darkgreen"]) assert.ok(sedan[k] > 0, k);
   // Each kind its own way: vans nearly all white, sports cars far redder than sedans.
   assert.ok(shares("delivery_van").white > 0.8);
   assert.ok(shares("sports").red > 2 * sedan.red);

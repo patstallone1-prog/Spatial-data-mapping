@@ -468,8 +468,10 @@ const DOOR_HEIGHT_M = 2.1;
 //: Doors are drawn this far from the walker: far enough that one is not seen to appear.
 const DOOR_DRAW_M = 120;
 const INTERIOR_KEEP_M = 70;
-//: Rooms are drawn with the camera this near their house: in at an open door, not past it.
-const INTERIOR_DRAW_M = 15;
+//: Rooms are drawn with the camera this near their house: from the pavement and across a narrow
+//: street, seen through its windows (15 until 2026-11-26, only in at an open door; few houses have
+//: their rooms built at a time: interiorsOnStop).
+const INTERIOR_DRAW_M = 24;
 const INTERIOR_WALL_INSET_M = 0.08;
 //: A room's paint on an outside wall (buildInterior) stands this much inside the shell's lining
 //: (twice it for every other room, so two rooms meeting at a partition never share a plane), and

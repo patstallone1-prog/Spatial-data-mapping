@@ -104,11 +104,49 @@ function mappedWalkBeyondKerb(x, z, nx, nz, inner) {
         if (out < inner - half || out > inner + MAPPED_WALK_ABUT_M) continue;
         if (best && out >= best.out) continue;
         const kerb = renderedKerbHeight(way);
-        best = { out, edge: out - half, y: ROAD_TOP_M + kerb / 2, thickness: kerb };
+        best = { out, edge: out - half, half, ownWalk: typeof mappedSidewalkIsStreetWalk === "function" && mappedSidewalkIsStreetWalk(way), y: ROAD_TOP_M + kerb / 2, thickness: kerb };
       }
     }
   }
   return best;
+}
+
+//: Along one side of one block the pavement is one width (a city lays a block's walk to one
+//: standard): a station squeezed narrower than ``WALK_EVEN_SHARE`` of the side's own median by a
+//: building outline reaching toward the kerb is laid at the median all the same, when such
+//: stations are fewer than ``WALK_EVEN_MOST`` of the side. Outlines that poke a metre or two
+//: past the property line (a bay, a canopy traced as wall, a footprint off by its survey) left
+//: the walk there a strip of kerb with road-level ground behind it -- Chestnut at Pierce,
+//: 2026-11-26, where OpenStreetMap's own footway runs on unbroken at full width. The slab
+//: under a wall that really does stand there is inside the building and not seen.
+const WALK_EVEN_SHARE = 0.7;
+const WALK_EVEN_MOST = 0.35;
+function evenWalkAlongBlock(walkAt, walk) {
+  const n = walkAt.length;
+  if (n < 3) return walkAt;
+  const sorted = walkAt.slice().sort((a, b) => a - b);
+  const median = Math.min(walk, sorted[Math.floor(n / 2)]);
+  const narrow = walkAt.filter((w) => w < median * WALK_EVEN_SHARE).length;
+  if (narrow === 0 || narrow > n * WALK_EVEN_MOST) return walkAt;
+  for (let i = 0; i < n; i += 1) if (walkAt[i] < median * WALK_EVEN_SHARE) walkAt[i] = median;
+  return walkAt;
+}
+
+//: A mapped sidewalk that runs along a street's kerbside walk is that walk: the street lays it
+//: from the kerb to the property line at the sidewalk's own height, and it is not drawn again on
+//: top (two slabs a centimetre apart, each with its own kerb faces and squares, read as "a
+//: sidewalk with two layers" at the City spawn on Chestnut, 2026-11-26). Kept per way.
+const mappedSidewalkOwnWalk = new Map();
+function mappedSidewalkIsStreetWalk(way) {
+  if (!way || way.kind !== "sidewalk") return false;
+  const key = way.id ?? way;
+  if (!mappedSidewalkOwnWalk.has(key)) {
+    let own = false;
+    try { own = typeof pathAlongKerbsideWalk === "function" && !pathHasOwnMaterial(way) && pathAlongKerbsideWalk(way, 1.2, 0.6); }
+    catch (_) { own = false; }
+    mappedSidewalkOwnWalk.set(key, own);
+  }
+  return mappedSidewalkOwnWalk.get(key);
 }
 
 //: How far beyond the kerb to look for another carriageway. Pavement belongs outside the street,
@@ -1632,6 +1670,7 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, st
   // facade where the facade is further than that. A surveyed width that stops short of the
   // building is a setback, and the ground beyond it is the yard the ground cover draws.
   const walkAt = [];
+  const frames = [];
   const fits = widths.map(() => []);
   const meets = [];
   for (let i = 0; i < spine.length; i += 1) {
@@ -1659,6 +1698,12 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, st
       }
     }
     walkAt.push(target);
+    frames.push({ before, after, nx, nz, sx, sy, blocked });
+  }
+  if (typeof evenWalkAlongBlock === "function") evenWalkAlongBlock(walkAt, walk);   // (guarded: tests run this function on its own)
+  for (let i = 0; i < spine.length; i += 1) {
+    const { before, after, nx, nz, sx, sy, blocked } = frames[i];
+    const target = walkAt[i];
     for (let w = 0; w < widths.length; w += 1) {
       const width = Math.max(MIN_RENDER_WALK_M * 0.55, target * WALK_FALLBACK_WIDTHS_M[w]);
       const centre = offsetWay([before, spine[i], after], side * (kerbAt[i] + width / 2))[1];
@@ -1728,7 +1773,10 @@ function addKerbsidePavement(renderPoints, side, inner, walk, color, opacity, st
       if (typeof group[from] === "string" && group[from].startsWith("gap:")) {
         let gap = 0;
         for (let i = from; i <= to; i += 1) gap = Math.max(gap, meets[i] ? meets[i].edge - kerbAt[i] : 0);
-        width = Math.min(gap + KERB_LIP_M, MAX_RENDER_WALK_M);
+        // Out to the footway's far edge where the footway is the street's own walk and is not
+        // drawn again over it (mappedSidewalkIsStreetWalk); to its near edge where it is drawn.
+        const across = met.ownWalk ? 2 * met.half : 0;
+        width = Math.min(gap + across + KERB_LIP_M, MAX_RENDER_WALK_M);
         y = met.y;
         thickness = met.thickness;
       } else {

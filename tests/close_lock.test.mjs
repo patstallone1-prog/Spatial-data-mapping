@@ -83,20 +83,37 @@ test("close by, one whose day takes them indoors walks to the door and is gone o
   assert.equal(o2[0].moving, false);
 });
 
-test("one held back and walking into a wall goes in there, rather than standing at it", () => {
-  const wall = (x) => x > 12;   // a wall at x = 12 between them and where their day has them
-  const lock = closeLock("people", { inClose, portal: (x) => x > 11 });
+test("one held back with a wall between it and its day stands -- it neither walks on the spot nor goes in", () => {
+  const wall = (x) => x > 12;   // a building from x = 12 on, between them and where their day has them
+  const lock = closeLock("people", { inClose, portal: (x) => x > 11, open: (x) => !wall(x) });
   lock.frame({ x: 0, z: 0 }, 0); lock.step([person("k", 11.5, 0)], 1 / 60, 0);
-  let now = 0, out = [];
+  let now = 0, out = [], maxX = 0;
   for (let i = 0; i < 200; i += 1) {
     now += 16; lock.frame({ x: 0, z: 0 }, now);
     out = lock.step([person("k", 40, 0)], 1 / 60, now);
-    // (the view keeps them out of the wall, as keepOutside does)
-    const r = lock.records.get("k");
-    if (r?.drawn && wall(r.x)) { r.x = 12; if (out[0]) out[0].x = 12; }
+    maxX = Math.max(maxX, out[0]?.x ?? 0);
   }
-  assert.equal(out.length, 0, "gone in at the wall");
-  assert.equal(lock.stats.wentIn, 1);
+  assert.equal(out.length, 1, "still there");
+  assert.ok(maxX <= 12 + 1e-9, `walked into the wall to ${maxX}`);
+  assert.equal(out[0].moving, false, "standing, not walking on the spot");
+  assert.equal(lock.stats.wentIn, 0);
+  assert.ok(lock.stats.stuck >= 1);
+});
+
+test("a step that would go into a wall is slid along it", () => {
+  const lock = closeLock("people", { inClose, open: (x, z) => !(x > 12) });
+  lock.frame({ x: 0, z: 0 }, 0); lock.step([person("s", 11.99, 0)], 1 / 60, 0);
+  let now = 0, out;
+  for (let i = 0; i < 30; i += 1) { now += 16; lock.frame({ x: 0, z: 0 }, now); out = lock.step([person("s", 30, 10)], 1 / 60, now); }
+  assert.ok(out[0].x <= 12 && out[0].z > 0.3, `slid to ${out[0].x}, ${out[0].z}`);
+});
+
+test("a stall of a second or two is not a scene cut: nobody near you is put anywhere for it", () => {
+  const lock = closeLock("people", { inClose });
+  lock.frame({ x: 0, z: 0 }, 0); lock.step([person("t", 10, 0)], 1 / 60, 0);
+  lock.frame({ x: 0, z: 0 }, 1800);
+  const e = lock.step([person("t", 40, 0)], 1 / 60, 1800)[0];
+  assert.ok(e.x < 11, `put on to ${e.x}`);
 });
 
 test("one whose day has gone on to another walk finishes its own way first, round the corner", () => {

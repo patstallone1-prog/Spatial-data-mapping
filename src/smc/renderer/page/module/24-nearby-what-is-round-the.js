@@ -1009,8 +1009,12 @@ function updateIndoorGroundCut(x, z) {
 //: rooms until you stop -- on foot, standing ``still_s`` -- and then only the ``most`` nearest
 //: within ``near_m``; walk on and those further than ``drop_m`` are taken down again. The house
 //: you go into has its rooms built as its door swings open (toggleDoor, enteringDoor), and the
-//: one you are in keeps them. From the street an unbuilt house is what it was: dark glass.
-const INTERIOR_ON_STOP = { still_s: 0.6, near_m: 26, most: 3, drop_m: 34, retry_ms: 5000 };
+//: one you are in keeps them.
+//: Walking (on foot, not driving), the nearest ``walk_most`` houses ahead of the camera within
+//: ``walk_near_m`` get their real rooms too, one every ``walk_every_ms``, so the rooms seen through
+//: the windows going by are the house's own (2026-11-26).
+const INTERIOR_ON_STOP = { still_s: 0.6, near_m: 26, most: 3, drop_m: 34, retry_ms: 5000, walk_near_m: 20, walk_most: 3, walk_every_ms: 1200 };
+const interiorCameraAhead = new THREE.Vector3();
 const walkerStill = { x: NaN, z: NaN, since: 0 };
 const interiorStats = { built_on_stop: 0, dropped: 0, entered: 0 };
 //: The last few things that happened at doors (for kerbsideInteriorsOnStop().log): what, when (ms).
@@ -1040,16 +1044,26 @@ function interiorsOnStop(x, z) {
     if (interiorHeld(entry) || off(entry) <= INTERIOR_ON_STOP.drop_m) continue;
     removeInterior(entry); interiorStats.dropped += 1;
   }
-  // Stopped: the nearest few houses' rooms, one a frame.
-  if (still && INTERIORS && typeof homeShells !== "undefined") {
-    let have = 0, best = null, bestD = INTERIOR_ON_STOP.near_m;
-    for (const entry of interiorsBuilt) if (off(entry) <= INTERIOR_ON_STOP.near_m) have += 1;
-    if (have < INTERIOR_ON_STOP.most) for (const entry of homeShells) {
+  // Stopped: the nearest few houses' rooms, one a frame. Walking: the nearest one or two ahead,
+  // now and then.
+  const walking = !still && !driving && nowMs - (walkerStill.walkBuiltAt || -1e9) > INTERIOR_ON_STOP.walk_every_ms;
+  if ((still || walking) && INTERIORS && typeof homeShells !== "undefined") {
+    const near = still ? INTERIOR_ON_STOP.near_m : INTERIOR_ON_STOP.walk_near_m;
+    let have = 0, best = null, bestD = near;
+    for (const entry of interiorsBuilt) if (off(entry) <= near) have += 1;
+    camera.getWorldDirection(interiorCameraAhead);
+    const ahead = (entry) => still || ((entry.minX + entry.maxX) / 2 - camera.position.x) * interiorCameraAhead.x
+      + ((entry.minZ + entry.maxZ) / 2 - camera.position.z) * interiorCameraAhead.z > 0;
+    if (have < (still ? INTERIOR_ON_STOP.most : INTERIOR_ON_STOP.walk_most)) for (const entry of homeShells) {
       if (entry.interior || nowMs - (entry.interiorAskedAt || -1e9) < INTERIOR_ON_STOP.retry_ms) continue;
       const d = off(entry);
-      if (d < bestD && entryRoomsPossible(entry)) { bestD = d; best = entry; }
+      if (d < bestD && ahead(entry) && entryRoomsPossible(entry)) { bestD = d; best = entry; }
     }
-    if (best) { best.interiorAskedAt = nowMs; buildInterior(best); interiorStats.built_on_stop += 1; }
+    if (best) {
+      best.interiorAskedAt = nowMs; buildInterior(best);
+      if (still) interiorStats.built_on_stop += 1;
+      else { interiorStats.built_walking = (interiorStats.built_walking || 0) + 1; walkerStill.walkBuiltAt = nowMs; }
+    }
   }
   return still;
 }

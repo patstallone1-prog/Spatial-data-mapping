@@ -541,6 +541,14 @@ function setAppMode(mode) {
         if(at)placeWalkerAtDoor(at);
         return true;
       },
+      // A shop's fitted interior built to be seen through its windows from the street (the city's
+      // shops round the walker, view.mjs previewShops): true where it has one.
+      showFittedShop: id => {
+        const entry=footprintById.get(String(id));
+        if (!entry || !(entry.generatedInteriorRef && !entry.generatedInteriorFailed || entry.customInteriorEnabled && !entry.customInteriorFailed)) return false;
+        if (!entry.interior && entryRoomsPossible(entry)) buildInterior(entry);
+        return true;
+      },
       // The building whose fitted interior the walker is in (module 24's enteredEntry), by id.
       insideFitted: () => (typeof enteredEntry !== "undefined" && enteredEntry?.way ? String(enteredEntry.way.osm_id) : null),
       restaurantFront: id => {

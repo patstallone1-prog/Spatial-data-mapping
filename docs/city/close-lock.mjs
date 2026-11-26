@@ -26,11 +26,14 @@
 //: ``car_portal_m``: the same for a car (a garage, a drive).
 //: ``catch_up``: the most a share over its own pace one may go -- a brisker step, not a run.
 //: ``arrive_m``: as near as this to where it was going, one going in is in.
-//: ``cut_jump_m`` / ``cut_gap_ms``: a focus jump or a frame gap past these is a scene cut.
+//: ``cut_jump_m`` / ``cut_gap_ms``: a focus jump or a frame gap past these is a scene cut (the gap
+//: is long -- a hidden tab, not a stall: a stall of a second or two is not a cut, and nobody near
+//: you is put anywhere for it).
 //: ``settle_m``: the most anything else may move one close by in a frame after the lock has.
 //: ``walk_lag_s``: how far behind on its walk (s) one close by may be held (fleet.mjs holdWalk).
 //: ``stuck_ms`` / ``stuck_share``: one held back (or going in) that has made under this share of
-//: its way for this long -- walking into a wall -- goes in there, if it is a wall it can go into.
+//: its way for this long is stuck: it stands (it does not walk on the spot into a wall, and it
+//: does not go into one) and looks again after ``stuck_wait_ms``.
 export const CLOSE = {
   ring: { people: 82, cars: 100 },
   exit: 1.12,
@@ -39,8 +42,9 @@ export const CLOSE = {
   catch_up: 1.1,
   arrive_m: 0.35,
   cut_jump_m: 40,
-  cut_gap_ms: 2500,
-  stuck_ms: 1500,
+  cut_gap_ms: 20000,
+  stuck_ms: 800,
+  stuck_wait_ms: 3000,
   walk_lag_s: 3600,
   settle_m: 0.75,
   stuck_share: 0.25,
@@ -81,11 +85,19 @@ function wayOf(w, left) {
   return { key: w.key, pave: w.pave, d, end: w.round ? 0 : dir > 0 ? L : 0 };
 }
 
-function towards(rec, x, z, max) {
+// Straight toward (x, z) by up to ``max``; with ``open(x, z)`` (false inside a wall), never into
+// one: along the wall instead (the part of the step that runs along it), or not at all.
+function towards(rec, x, z, max, open = null) {
   const dx = x - rec.x, dz = z - rec.z, d = Math.hypot(dx, dz);
-  if (d <= max || d < 1e-9) { rec.x = x; rec.z = z; return d; }
-  rec.x += (dx / d) * max; rec.z += (dz / d) * max;
-  return d - max;
+  if (d < 1e-9) return 0;
+  const k = Math.min(1, max / d), nx = rec.x + dx * k, nz = rec.z + dz * k;
+  // (A door a little inside the wall it is in is still reached: the last metre and a half in.)
+  if (!open || d <= CLOSE.portal_m || open(nx, nz)) { rec.x = nx; rec.z = nz; return d * (1 - k); }
+  // Slid along the wall: the step's part across one axis, then the other.
+  for (const [sx, sz] of [[nx, rec.z], [rec.x, nz]]) {
+    if ((sx !== rec.x || sz !== rec.z) && open(sx, sz)) { rec.x = sx; rec.z = sz; return Math.hypot(x - sx, z - sz); }
+  }
+  return d;
 }
 
 //: A lock for one kind of thing ("people" or "cars"). ``portal(x, z, entry)``: whether one may
@@ -97,9 +109,11 @@ function towards(rec, x, z, max) {
 //: one whose day has gone on to another walk (or off the list) while it is still on its own way
 //: finishes that way first -- to its door, or back round to where its round began.
 //: ``release(entry)``: one drawn close by is out past the ring again (its day has it from here).
-export function closeLock(kind, { portal = () => false, inClose, free = () => false, pace = null, along = null, release = null } = {}) {
+//: ``open(x, z, entry)``: false where nothing may stand (inside a building): a straight step there is
+//: slid along the wall, or not taken.
+export function closeLock(kind, { portal = () => false, inClose, free = () => false, pace = null, along = null, release = null, open = null } = {}) {
   const recs = new Map();
-  const stats = { withheld: 0, ghosts: 0, held: 0, admitted: 0, cuts: 0, jumpsNear: 0, wentIn: 0, settled: 0, jumpsStopped: 0 };
+  const stats = { withheld: 0, ghosts: 0, held: 0, admitted: 0, cuts: 0, jumpsNear: 0, wentIn: 0, settled: 0, jumpsStopped: 0, stuck: 0 };
   const drawnAt = new Map();   // id -> where it was drawn last frame {x, z, t}
   let focusWas = null, lastAt = -Infinity, cutNow = true, cutFrame = false;
   const own = (e) => pace?.(e) ?? Math.max(e.speed || 0, e.person?.pace || (kind === "cars" ? PACE.cars : PACE.people));
@@ -156,10 +170,17 @@ export function closeLock(kind, { portal = () => false, inClose, free = () => fa
         r.close = true;
         // Close: from where it was drawn, no faster than it goes.
         const max = own(e) * CLOSE.catch_up * span + 0.002;
-        // (Walked into a wall it can go into, and getting nowhere: in it goes, and is not drawn
-        // again until its day has it out past the ring.)
-        if (r.lag > 0.05 && stuckFor(r, r.lastMax ?? max, now) > CLOSE.stuck_ms && portal(r.x, r.z, e)) {
-          r.withheld = true; r.drawn = false; r.since = undefined; stats.wentIn += 1; continue;
+        // (Getting nowhere -- a wall, a fence, a knot of people between it and where its day has
+        // it: it stands where it is, not walking on the spot, and looks again in a while. It does
+        // not go into the wall, and it is not put anywhere.)
+        if (r.waitUntil && now >= r.waitUntil) { r.waitUntil = 0; r.since = undefined; r.px = undefined; }
+        if (r.waitUntil > now || (r.lag > 0.05 && stuckFor(r, r.lastMax ?? max, now) > CLOSE.stuck_ms)) {
+          if (!(r.waitUntil > now)) { r.waitUntil = now + CLOSE.stuck_wait_ms; stats.stuck += 1; }
+          r.lag = Math.hypot(e.x - r.x, e.z - r.z);
+          const dx = e.x - r.x, dz = e.z - r.z;
+          e.x = r.x; e.z = r.z; e.moving = false; e.speed = 0; e.lagM = r.lag; e.waiting = true;
+          if (Math.hypot(dx, dz) > 0.05) e.yaw = Math.atan2(-dx, -dz);
+          stats.held += 1; out.push(e); continue;
         }
         r.px = r.x; r.pz = r.z; r.lastMax = max;
         // On its own way and well short of its day (or its day gone on to another walk): along
@@ -171,7 +192,7 @@ export function closeLock(kind, { portal = () => false, inClose, free = () => fa
           stats.held += 1; if (r.lag > 3) stats.jumpsNear += 1;
           out.push(e); continue;
         }
-        const left = towards(r, e.x, e.z, max);
+        const left = towards(r, e.x, e.z, max, open && ((x, z) => open(x, z, e)));
         r.lag = left;
         r.walk = e.walk?.key && e.walk.pave ? wayOf(e.walk, left) : null;
         if (left > 0.005) e.lagM = left;   // (how far behind its day it is drawn)
@@ -196,7 +217,9 @@ export function closeLock(kind, { portal = () => false, inClose, free = () => fa
         r.t = now;
         const e = r.entry;
         const max = own(e) * span + 0.002;
-        const stuck = stuckFor(r, r.lastMax ?? max, now) > CLOSE.stuck_ms;
+        if (r.waitUntil && now >= r.waitUntil) { r.waitUntil = 0; r.since = undefined; r.px = undefined; }
+        const stuck = r.waitUntil > now || stuckFor(r, r.lastMax ?? max, now) > CLOSE.stuck_ms;
+        if (stuck && !(r.waitUntil > now)) { r.waitUntil = now + CLOSE.stuck_wait_ms; stats.stuck += 1; }
         r.px = r.x; r.pz = r.z; r.lastMax = max;
         if (r.walk && alongWay(r, e, r.walk.end, max, along)) {
           if (Math.abs(r.walk.d - r.walk.end) <= 0.05 && portal(r.x, r.z, e)) { recs.delete(id); continue; }
@@ -204,11 +227,12 @@ export function closeLock(kind, { portal = () => false, inClose, free = () => fa
           continue;
         }
         r.walk = null;
-        const left = towards(r, r.wx, r.wz, max);
-        if ((left <= CLOSE.arrive_m || stuck) && portal(r.x, r.z, e)) { recs.delete(id); if (stuck) stats.wentIn += 1; continue; }
+        const left = stuck ? Math.hypot(r.wx - r.x, r.wz - r.z) : towards(r, r.wx, r.wz, max, open && ((x, z) => open(x, z, e)));
+        // (At the door it was going to: in. Stuck short of it: it stands, it does not go in.)
+        if (left <= CLOSE.arrive_m && portal(r.x, r.z, e)) { recs.delete(id); continue; }
         const dx = r.wx - r.x, dz = r.wz - r.z;
         e.x = r.x; e.z = r.z; e.ghost = true;
-        e.moving = left > CLOSE.arrive_m;
+        e.moving = left > CLOSE.arrive_m && !stuck;
         if (e.moving && Math.hypot(dx, dz) > 0.05) e.yaw = Math.atan2(-dx, -dz);
         if (!e.moving) { e.speed = 0; if (kind === "cars") e.parked = true; }
         stats.ghosts += 1;
@@ -231,7 +255,7 @@ export function closeLock(kind, { portal = () => false, inClose, free = () => fa
           else { r.x = e.x; r.z = e.z; }
         }
         const was = drawnAt.get(e.id);
-        if (was && !cutFrame && !free(e) && now - was.t < 250 && (inClose(e.x, e.z, 1) || inClose(was.x, was.z, 1))) {
+        if (was && !cutFrame && !free(e) && now - was.t < CLOSE.cut_gap_ms && (inClose(e.x, e.z, 1) || inClose(was.x, was.z, 1))) {
           const most = own(e) * CLOSE.catch_up * Math.min(0.25, Math.max(1 / 240, (now - was.t) / 1000)) + CLOSE.settle_m;
           const d = Math.hypot(e.x - was.x, e.z - was.z);
           if (d > most) {
