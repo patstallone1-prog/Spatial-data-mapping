@@ -760,9 +760,7 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
   const turns = way.turn || way.turn_fwd;
   if (turns && way.road_m && !isSidewalk && !isCrossing) {
     const tokens = String(turns).split("|");
-    const offsets = laneOffsets(widthMeters, tokens.length, way);
-    const [tLeft, tRight] = travelSpan(way, widthMeters);
-    const laneWidth = (tLeft - tRight) / tokens.length;
+    const { offsets, laneWidth } = turnArrowLanes(way, widthMeters, tokens.length);
     for (let i = 0; i < tokens.length; i += 1) {
       const kind = arrowKind(tokens[i]);
       if (!kind) continue;
@@ -778,7 +776,6 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
       const before = lane[lane.length - 2];
       const [x1, y1] = xy(before[0], before[1]);
       const [x2, y2] = xy(tail[0], tail[1]);
-      const bearing = Math.atan2(x2 - x1, -(y2 - y1));
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(Math.min(laneWidth * 0.6, 1.9), 2.6),
         new THREE.MeshStandardMaterial({
@@ -788,7 +785,7 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
         })
       );
       mesh.rotation.x = -Math.PI / 2;
-      mesh.rotation.z = -bearing;
+      mesh.rotation.z = turnArrowSpin(x2 - x1, y2 - y1);
       mesh.position.set(x2, roadTop + 0.02, -y2);
       addMerged("arrow", mesh, "marking");
       const run = Math.hypot(x2 - x1, y2 - y1) || 1;
@@ -1214,4 +1211,31 @@ function pathMostlyOnRoad(way) {
     }
   }
   return on >= n * 0.5;
+}
+
+//: The turn of a lane arrow's plane (rotation.z, after its rotation.x of -PI/2) so that its head
+//: points along (dx, dy) -- the way's direction in the page's x and y (y north, z = -y). The
+//: plane's +y (the arrow's head) lands on the ground as -z, its +x as +x: so the turn is the
+//: angle from +y to (dx, dy). It was -atan2(dx, -dy), which is right east and west and points
+//: every arrow on a north-south street backwards, turn hooks mirrored (2026-11-25).
+function turnArrowSpin(dx, dy) {
+  return Math.atan2(-dx, dy);
+}
+//: Where the arrows for ``count`` turn:lanes tokens go across ``way`` (offsets left of its line)
+//: and how wide each lane is. A one-way street's tokens span its travel lanes. A two-way
+//: street's (turn:lanes:forward, or turn:lanes on it) are its forward lanes only, the right-hand
+//: ones: spread over the whole road they put Bay Street's three forward arrows across all five
+//: lanes, two in the oncoming traffic's.
+function turnArrowLanes(way, roadWidth, count) {
+  const [left, right] = travelSpan(way, roadWidth);
+  const oneway = typeof onewaySign === "function" ? onewaySign(way) !== 0 : Boolean(way.oneway);
+  const total = Number(way.lanes) || 0, forward = Number(way.lanes_fwd) || 0;
+  if (oneway || count < 1) return { offsets: laneOffsets(roadWidth, count, way), laneWidth: (left - right) / Math.max(1, count) };
+  let laneWidth;
+  if (total > count && (!forward || forward === count)) laneWidth = (left - right) / total;
+  else if (forward && total > forward) laneWidth = (left - right) / total;
+  else laneWidth = (left - right) / 2 / count;
+  const offsets = [];
+  for (let i = 0; i < count; i += 1) offsets.push(right + (count - i - 0.5) * laneWidth);
+  return { offsets, laneWidth };
 }

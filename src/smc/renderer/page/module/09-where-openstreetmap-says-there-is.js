@@ -1423,7 +1423,8 @@ function markingRunsClearOfJunctions(points, way) {
     const [ax, ay] = xy(after[0], after[1]);
     const bearing = Math.atan2(-ay + by, ax - bx);
     blocked.push(crosswiseCarriagewayAt(x, -y, bearing, 0.2, way, false));
-    inJunction.push(insideIntersection(x, -y));
+    // (And off a mapped crosswalk's paint wherever it is: onMappedCrossing.)
+    inJunction.push(insideIntersection(x, -y) || (typeof onMappedCrossing === "function" && onMappedCrossing(x, -y)));
     if (i) {
       const [px, py] = xy(dense[i - 1][0], dense[i - 1][1]);
       station.push(station[i - 1] + Math.hypot(x - px, y - py));

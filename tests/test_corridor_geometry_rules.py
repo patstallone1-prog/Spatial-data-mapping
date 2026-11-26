@@ -265,6 +265,8 @@ def _run_crossing(js_body: str) -> dict:
     const MAPPED_CROSSING_YIELD_M = 6.0;
     const MAPPED_CROSSING_YIELD_DEG = 30.0;
     const mappedCrossingGrid = new Map();
+    const CROSSING_LINE_CLEAR_M = 0.6;
+    const mappedCrossingCover = new Map();
     """]
     parts += [_extract(name, js) for name in functions]
     parts.append(js_body)
@@ -629,7 +631,7 @@ console.log(JSON.stringify({
     assert result["farAwayYields"] is False, result
     js = _page_js()
     # Indexed before any way is drawn, and asked before the stand-in is laid.
-    assert js.index("indexMappedCrossing(span);") < js.index("const DRAW_ORDER = DATA.ways")
+    assert js.index("indexMappedCrossing(span, crossingWidth);") < js.index("const DRAW_ORDER = DATA.ways")
     replacements = _extract("addSidewalkCrossingReplacements", js)
     assert "if (nearMappedCrossing(span)) continue;" in replacements
 

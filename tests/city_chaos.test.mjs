@@ -297,16 +297,28 @@ test("a car is drawn only where its wheels take it: on the way it faces, never b
   assert.ok(Math.hypot(p[0] - 0.8, p[1] + 6) < 0.05);
 });
 
-test("a vehicle begins its turn before the corner, a bus earlier than a car, and nobody on foot changes", async () => {
-  const { alongRoute, TURN_LEAD, turnLead } = await import("../docs/city/people.mjs");
+test("a vehicle begins its turn before the corner where its plan says, keeps off the kerb, and nobody on foot changes", async () => {
+  const { alongRoute, TURN_LEAD, turnLead, planTurn, turnOverKerb } = await import("../docs/city/people.mjs");
   // East along x, then a right turn south (+z), each street 5 m to its kerb.
-  const pts = [[0, 0], [60, 0], [60, 60]], route = { pts, s: [0, 60, 120], length: 120, halves: [5, 5], classes: ["residential", "residential"] };
-  const lane = (lead) => { const f = () => 3.2; if (lead) f.lead = lead; return f; };
+  const pts = [[0, 0], [60, 0], [60, 60]], make = () => ({ pts, s: [0, 60, 120], length: 120, halves: [5, 5], classes: ["residential", "residential"] });
+  const route = make();
+  const lane = (lead, off = 3.2, body = {}) => { const f = () => off; if (lead) f.lead = lead; return Object.assign(f, body); };
   const turnedBy = (side, d) => { const a = alongRoute(route, d, side); const straight = alongRoute(route, 20, side); return Math.abs(a.yaw - straight.yaw); };
-  // Five metres short of the corner the old curve had not begun; with a lead it has.
+  // Five metres short of the corner a walker's offset has not begun to turn.
   assert.ok(turnedBy(lane(0), 55) < 1e-6);
-  assert.ok(turnedBy(lane(TURN_LEAD.car), 55) > 0.02, "a car is already turning");
-  assert.ok(turnedBy(lane(TURN_LEAD.long), 53) > 0.02 && turnedBy(lane(TURN_LEAD.car), 52.2) < 1e-6, "a bus begins sooner");
+  // A car begins where its turn's plan says (planTurn): turning just after, straight just before.
+  const legs = planTurn(make(), 1, 3.2, 3.2, 4.5, 1.9);
+  assert.ok(legs > 2 && legs < 8, `legs ${legs}`);
+  assert.ok(turnedBy(lane(TURN_LEAD.car), 60 - legs + 0.3) > 0.02, "a car is already turning");
+  assert.ok(turnedBy(lane(TURN_LEAD.car), 60 - legs - 0.3) < 1e-6, "and not before its plan");
+  // From a lane further from the inside kerb the turn is wider and begins sooner.
+  assert.ok(planTurn(make(), 1, 1.2, 1.2, 4.5, 1.9) > legs + 1, "the inner lane's turn begins sooner");
+  // Car and bus alike keep their bodies off the kerb all the way round (the bus's fixed lead
+  // took it 7 m over the inside kerb's corner here).
+  for (const [len, wid] of [[4.5, 1.9], [12, 2.6]]) {
+    const r = make(), l = planTurn(r, 1, 3.2, 3.2, len, wid);
+    assert.equal(turnOverKerb(r, 1, 3.2, 3.2, l, len, wid), 0, `a ${len} m vehicle keeps to the road`);
+  }
   assert.equal(turnLead(12), TURN_LEAD.long); assert.equal(turnLead(4.4), TURN_LEAD.car);
   // Its heading turns smoothly: no step of the way round turns more than a share of the whole.
   let last = alongRoute(route, 50, lane(TURN_LEAD.long)).yaw, most = 0;

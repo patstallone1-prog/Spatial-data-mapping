@@ -1538,6 +1538,7 @@ function animateAvatar(distance, direction, moving) {
   const wet = typeof walkerWaterAt === "function" ? walkerWaterAt(avatar.position.x, avatar.position.z, groundY) : null;
   avatar.userData.water = wet;
   avatar.position.y = AVATAR_STAND_Y + (wet ? wet.feet : groundY) + (wet?.mode === "swim" ? 0 : (avatar.userData.lift || 0));
+  walkerStepShown(groundY, moving);
   const climbing=moving&&avatar.userData.onStairs;
   avatar.userData.leftLeg.rotation.x = swing * (climbing?.85:.58);
   avatar.userData.rightLeg.rotation.x = -swing * (climbing?.85:.58);
@@ -1551,8 +1552,10 @@ function animateAvatar(distance, direction, moving) {
   // through the water is a walk.
   if (wet?.mode === "swim") setAvatarAction("Idle");
   // A step turn is stepped at a walk, quickly: a step a quarter turn.
+  // Up or down a flight of steps: the stair clip (motion capture), stepping onto each tread.
+  else if (climbing && !wet && avatarActions.StairsUp) setAvatarAction((avatar.userData.grade || 0) >= 0 ? "StairsUp" : "StairsDown");
   else setAvatarAction(moving ? ((climbing || pace < 0.7 || wet || avatar.userData.stepTurn) && avatarActions.Walk ? "Walk" : "Run") : "Idle");
-  if (avatarActiveAction) avatarActiveAction.timeScale = moving ? (avatar.userData.stepTurn ? 1.35 : Math.max(0.5, Math.min(1.15, pace))) : 1;
+  if (avatarActiveAction) avatarActiveAction.timeScale = moving ? (avatar.userData.stepTurn ? 1.35 : climbing ? Math.max(0.7, Math.min(1.3, pace * 1.9)) : Math.max(0.5, Math.min(1.15, pace))) : 1;
 }
 function updateAvatarMixer(dt) {
   if (avatarMixer) {
@@ -1563,6 +1566,8 @@ function updateAvatarMixer(dt) {
       ? Math.max(-.12,Math.min(.12,-(avatar.userData.grade||0)*.18)) : 0;
     // In the water: laid down to swim, upright to tread water (module 33).
     if (typeof swimBodyPose === "function") swimBodyPose(model, dt);
+    // Carried up or down a kerb over a stride, not in a frame (walkerStepShown).
+    if (model) walkerStepLift(model);
   }
   // Over the clip: how the city's walker holds, lifts, swings and throws (view.mjs).
   avatar.userData.afterPose?.(dt);
@@ -1724,6 +1729,14 @@ const MAX_DROP_GRADE = 1.2;
 //: A flight of steps is climbed at this share of the walking pace, up or down.
 const STAIR_PACE = 0.55;
 const PACE_PROBE_M = 0.6;
+//: A kerb, a doorstep, a step: a rise of more than STEP_MIN_M and up to STEP_UP_MAX_M (down:
+//: STEP_DOWN_MAX_M), level again just beyond it (within STEP_LEVEL_M), is stepped up or down in a
+//: stride -- never a slope too steep to walk, never a jump (2026-11-25: the user had to jump onto
+//: a pavement). The walker slows to STEP_PACE for the stride, the body is carried up from
+//: STEP_LIFT_FROM_M before the edge (the leading foot on the kerb) and eased over STEP_EASE_S,
+//: and a stride of the stair clip plays (walkerStepAhead, walkerStepLift).
+const STEP_MIN_M = 0.05, STEP_UP_MAX_M = 0.55, STEP_DOWN_MAX_M = 0.7, STEP_LEVEL_M = 0.1;
+const STEP_PACE = 0.65, STEP_EASE_S = 0.22, STEP_LIFT_FROM_M = 0.35;
 //: On a hill the walker goes at its own pace (SLOPE_BASE_SPEED, the first-person walk) times the
 //: slope's, however far out the view is zoomed: zoom changes how fast the map is crossed, not how
 //: fast a body climbs. It was the whole speed that was held to 2.2 m/s on any slope past 8%,
@@ -1746,6 +1759,8 @@ function walkPace(move) {
   const stairs = here.kind === "stairs" || ahead.kind === "stairs";
   const crossing = avatarMoveSpeed(true) > STREET_SPEED * 3 || state.indoors;
   let grade = (ahead.y - here.y) / PACE_PROBE_M;
+  const step = !crossing && !stairs ? stepAhead(x, z, move, here, ahead) : null;
+  if (step) return { factor: STEP_PACE, stairs: false, grade: 0, step };
   const plain = here.kind === "terrain" && ahead.kind === "terrain";
   if (plain && !crossing && (grade > MAX_WALK_GRADE || grade < -MAX_DROP_GRADE)) {
     // Along the slope instead: the contour, the way that is level here.
@@ -1765,6 +1780,72 @@ function walkPace(move) {
   if (stairs && !crossing) factor = Math.min(factor, STAIR_PACE);
   return { factor, stairs, grade };
 }
+//: A step in the way ``move`` goes (see STEP_UP_MAX_M): {rise, edge} -- how high, and how far
+//: ahead its edge is -- or null where the ground ahead is level, a slope, or too high a step.
+function stepAhead(x, z, move, here, ahead) {
+  const rise = ahead.y - here.y;
+  if (!(rise > STEP_MIN_M ? rise <= STEP_UP_MAX_M : rise < -STEP_MIN_M && rise >= -STEP_DOWN_MAX_M)) return null;
+  // Level again beyond: a step, not a hillside.
+  const beyond = walkerGroundInfo(x + move.x * PACE_PROBE_M * 1.8, z + move.z * PACE_PROBE_M * 1.8);
+  if (Math.abs(beyond.y - ahead.y) > STEP_LEVEL_M) return null;
+  // Where the edge is: the first tenth of the probe already up (or down) most of the way.
+  let edge = PACE_PROBE_M;
+  for (let t = 0.1; t < PACE_PROBE_M; t += 0.1) {
+    const y = walkerGroundInfo(x + move.x * t, z + move.z * t).y;
+    if (Math.abs(y - here.y) > Math.abs(rise) * 0.6) { edge = t; break; }
+  }
+  return { rise, edge };
+}
+//: A stride of the stair clip as a step is taken, blended over the walk at a weight that goes with
+//: the step's height (STEP_BLEND: a kerb is a small version of a stair's stride, not a stair's
+//: high knee), once a stride; faded out again by walkerStepShown.
+const STEP_BLEND = { per_m: 2.6, least: 0.25, most: 0.8 };
+function walkerStepAhead(step) {
+  const ud = avatar.userData, now = performance.now();
+  ud.stepAhead = { ...step, at: now };
+  if (step.edge > STEP_LIFT_FROM_M + 0.1 || (ud.stepClipUntil && now < ud.stepClipUntil)) return;
+  if (typeof WALKER_MOVES !== "undefined" && WALKER_MOVES.active) return;
+  const a = avatarActions[step.rise > 0 ? "StairsUp" : "StairsDown"];
+  if (!a || !avatarMixer) return;
+  const length = step.rise > 0 ? 0.6 : 0.45, blend = Math.max(STEP_BLEND.least, Math.min(STEP_BLEND.most, Math.abs(step.rise) * STEP_BLEND.per_m));
+  a.reset(); a.setLoop(THREE.LoopRepeat, Infinity); a.timeScale = 1.15; a.setEffectiveWeight(blend); a.fadeIn(0.08).play();
+  ud.stepClip = { action: a, end: now + (length / 1.15) * 1000 };
+  ud.stepClipUntil = ud.stepClip.end + 250;
+}
+//: The figure carried up (or down) a step over STEP_EASE_S rather than in a frame -- the figure
+//: only: the walker's feet, for everything else, are where the ground is. Up, it rises from
+//: STEP_LIFT_FROM_M before the edge, as the leading foot lands on the kerb.
+function walkerStepShown(groundY, moving) {
+  const ud = avatar.userData, now = performance.now();
+  const dt = Math.min(0.1, (now - (ud.feetShownAt ?? now)) / 1000);
+  ud.feetShownAt = now;
+  let target = groundY;
+  const ahead = ud.stepAhead;
+  if (moving && ahead && now - ahead.at < 120 && ahead.rise > 0 && ahead.edge < STEP_LIFT_FROM_M) {
+    const u = 1 - ahead.edge / STEP_LIFT_FROM_M;
+    target = groundY + ahead.rise * u * u * (3 - 2 * u);
+  }
+  const was = ud.feetShown ?? groundY, gap = target - was;
+  if (ud.water || ud.lift > 0 || Math.abs(gap) > STEP_DOWN_MAX_M + 0.05 || Math.abs(gap) < 0.002) ud.feetShown = target;
+  else ud.feetShown = was + gap * (1 - Math.exp(-dt / (STEP_EASE_S / 3)));
+  ud.stepOffset = ud.feetShown - groundY;
+  // The step's stride over: its clip let go, the walk carries on.
+  // (Unless the stairs have taken that clip up as the walk itself.)
+  if (ud.stepClip && now >= ud.stepClip.end) { if (ud.stepClip.action !== avatarActiveAction) ud.stepClip.action.fadeOut(0.15); ud.stepClip = null; }
+}
+//: Each frame after the mixer: the figure moved by the step's offset (undone in the water, where
+//: the swim sets its height).
+function walkerStepLift(model) {
+  const ud = avatar.userData;
+  const want = ud.water ? 0 : ud.stepOffset || 0;
+  if (ud.stepModel !== model.uuid) { ud.stepModel = model.uuid; ud.stepApplied = 0; }
+  const scale = model.parent ? model.parent.getWorldScale(STEP_SCALE).y || 1 : 1;
+  const local = want / scale;
+  if (Math.abs(local - (ud.stepApplied || 0)) < 1e-5) return;
+  model.position.y += local - (ud.stepApplied || 0);
+  ud.stepApplied = local;
+}
+const STEP_SCALE = new THREE.Vector3();
 function stepAvatar(now) {
   const dt = Math.min((now - previous) / 1000, 0.1);   // clamped: a backgrounded tab returns
   previous = now;                                       // with a huge delta and would teleport
@@ -1812,6 +1893,7 @@ function stepAvatar(now) {
   avatar.userData.pace = pace.factor;
   avatar.userData.onStairs=pace.stairs;
   avatar.userData.grade=pace.grade;
+  if (pace.step) walkerStepAhead(pace.step);
   if (!move.lengthSq()) { animateAvatar(0, new THREE.Vector3(), false); updateAvatarMixer(dt); return; }
   // Zoom changes flat-ground travel, not the rate at which a body climbs risers.
   let surfaceSpeed=walkSurfaceSpeed(scaled,pace)*vitalsPace*steered.pace;
