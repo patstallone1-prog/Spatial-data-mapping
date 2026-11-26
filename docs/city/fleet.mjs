@@ -2440,8 +2440,11 @@ export function laneSide(st) {
     const a = laneOffset(half, cls, park, i, route, st.from) + (st.dodge || 0), u = Math.max(0, st.lt);
     return a + (b - a) * u * u * (3 - 2 * u);
   };
-  // (How early it begins a turn: people.mjs alongRoute, TURN_LEAD.)
+  // (How early it begins a turn: people.mjs alongRoute, TURN_LEAD; and its body, for the
+  // turn's plan: planTurn.)
   side.lead = st.lead || 0;
+  side.bodyLength = st.len || 4.5;
+  side.bodyWidth = st.wid || 1.9;
   return side;
 }
 //: The street a car is on, as its lanes see it (for the record of knots).
@@ -2583,6 +2586,7 @@ export class Drivers {
         st.lt = 1; st.nextLook = 0; st.dodge = 0;
         // (A bicycle keeps the bike lane, or the kerb's edge of a shared one.)
         st.lead = c.bike ? 0 : turnLead(c.length || 4.5);
+        st.len = c.length || 4.5; st.wid = c.width || 1.9;
         st.side = c.bike ? (half, cls, park, i, route) => BIKE_LANE(half, cls, park, i, route) + st.dodge : laneSide(st);
         st.bike = Boolean(c.bike);
         st.dodgeTo = 0; st.hold = null; st.holdT = 0; st.backUp = 0;

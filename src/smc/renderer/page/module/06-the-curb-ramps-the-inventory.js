@@ -356,13 +356,54 @@ const MAPPED_CROSSING_YIELD_M = 6.0;
 const MAPPED_CROSSING_YIELD_DEG = 30.0;
 const mappedCrossingGrid = new Map();
 
-function indexMappedCrossing(points) {
+function indexMappedCrossing(points, width = 3.7) {
   const pose = crossingDrawPose(points);
   if (!pose) return;
+  pose.width = width;
   const key = `${Math.floor(pose.x / CROSSING_DEDUPE_CELL_M)}:${Math.floor(pose.z / CROSSING_DEDUPE_CELL_M)}`;
   let bucket = mappedCrossingGrid.get(key);
   if (!bucket) mappedCrossingGrid.set(key, bucket = []);
   bucket.push(pose);
+  // Every cell its paint (and the clear margin round it) covers, for onMappedCrossing.
+  const ux = Math.cos(pose.bearing), uz = Math.sin(pose.bearing), L = pose.length / 2 + 0.5, W = width / 2 + CROSSING_LINE_CLEAR_M + 0.5;
+  const xs = [L * ux + W * uz, L * ux - W * uz, -L * ux + W * uz, -L * ux - W * uz];
+  const zs = [L * uz - W * ux, L * uz + W * ux, -L * uz - W * ux, -L * uz + W * ux];
+  const c = CROSSING_DEDUPE_CELL_M;
+  for (let gx = Math.floor((pose.x + Math.min(...xs)) / c); gx <= Math.floor((pose.x + Math.max(...xs)) / c); gx += 1) {
+    for (let gz = Math.floor((pose.z + Math.min(...zs)) / c); gz <= Math.floor((pose.z + Math.max(...zs)) / c); gz += 1) {
+      const k = `${gx}:${gz}`;
+      let list = mappedCrossingCover.get(k);
+      if (!list) mappedCrossingCover.set(k, list = []);
+      list.push(pose);
+    }
+  }
+}
+
+//: Road lines stop this far (m) either side of a mapped crosswalk's paint. The junction test
+//: (markingRunsClearOfJunctions) only sees crosswalks inside a junction: the double yellow ran
+//: straight through mid-block crosswalks and those at T-junctions and skewed corners, and lane
+//: lines and the bike lane's edges through others (2026-11-25: 159 places in the Marina).
+const CROSSING_LINE_CLEAR_M = 0.6;
+const mappedCrossingCover = new Map();
+function onMappedCrossing(x, z, margin = CROSSING_LINE_CLEAR_M) {
+  const list = mappedCrossingCover.get(`${Math.floor(x / CROSSING_DEDUPE_CELL_M)}:${Math.floor(z / CROSSING_DEDUPE_CELL_M)}`);
+  if (!list) return false;
+  for (const p of list) {
+    const dx = x - p.x, dz = z - p.z, cb = Math.cos(p.bearing), sb = Math.sin(p.bearing);
+    if (Math.abs(dx * cb + dz * sb) <= p.length / 2 + 0.3 && Math.abs(-dx * sb + dz * cb) <= (p.width || 3.7) / 2 + margin) return true;
+  }
+  return false;
+}
+//: ``points`` (lon/lat) in the pieces that stay off mapped crosswalks.
+function splitAtMappedCrossings(points, step = 1.0) {
+  const dense = densifyWay(points, step), runs = [];
+  let run = [];
+  for (const p of dense) {
+    const [x, y] = xy(p[0], p[1]);
+    if (onMappedCrossing(x, -y)) { if (run.length >= 2) runs.push(run); run = []; } else run.push(p);
+  }
+  if (run.length >= 2) runs.push(run);
+  return runs.filter((r) => wayLength(r) > 1.0);
 }
 
 function nearMappedCrossing(points) {
@@ -1379,19 +1420,22 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
         }
         continue;
       }
-      const fill = ribbon(run.points, BIKE_LANE_M, 0xffffff, 1.0, roadTop + 0.010, 0.012, "bike");
-      if (fill) addMerged("bike:fill", fill, "bike");
-      // Both edges, every metre of the way, whether or not there is green under them: the lines
-      // are the lane and the colour is a treatment on top of it.
-      const outer = paintedLine(offsetWay(run.points, side * bikePaintEdgeOffset(BIKE_LANE_M)),
-                                BIKE_EDGE_W_M, 0xf2f5ef, roadTop + 0.030);
-      const innerPoints = offsetWay(run.points, -side * bikePaintEdgeOffset(BIKE_LANE_M));
-      const inner = run.label === "mixing"
-        ? paintedLine(densifyWay(innerPoints, BIKE_SKIP_M / 3), BIKE_EDGE_W_M, 0xf2f5ef,
-                      roadTop + 0.032, { dash: true, dashM: BIKE_SKIP_M, gapM: BIKE_SKIP_GAP_M })
-        : paintedLine(innerPoints, BIKE_EDGE_W_M, 0xf2f5ef, roadTop + 0.032);
-      if (outer) addMerged("bike:edge", outer, "marking");
-      if (inner) addMerged("bike:edge", inner, "marking");
+      // (Broken where a mapped crosswalk crosses it: the crosswalk is painted, not the lane.)
+      for (const piece of splitAtMappedCrossings(run.points)) {
+        const fill = ribbon(piece, BIKE_LANE_M, 0xffffff, 1.0, roadTop + 0.010, 0.012, "bike");
+        if (fill) addMerged("bike:fill", fill, "bike");
+        // Both edges, every metre of the way, whether or not there is green under them: the lines
+        // are the lane and the colour is a treatment on top of it.
+        const outer = paintedLine(offsetWay(piece, side * bikePaintEdgeOffset(BIKE_LANE_M)),
+                                  BIKE_EDGE_W_M, 0xf2f5ef, roadTop + 0.030);
+        const innerPoints = offsetWay(piece, -side * bikePaintEdgeOffset(BIKE_LANE_M));
+        const inner = run.label === "mixing"
+          ? paintedLine(densifyWay(innerPoints, BIKE_SKIP_M / 3), BIKE_EDGE_W_M, 0xf2f5ef,
+                        roadTop + 0.032, { dash: true, dashM: BIKE_SKIP_M, gapM: BIKE_SKIP_GAP_M })
+          : paintedLine(innerPoints, BIKE_EDGE_W_M, 0xf2f5ef, roadTop + 0.032);
+        if (outer) addMerged("bike:edge", outer, "marking");
+        if (inner) addMerged("bike:edge", inner, "marking");
+      }
     }
   }
 }

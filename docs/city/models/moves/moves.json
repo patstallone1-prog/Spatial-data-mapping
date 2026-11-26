@@ -5,7 +5,7 @@
  "targets": {
   "male": {
    "file": "male.glb",
-   "bytes": 1538812,
+   "bytes": 1616644,
    "moves": {
     "PunchGuard": {
      "from": "ual1:Punch_Enter",
@@ -642,12 +642,36 @@
       "ahead_m": 0.918,
       "up_m": -0.045
      }
+    },
+    "StairsUp": {
+     "from": "mixamo:StairsUp",
+     "loops": true,
+     "frames": 42,
+     "duration_s": 1.367,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.933,
+      "ahead_m": 0.453,
+      "up_m": 0.094
+     }
+    },
+    "StairsDown": {
+     "from": "mixamo:StairsDown",
+     "loops": true,
+     "frames": 29,
+     "duration_s": 0.933,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.8,
+      "ahead_m": 0.276,
+      "up_m": 0.168
+     }
     }
    }
   },
   "female": {
    "file": "female.glb",
-   "bytes": 1541560,
+   "bytes": 1619584,
    "moves": {
     "PunchGuard": {
      "from": "ual1:Punch_Enter",
@@ -1284,12 +1308,36 @@
       "ahead_m": 0.797,
       "up_m": -0.012
      }
+    },
+    "StairsUp": {
+     "from": "mixamo:StairsUp",
+     "loops": true,
+     "frames": 42,
+     "duration_s": 1.367,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.933,
+      "ahead_m": 0.392,
+      "up_m": 0.106
+     }
+    },
+    "StairsDown": {
+     "from": "mixamo:StairsDown",
+     "loops": true,
+     "frames": 29,
+     "duration_s": 0.933,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.8,
+      "ahead_m": 0.228,
+      "up_m": 0.167
+     }
     }
    }
   },
   "soldier": {
    "file": "soldier.glb",
-   "bytes": 1481112,
+   "bytes": 1555436,
    "moves": {
     "PunchGuard": {
      "from": "ual1:Punch_Enter",
@@ -1925,6 +1973,30 @@
       "at_s": 1.667,
       "ahead_m": 0.776,
       "up_m": 0.035
+     }
+    },
+    "StairsUp": {
+     "from": "mixamo:StairsUp",
+     "loops": true,
+     "frames": 42,
+     "duration_s": 1.367,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.933,
+      "ahead_m": 0.332,
+      "up_m": 0.055
+     }
+    },
+    "StairsDown": {
+     "from": "mixamo:StairsDown",
+     "loops": true,
+     "frames": 29,
+     "duration_s": 0.933,
+     "reach": {
+      "hand": "left",
+      "at_s": 0.8,
+      "ahead_m": 0.177,
+      "up_m": 0.097
      }
     }
    }

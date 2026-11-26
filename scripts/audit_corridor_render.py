@@ -114,6 +114,8 @@ FUNCTIONS = (
     "shouldDrawCrossing",
     "indexMappedCrossing",
     "nearMappedCrossing",
+    "onMappedCrossing",
+    "splitAtMappedCrossings",
     "pavementRunsOutsideCarriageway",
     "settleRunEnd",
     "mappedWalkNear",
@@ -206,6 +208,8 @@ const crossingDrawGrid = new Map();
 const crossingTrimStats = { trimmed: 0, dropped: 0 };
 const CROSSING_OVERLAP_SLACK_M2 = 0.15;
 const CROSSING_MIN_AFTER_TRIM_M = 3.0;
+const CROSSING_LINE_CLEAR_M = 0.6;
+const mappedCrossingCover = new Map();
 const MAPPED_CROSSING_YIELD_M = 6.0;
 const MAPPED_CROSSING_YIELD_DEG = 30.0;
 const mappedCrossingGrid = new Map();

@@ -536,6 +536,29 @@ export class Streets {
           ids.splice(i + 1, k - i - 1); J.splice(i + 1, k - i - 1);
           i += 1;
         }
+        // A jog: the way runs on past a node and comes back a metre or two to go on (nodes a
+        // step apart where a junction's ways meet, a connector's end). Driven, the car pivoted
+        // there on the spot, its body swinging out over the kerb -- 354 of 372 "U-turns" in
+        // 1,510 sampled Marina drives were these (2026-11-25). The node is left out and the two
+        // edges are one (as the longer of them).
+        for (let i = 1; i + 1 < ids.length;) {
+          const p = this.nodes[ids[i - 1]], q = this.nodes[ids[i]], r = this.nodes[ids[i + 1]];
+          const ax = q.x - p.x, az = q.z - p.z, bx = r.x - q.x, bz = r.z - q.z, la = Math.hypot(ax, az), lb = Math.hypot(bx, bz);
+          if (Math.min(la, lb) >= ROUTE_JOG_M || ax * bx + az * bz > -Math.cos(ROUTE_JOG_RAD) * la * lb) { i += 1; continue; }
+          // The node where it turns back goes -- unless it is a junction's (its stop line, its
+          // lights and its box are the drivers'): then the short piece's other end, if that is
+          // no junction's either; else the jog stays.
+          const crossing = (id) => (this.edges[id] || []).filter((e) => e.drive).length > 2;
+          const other = la < lb ? i - 1 : i + 1;
+          const drop = !crossing(ids[i]) ? i : other > 0 && other < ids.length - 1 && !crossing(ids[other]) ? other : -1;
+          if (drop < 0) { i += 1; continue; }
+          // (The two edges either side of the node dropped are one, as the longer of them: the
+          // one before it, or after it.)
+          const keep = drop === i ? (la >= lb ? i - 1 : i) : drop === i - 1 ? drop - 1 : drop;
+          for (const arr of per) { arr[drop - 1] = arr[keep]; arr.splice(drop, 1); }
+          ids.splice(drop, 1);
+          i = Math.max(1, Math.min(i, drop) - 1);
+        }
       }
       const pts = ids.map((id) => [this.nodes[id].x, this.nodes[id].z]);
       const s = [0];
@@ -716,6 +739,9 @@ function routeOn(pts, s, i, off, dd, out) {
 //: The straight a vehicle needs either side of a corner to turn through it (m), for a lane-side
 //: function's ``lead``: a car's, and a bus's or a lorry's (longer than LONG_VEHICLE_M).
 export const TURN_LEAD = { car: 4.5, long: 6.5 }, LONG_VEHICLE_M = 7;
+//: A drive's path doubling back (more than ROUTE_JOG_RAD) onto a piece shorter than ROUTE_JOG_M
+//: is a jog in the map's nodes, not a turn: Streets.route leaves it out.
+export const ROUTE_JOG_M = 4, ROUTE_JOG_RAD = 2.6;
 export const turnLead = (length) => (length > LONG_VEHICLE_M ? TURN_LEAD.long : TURN_LEAD.car);
 export function alongRoute(route, d, side = 0) {
   const pts = route.pts, s = route.s;
@@ -734,43 +760,152 @@ export function alongRoute(route, d, side = 0) {
       const a = v - 1, b = v, oa = routeSide(route, side, a), ob = routeSide(route, side, b);
       let reach = Math.max(Math.abs(oa), Math.abs(ob)) + 1;
       // A vehicle (``side.lead``: the length of straight it needs either side of a corner, by
-      // its size -- TURN_LEAD) begins its turn before the junction, not in the middle of it:
-      // the curve runs from that far back in its lane, gently at first and sharpest half way
-      // round. Without it a right turn from the kerb lane was a metre of curve at the lanes'
-      // corner: the car drove straight into the junction and pivoted there (a bus most of all).
+      // its size -- TURN_LEAD) begins its turn before the junction, not in the middle of it,
+      // as far back as its turn's plan says (planTurn: the radius its lane's gap to the inside
+      // kerb allows, tried with its body against both streets' kerbs and replanned if it would
+      // go over one).
       const lead = fn ? side.lead || 0 : 0;
       if (lead > 0) {
-        const ax = pts[v][0] - pts[v - 1][0], az = pts[v][1] - pts[v - 1][1], bx = pts[v + 1][0] - pts[v][0], bz = pts[v + 1][1] - pts[v][1];
-        const cross = ax * bz - az * bx, ang = Math.abs(Math.atan2(cross, ax * bx + az * bz));
-        if (ang > 0.35) {
-          const o = (oa + ob) / 2, k = Math.min(1, ang / 1.2);
-          // (Inside the turn the lanes' corner is nearer than the streets': the curve's legs
-          // are the reach less the lane's offset; outside it, the reach and the offset.)
-          reach = Math.max(reach, cross * o > 0 ? lead * k + Math.abs(o) : lead * 1.5 * k - Math.abs(o));
+        const planned = planTurn(route, v, oa, ob, side.bodyLength || (lead > TURN_LEAD.car ? 12 : 4.5), side.bodyWidth || TURN_PLAN.width);
+        if (planned > 0) reach = planned;
+        else {
+          const ax = pts[v][0] - pts[v - 1][0], az = pts[v][1] - pts[v - 1][1], bx = pts[v + 1][0] - pts[v][0], bz = pts[v + 1][1] - pts[v][1];
+          const cross = ax * bz - az * bx, ang = Math.abs(Math.atan2(cross, ax * bx + az * bz));
+          if (ang > 0.35) {
+            const o = (oa + ob) / 2, k = Math.min(1, ang / 1.2);
+            reach = Math.max(reach, cross * o > 0 ? lead * k + Math.abs(o) : lead * 1.5 * k - Math.abs(o));
+          }
         }
       }
       const r = Math.min(reach, (s[v] - s[v - 1]) / 2, (s[v + 1] - s[v]) / 2);
       if (r > 0 && Math.abs(d - s[v]) < r) {
-        // Round the corner on a curve from r before it in the way-in's lane to r after it in the
-        // way-out's, bent towards where the two lanes' lines meet: inside the turn, never out
-        // across it. (Blending the two lanes' lines carried past the corner swung a car turning
-        // right from a lane far from the middle out to the left first, into the junction's other
-        // traffic: 2026-11-11.)
-        const P0 = routeOn(pts, s, a, oa, s[v] - r, ON_P0), P2 = routeOn(pts, s, b, ob, s[v] + r, ON_P2);
-        const cr = P0.ux * P2.uz - P0.uz * P2.ux;
-        let cx = (P0.x + P2.x) / 2, cz = (P0.z + P2.z) / 2;
-        if (Math.abs(cr) > 0.15) {
-          const t = ((P2.x - P0.x) * P2.uz - (P2.z - P0.z) * P2.ux) / cr;
-          if (t > 0 && t < 2 * r + Math.max(Math.abs(oa), Math.abs(ob))) { cx = P0.x + P0.ux * t; cz = P0.z + P0.uz * t; }
-        }
-        const u = (d - (s[v] - r)) / (2 * r), m = 1 - u;
-        x = m * m * P0.x + 2 * m * u * cx + u * u * P2.x; z = m * m * P0.z + 2 * m * u * cz + u * u * P2.z;
-        const tx = 2 * m * (cx - P0.x) + 2 * u * (P2.x - cx), tz = 2 * m * (cz - P0.z) + 2 * u * (P2.z - cz);
-        yaw = Math.hypot(tx, tz) > 1e-9 ? Math.atan2(-tx, -tz) : P0.yaw;
+        const c = cornerOn(pts, s, v, oa, ob, r, d, ON_CORNER);
+        x = c.x; z = c.z; yaw = c.yaw;
       }
     }
   }
   return { x, z, yaw, half, cls: route.classes?.[lo] };
+}
+const ON_CORNER = { x: 0, z: 0, yaw: 0 };
+//: The point ``d`` along a corner's curve at route vertex ``v`` (legs ``r``, lanes ``oa`` in and
+//: ``ob`` out): a curve from r before the corner in the way-in's lane to r after it in the
+//: way-out's, bent towards where the two lanes' lines meet -- inside the turn, never out across
+//: it. (Blending the two lanes' lines carried past the corner swung a car turning right from a
+//: lane far from the middle out to the left first, into the junction's other traffic: 2026-11-11.)
+function cornerOn(pts, s, v, oa, ob, r, d, out) {
+  const P0 = routeOn(pts, s, v - 1, oa, s[v] - r, ON_P0), P2 = routeOn(pts, s, v, ob, s[v] + r, ON_P2);
+  const cr = P0.ux * P2.uz - P0.uz * P2.ux;
+  let cx = (P0.x + P2.x) / 2, cz = (P0.z + P2.z) / 2;
+  if (Math.abs(cr) > 0.15) {
+    const t = ((P2.x - P0.x) * P2.uz - (P2.z - P0.z) * P2.ux) / cr;
+    if (t > 0 && t < 2 * r + Math.max(Math.abs(oa), Math.abs(ob))) { cx = P0.x + P0.ux * t; cz = P0.z + P0.uz * t; }
+  }
+  const u = (d - (s[v] - r)) / (2 * r), m = 1 - u;
+  out.x = m * m * P0.x + 2 * m * u * cx + u * u * P2.x; out.z = m * m * P0.z + 2 * m * u * cz + u * u * P2.z;
+  const tx = 2 * m * (cx - P0.x) + 2 * u * (P2.x - cx), tz = 2 * m * (cz - P0.z) + 2 * u * (P2.z - cz);
+  out.yaw = Math.hypot(tx, tz) > 1e-9 ? Math.atan2(-tx, -tz) : P0.yaw;
+  return out;
+}
+
+//: How a vehicle's turns are planned (2026-11-25: a car turned over the kerb). The index: a car
+//: holds a radius through a corner of the kerb's own radius (kerb_r) plus its lane's gap to the
+//: inside kerb, so the sharpness of a turn goes with where it starts and how wide it is -- a turn
+//: from a lane further from the kerb is wider and begins earlier, one hugging it is tighter and
+//: begins late. The curve's legs follow from that radius and the angle. The planned path is then
+//: driven in advance with the body (length x width, every ``step`` m): wherever a corner of it
+//: would leave the two streets' carriageways (their kerbs, less ``margin``) the turn is replanned
+//: with legs nearer and farther in turn (``tries``) until one clears; if none does, the one over
+//: the kerb least. Plans are kept per corner and lane (``route.turnPlans``).
+export const TURN_PLAN = { kerb_r: 3.0, margin: 0.15, step: 0.5, width: 1.9, min_leg: 1.5, shift_per_m: 1.5, tries: [0, -0.5, 0.5, -1, 1, -1.5, 1.5, -2, 2, -3, 3, -4, 4] };
+export const turnPlanStats = { planned: 0, clear: 0, replanned: 0, over: 0 };
+//: The curve legs (m) planned for vertex ``v`` of ``route`` in lanes ``oa``/``ob``, or 0 where
+//: there is nothing to plan (no bend, no widths).
+export function planTurn(route, v, oa, ob, length = 4.5, width = TURN_PLAN.width) {
+  const pts = route.pts, s = route.s, halves = route.halves;
+  if (!halves || !(v > 0 && v < pts.length - 1)) return 0;
+  const key = v * 1e6 + Math.round(oa * 4 + 400) * 1000 + Math.round(ob * 4 + 400) + (length > LONG_VEHICLE_M ? 0.5 : 0);
+  const cache = route.turnPlans || (route.turnPlans = new Map());
+  const hit = cache.get(key);
+  if (hit !== undefined) return hit;
+  if (cache.size > 2000) cache.clear();
+  const legs = turnLegs(route, v, oa, ob, length, width);
+  cache.set(key, legs);
+  return legs;
+}
+//: The turn's index: legs for a corner turning ``ang`` (rad) with ``gap`` m from the lane to the
+//: inside kerb -- the curve's middle lands where an arc of radius kerb_r + gap would.
+export function turnIndexLegs(ang, gap, kerbR = TURN_PLAN.kerb_r) {
+  const R = kerbR + Math.max(0, gap), h = Math.max(0.05, Math.min(Math.PI - 0.05, ang)) / 2;
+  return (2 * R * (1 / Math.cos(h) - 1)) / Math.sin(h);
+}
+function turnLegs(route, v, oa, ob, length, width) {
+  const pts = route.pts, s = route.s, halves = route.halves;
+  const ax = pts[v][0] - pts[v - 1][0], az = pts[v][1] - pts[v - 1][1], bx = pts[v + 1][0] - pts[v][0], bz = pts[v + 1][1] - pts[v][1];
+  const cross = ax * bz - az * bx, ang = Math.abs(Math.atan2(cross, ax * bx + az * bz));
+  const ha = halves[v - 1] || 0, hb = halves[v] || 0;
+  if (ang <= 0.35 || !(ha > 0) || !(hb > 0)) return 0;
+  const sgn = cross > 0 ? 1 : -1;
+  // The lane's gap to the inside kerb, on the way in and on the way out (the nearer).
+  const gap = Math.min(ha - oa * sgn, hb - ob * sgn) - width / 2;
+  const most = Math.min((s[v] - s[v - 1]) / 2, (s[v + 1] - s[v]) / 2);
+  // (Where the lane moves across at the corner -- streets of different widths meeting at a
+  // bend -- the curve needs room to make the move as well: shift_per_m metres of it per metre.)
+  const shift = Math.abs(oa - ob) * TURN_PLAN.shift_per_m;
+  const ideal = Math.min(most, Math.max(TURN_PLAN.min_leg, turnIndexLegs(ang, gap), shift));
+  turnPlanStats.planned += 1;
+  let best = ideal, bestOver = Infinity;
+  const tryLegs = (r) => {
+    if (r < TURN_PLAN.min_leg - 1e-6 || r > most + 1e-6) return false;
+    const over = turnOverKerb(route, v, oa, ob, r, length, width);
+    if (over < bestOver - 1e-6) { bestOver = over; best = r; }
+    return over === 0;
+  };
+  let done = false;
+  for (let i = 0; i < TURN_PLAN.tries.length && !done; i += 1) done = tryLegs(ideal + TURN_PLAN.tries[i]);
+  // Nothing near the index clears: every leg the corner has room for, nearest the index first.
+  for (let k = 1; !done && k * TURN_PLAN.step <= most; k += 1) {
+    const a = ideal + 4 + k * TURN_PLAN.step, b = ideal - 4 - k * TURN_PLAN.step;
+    if (a > most && b < TURN_PLAN.min_leg) break;
+    done = tryLegs(a) || tryLegs(b);
+  }
+  if (bestOver === 0) { turnPlanStats[best === ideal ? "clear" : "replanned"] += 1; }
+  else turnPlanStats.over += 1;
+  return best;
+}
+// How far a carriageway point is outside the streets the corner joins: segment i's ribbon
+// (its half width, less the margin), carried past its ends by ``ext`` metres.
+function outsideRibbon(pts, halves, i, x, z, ext) {
+  const p = pts[i], q = pts[i + 1], dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L;
+  const a = (x - p[0]) * ux + (z - p[1]) * uz, c = Math.abs(-(x - p[0]) * uz + (z - p[1]) * ux);
+  const beyond = a < -ext ? -ext - a : a > L + ext ? a - L - ext : 0;
+  return Math.max(beyond, c - ((halves[i] || 0) - TURN_PLAN.margin));
+}
+//: How far (m, summed over the body's corners) the vehicle's body goes over a kerb driving the
+//: corner at ``v`` on legs ``r``: 0 when it keeps to the carriageway all the way round.
+export function turnOverKerb(route, v, oa, ob, r, length = 4.5, width = TURN_PLAN.width) {
+  const pts = route.pts, s = route.s, halves = route.halves;
+  const segs = [v - 2, v - 1, v, v + 1].filter((i) => i >= 0 && i < pts.length - 1);
+  const ext = Math.max(halves[v - 1] || 0, halves[v] || 0) + 1;
+  // Only what the turn adds: a body corner already outside on the straight lane line (a lane
+  // drawn too near the kerb) is not counted against the curve.
+  const outside = (x, z) => { let best = Infinity; for (const i of segs) best = Math.min(best, outsideRibbon(pts, halves, i, x, z, ext)); return Math.max(0, best); };
+  const fl = length / 2, fw = width / 2, at = { x: 0, z: 0, yaw: 0 };
+  let over = 0;
+  for (let d = s[v] - r; d <= s[v] + r + 1e-6; d += TURN_PLAN.step) {
+    const c = cornerOn(pts, s, v, oa, ob, r, d, at), fx = -Math.sin(c.yaw), fz = -Math.cos(c.yaw), rx = -fz, rz = fx;
+    for (const [f, w] of [[fl, fw], [fl, -fw], [-fl, fw], [-fl, -fw], [0, fw], [0, -fw]]) {
+      const px = c.x + fx * f + rx * w, pz = c.z + fz * f + rz * w;
+      const o = outside(px, pz);
+      if (o > 0) {
+        // Against the same corner of the body on the straight lane line here.
+        const st = d < s[v] ? routeOn(pts, s, v - 1, oa, d, ON_P0) : routeOn(pts, s, v, ob, d, ON_P2);
+        const sx = -Math.sin(st.yaw), sz = -Math.cos(st.yaw);
+        const base = outside(st.x + sx * f - sz * w, st.z + sz * f + sx * w);
+        if (o > base + 0.05) over += o - base;
+      }
+    }
+  }
+  return +over.toFixed(3);
 }
 
 // ---- on foot: the pavements and the crosswalks ------------------------------------------------------

@@ -131,6 +131,10 @@ MOVES = {
     "ChopHeld": ("mixamo", "ChopHeld", False, {"max_s": 1.4}),
     "Dig": ("mixamo", "Dig", True),
     "PushObject": ("mixamo", "PushObject", True, {"max_s": 2}),
+    # Walking up and down a flight of steps (in place): the stairs, and a kerb stepped up or down
+    # as one stride of it. The page lifts the body; the clip bends the legs onto the step.
+    "StairsUp": ("mixamo", "StairsUp", True, {"rise": False}),
+    "StairsDown": ("mixamo", "StairsDown", True, {"rise": False}),
 }
 REFERENCE = "A_TPose"
 

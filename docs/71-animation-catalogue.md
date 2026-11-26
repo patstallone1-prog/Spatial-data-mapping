@@ -46,7 +46,7 @@ this pass does about it; "—" means left for later.
 |---|---|---|
 | Quaternius **Universal Animation Library** 1 and 2, Standard (OpenGameArt, uploaded by Quaternius) | **CC0 1.0**: free for any use, no credit needed (credited anyway) | **Yes.** 41 clips retargeted (`tools/avatars/build_moves.py`) onto the crowd, avatar and Soldier skeletons, in `docs/city/models/moves/` |
 | Epic Game Animation Sample (500+ clips), Lyra, Paragon packs | Free, but under the Unreal Engine EULA, for **Unreal Engine products**. The web game is not one | Not for the web game. Usable in the Unreal port (`unreal/`), and it needs a Fab download from your Epic account |
-| Mixamo | Free with an Adobe account; royalty-free in a game; raw files must not be redistributed | **Yes (second pass)**, through your sign-in: 11 clips exported skeleton-only (X Bot, 30 fps), retargeted by the same script and baked into the moves files. The raw FBX files are kept out of the repository |
+| Mixamo | Free with an Adobe account; royalty-free in a game; raw files must not be redistributed | **Yes (second and third passes)**, through your sign-in: 13 clips exported skeleton-only (X Bot, 30 fps), retargeted by the same script and baked into the moves files. The raw FBX files are kept out of the repository |
 | Reallusion ActorCore free clips | Free with an account; licence per clip | Not needed: Mixamo covered every action this pass replaced |
 | MoCap Online | Paid | Excluded |
 | NVIDIA Komodo / UE 5.9 text-to-motion; video-to-motion tools | Editor tools; output licensing varies | Not used: Unreal-side, or uncertain licences |
@@ -60,6 +60,15 @@ this pass does about it; "—" means left for later.
 - Not found on Mixamo: hands up or cuffed (kept posed), and nothing better than the posed
   eat/drink for a held item. Car entry and exit clips exist (Entering Car, Exiting Car) but are not
   used yet: they need the body moved through the door by the clip.
+
+## Third pass: stairs and kerbs (2026-11-25)
+- The walker climbed a flight of steps with its walk clip slowed (the leg swing in code moved only
+  the fallback rig), and went up a kerb in a single frame -- a 10-30 cm pop. Mixamo's Ascending
+  Stairs and Descending Stairs (in place) are now `StairsUp` and `StairsDown` in every moves file.
+- On stairs the stair clip plays instead of the walk. At a kerb, a doorstep or any rise up to
+  0.55 m that is level beyond (module 26 `stepAhead`), the walker slows for a stride, a stride of
+  the stair clip plays, and the figure is carried up from the leading foot's landing over about a
+  fifth of a second (`walkerStepShown`, `walkerStepLift`). No jump is needed for a kerb.
 
 ## What is still procedural
 Left as they were: sit (you: the view is from your eyes when seated), eat, the climb IK, the saw,

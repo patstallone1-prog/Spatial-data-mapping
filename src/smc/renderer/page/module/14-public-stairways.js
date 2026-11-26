@@ -945,8 +945,8 @@ for (const way of DATA.ways) {
   if (wayLength(way.points) > 40) continue;
   const span = crossingRectanglePoints(way.points);
   if (!span || span.length < 2) continue;
-  indexMappedCrossing(span);
   const crossingWidth = way.crossing_m || 3.7;
+  indexMappedCrossing(span, crossingWidth);
   addCrossingAsphaltBackstop(span, crossingWidth, ROAD_TOP_M);
 }
 // ---- the region's own bridges: decks carried between their abutments -------------------------
