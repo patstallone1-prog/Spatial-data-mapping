@@ -101,3 +101,13 @@ test("an arrest is the whole of it: against a wall, cuffed, walked to the car, t
   // (The walked figure kept at the yaw it was placed at, not turned to -yaw.)
   assert.doesNotMatch(police, /animateWalk\?\.\(st, Math\.sin\(-yaw\)/);
 });
+
+test("a caller's phone is held on the cheek, clear of the head, and drawn from either side", () => {
+  const figs = readFileSync(new URL("../docs/city/npc-figures.mjs", import.meta.url), "utf8");
+  const call = figs.match(/call: \{ at: "head", off: \[([^\]]+)\]/);
+  const [x, , z] = call[1].split(",").map(Number);
+  assert.ok(x <= -0.1 && z >= 0.03, call[1]);
+  assert.match(figs, /mesh\.material\.side = THREE\.DoubleSide;\n\s+mesh\.name = `city-crowd-\$\{sex\}-phone`/);
+  const view = readFileSync(new URL("../docs/city/view.mjs", import.meta.url), "utf8");
+  assert.match(view, /p\.gesture\?\.kind === "phone" \? "call"/);
+});

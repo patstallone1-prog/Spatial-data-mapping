@@ -775,6 +775,9 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       if (g) {
         const u = { kbBones: { value: texture }, kbBind: { value: new THREE.Matrix4() }, kbPost: { value: bodyPost }, kbOldMap: { value: old }, kbMean: { value: new THREE.Vector3(0.5, 0.5, 0.5) }, kbJawPivot: { value: new THREE.Vector3() } };
         const mesh = new THREE.Mesh(g.geometry, material("phone", u, {}));
+        // (Both sides: the imported model's faces wind both ways, and one-sided the case seen from
+        // behind the caller was its outline only -- 2253 triangles, nothing to save.)
+        mesh.material.side = THREE.DoubleSide;
         mesh.name = `city-crowd-${sex}-phone`;
         mesh.frustumCulled = false; mesh.castShadow = false; mesh.receiveShadow = false; mesh.visible = false;
         mesh.matrixAutoUpdate = false; mesh.raycast = () => {}; mesh.renderOrder = 1;
