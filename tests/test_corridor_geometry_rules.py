@@ -265,7 +265,7 @@ def _run_crossing(js_body: str) -> dict:
     const MAPPED_CROSSING_YIELD_M = 6.0;
     const MAPPED_CROSSING_YIELD_DEG = 30.0;
     const mappedCrossingGrid = new Map();
-    const CROSSING_LINE_CLEAR_M = 0.6;
+    const CROSSING_LINE_CLEAR_M = 0.6, CROSSING_COVER_ALONG_M = 2.5, CROSSING_COVER_ACROSS_M = 2.2;
     const mappedCrossingCover = new Map();
     """]
     parts += [_extract(name, js) for name in functions]
@@ -1063,6 +1063,7 @@ BIKE_FUNCTIONS = (
     "nominalRoadWidth",
     "renderedRoadWidth",
     "bikeLaneOffset",
+    "bikeLaneCentreLine",
     "indexBikeLaneEnds",
     "indexLaneEnds",
     "laneEndDirection",
@@ -1088,6 +1089,8 @@ const BIKE_END_TRIM_M = 2.0;
 const BIKE_CROSS_ANGLE_DEG = 25.0;
 const BIKE_JOIN_FACING = -0.5;
 const BIKE_MIXING_M = 7.6;
+const BIKE_KERB_STEP_M = 2.0, BIKE_TAPER_M = 6.0, BIKE_KERB_TRUST_M = 5.0, BIKE_FAR_JOIN_M = 9, BIKE_FAR_SIDE_M = 7;
+const bikeLaneStats = { lanes: 0, kerbFollowed: 0, stations: 0, read: 0, farJoins: 0 };
 const bikeJoinGrid = new Map();
 const BIKE_AREA_CELL = 4.0;
 const bikeAreaGrid = new Map();

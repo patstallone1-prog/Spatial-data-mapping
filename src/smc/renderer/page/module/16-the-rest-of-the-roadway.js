@@ -288,7 +288,14 @@ function islandRingOffRoadway(ring) {
   // dropped and left only its crossings' yellow paint and a trimmed piece, unconnected). It is
   // cut back out of the junction box only, where cars turn across it.
   const along = islandMedianAxis(ring);
-  if (along) return islandOutOf(ring, (x, z) => insideJunctionBox(x, z) && !islandCrossingLanding(x, z), "medians");
+  if (along) {
+    // A divider (medianKind: too thin to wait on, or long and thin, with no bus stop) ends short
+    // of each crosswalk, its noses rounded, and the crosswalk crosses the street there; a refuge
+    // keeps the ground under the crossing's ends, as before.
+    const kind = countMedianKind(medianKind({ width: along.W, length: along.L, busStop: busStopOnMedian(along.cx, along.cz) }));
+    if (kind.kind === "divider") return dividerPieces(ring, along);
+    return islandOutOf(ring, (x, z) => insideJunctionBox(x, z) && !islandCrossingLanding(x, z), "medians");
+  }
   if (road > inside * ISLAND_ROAD_MAX) { islandStats.dropped += 1; return null; }
   return islandOutOf(ring, onRoad, "trimmed");
 }
@@ -309,7 +316,73 @@ function islandMedianAxis(ring) {
     a0 = Math.min(a0, a); a1 = Math.max(a1, a); c0 = Math.min(c0, c); c1 = Math.max(c1, c);
   }
   const L = a1 - a0, W = c1 - c0;
-  return W >= ISLAND_MEDIAN_WIDTH_M[0] && W <= ISLAND_MEDIAN_WIDTH_M[1] && L >= ISLAND_MEDIAN_LONG * W ? { ux, uz, L, W } : null;
+  return W >= ISLAND_MEDIAN_WIDTH_M[0] && W <= ISLAND_MEDIAN_WIDTH_M[1] && L >= ISLAND_MEDIAN_LONG * W ? { ux, uz, L, W, cx, cz, street: seg[6]?.name || null } : null;
+}
+//: A divider laid: ``ring`` cut back out of the junction's box and DIVIDER_NOSE_CLEAR_M short of
+//: each crosswalk (dividerNoseCut), each piece left a strip with a rounded nose at each end (a
+//: half circle across its width), read along ``axis`` every DIVIDER_STEP_M. The pieces' rings
+//: ([] where nothing is left); each piece's bed is noted for its hedge (DIVIDER_BEDS).
+const DIVIDER_STEP_M = 0.25, DIVIDER_PIECE_MIN_M = 1.5, DIVIDER_NOSE_SIDES = 8;
+function dividerPieces(ring, axis, source = "island") {
+  const { ux, uz, cx, cz } = axis, vx = -uz, vz = ux;
+  const A = ring.map(([x, z]) => [(x - cx) * ux + (z - cz) * uz, (x - cx) * vx + (z - cz) * vz]);
+  let a0 = Infinity, a1 = -Infinity;
+  for (const [a] of A) { a0 = Math.min(a0, a); a1 = Math.max(a1, a); }
+  // The ring across at ``a``: its nearest and furthest edge, or null.
+  const across = (a) => {
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < A.length; i += 1) {
+      const [p0, q0] = A[i], [p1, q1] = A[(i + 1) % A.length];
+      if ((p0 - a) * (p1 - a) > 0) continue;
+      const q = p1 === p0 ? null : q0 + (q1 - q0) * (a - p0) / (p1 - p0);
+      for (const v of q === null ? [q0, q1] : [q]) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    }
+    return hi - lo > 0.2 ? [lo, hi] : null;
+  };
+  const at = (a, c) => [cx + ux * a + vx * c, cz + uz * a + vz * c];
+  const stations = [];
+  for (let a = a0 + DIVIDER_STEP_M / 2; a <= a1 - DIVIDER_STEP_M / 2 + 1e-6; a += DIVIDER_STEP_M) {
+    const c = across(a);
+    if (!c) { stations.push(null); continue; }
+    const cut = [c[0] + 0.05, (c[0] + c[1]) / 2, c[1] - 0.05].some((q) => dividerNoseCut(...at(a, q)));
+    stations.push(cut ? null : { a, lo: c[0], hi: c[1] });
+  }
+  const pieces = [];
+  let run = [];
+  for (const st of stations.concat([null])) {
+    if (st) { run.push(st); continue; }
+    if (run.length && run[run.length - 1].a - run[0].a >= DIVIDER_PIECE_MIN_M) pieces.push(run);
+    run = [];
+  }
+  const out = [];
+  for (const piece of pieces) {
+    const first = piece[0], last = piece[piece.length - 1];
+    const s0 = first.a - DIVIDER_STEP_M / 2, s1 = last.a + DIVIDER_STEP_M / 2;
+    const mid = (st) => (st.lo + st.hi) / 2, half = (st) => (st.hi - st.lo) / 2;
+    // The noses: a half circle of the end's half-width, its tip at the piece's end.
+    const r0 = Math.min(half(first), (s1 - s0) / 2), r1 = Math.min(half(last), (s1 - s0) / 2);
+    const body = piece.filter((st) => st.a > s0 + r0 && st.a < s1 - r1);
+    const left = [], right = [];
+    for (let k = 0; k <= DIVIDER_NOSE_SIDES; k += 1) {
+      const th = (Math.PI / 2) * (k / DIVIDER_NOSE_SIDES);   // from the tip round to the side
+      const a = s0 + r0 - r0 * Math.cos(th), w = r0 * Math.sin(th);
+      if (k === 0) { left.push(at(a, mid(first))); continue; }
+      left.push(at(a, mid(first) + w)); right.push(at(a, mid(first) - w));
+    }
+    for (const st of body) { left.push(at(st.a, st.hi)); right.push(at(st.a, st.lo)); }
+    for (let k = DIVIDER_NOSE_SIDES; k >= 0; k -= 1) {
+      const th = (Math.PI / 2) * (k / DIVIDER_NOSE_SIDES);
+      const a = s1 - r1 + r1 * Math.cos(th), w = r1 * Math.sin(th);
+      if (k === 0) { left.push(at(a, mid(last))); continue; }
+      left.push(at(a, mid(last) + w)); right.push(at(a, mid(last) - w));
+    }
+    out.push(left.concat(right.reverse()));
+    DIVIDER_BEDS.push({ street: axis.street, source, top: ROAD_TOP_M + MEDIAN_KERB_M + 0.006,
+      pts: [at(s0, mid(first)), ...body.map((st) => at(st.a, mid(st))), at(s1, mid(last))],
+      half: [0, ...body.map(half), 0], noses: [r0, r1] });
+  }
+  islandStats.dividers = (islandStats.dividers || 0) + out.length;
+  return out;
 }
 //: ``ring`` with what lies where ``out(x, z)`` cut away (densified, then the points kept), or null
 //: for a sliver; counted under ``stat`` when anything was cut.
@@ -333,8 +406,24 @@ function islandOutOf(ring, out, stat) {
 }
 function addClosedOfficialIslandSurfaces() {
   let laid = 0;
-  const rings = (ISLAND_RINGS || (OFFICIAL_GEOMETRY.curb_lines || []).map(closedOfficialIslandRing))
-    .map((ring) => (ring ? islandRingOffRoadway(ring) : null));
+  // (A divider comes back as its pieces, each with its noses: dividerPieces.)
+  const surveyed = (ISLAND_RINGS || (OFFICIAL_GEOMETRY.curb_lines || []).map(closedOfficialIslandRing)).filter(Boolean);
+  const rings = surveyed
+    .flatMap((ring) => { const r = islandRingOffRoadway(ring); return !r ? [] : !r.length ? [] : Array.isArray(r[0][0]) ? r : [r]; });
+  // The dividers between divided streets' halves (addDividedMedians), where no surveyed island
+  // already lies: laid the same way.
+  const boxes = surveyed.map((ring) => { let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity; for (const [x, z] of ring) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); } return [x0, z0, x1, z1, ring]; });
+  const surveyedAt = (x, z) => boxes.some(([x0, z0, x1, z1, ring]) => x >= x0 && x <= x1 && z >= z0 && z <= z1 && pointInRing(x, z, ring));
+  for (const { ring, street } of TWIN_DIVIDER_RINGS) {
+    const n = ring.length / 2;
+    const probes = [0.2, 0.4, 0.6, 0.8].map((f) => { const i = Math.min(n - 1, Math.floor(f * n)), a = ring[i], b = ring[ring.length - 1 - i]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; });
+    if (probes.some(([x, z]) => surveyedAt(x, z))) { islandStats.twinCovered = (islandStats.twinCovered || 0) + 1; continue; }
+    const axis = islandMedianAxis(ring);
+    const [a, b] = [ring[0], ring[n - 1]], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    let cx = 0, cz = 0;
+    for (const [x, z] of ring) { cx += x; cz += z; }
+    rings.push(...dividerPieces(ring, axis ? { ...axis, street } : { ux: (b[0] - a[0]) / L, uz: (b[1] - a[1]) / L, cx: cx / ring.length, cz: cz / ring.length, street }, "twin"));
+  }
   for (const ring of rings) {
     if (!ring) continue;
     // The closed official curb is the physical evidence. Do not reject it using
@@ -359,6 +448,10 @@ function addClosedOfficialIslandSurfaces() {
 }
 const officialIslandsLaid = addClosedOfficialIslandSurfaces();
 window.kerbsideIslands = islandStats;   // (for checks: how many were kept, trimmed off the roadway, dropped)
+window.kerbsideMedianKinds = medianKindStats;   // (refuges and dividers, and why: medianKind)
+window.kerbsideBikeLanes = bikeLaneStats;   // (lanes laid along their kerbs, and far joins)
+window.kerbsideDividerBeds = () => DIVIDER_BEDS;
+window.kerbsideMedianAt = (x, z, ux, uz) => medianStripAt(x, z, ux, uz);   // (for checks)
 
 //: The pavement out to the property line. The city surveys each street's sidewalk width, kerb to
 //: property line, but the pavement is laid at the widest strip that fits the whole side -- often

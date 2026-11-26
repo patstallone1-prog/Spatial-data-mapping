@@ -364,8 +364,9 @@ function indexMappedCrossing(points, width = 3.7) {
   let bucket = mappedCrossingGrid.get(key);
   if (!bucket) mappedCrossingGrid.set(key, bucket = []);
   bucket.push(pose);
-  // Every cell its paint (and the clear margin round it) covers, for onMappedCrossing.
-  const ux = Math.cos(pose.bearing), uz = Math.sin(pose.bearing), L = pose.length / 2 + 0.5, W = width / 2 + CROSSING_LINE_CLEAR_M + 0.5;
+  // Every cell its paint (and the clear margin round it) covers, for onMappedCrossing and
+  // crossingClearAt (a divider's nose is cut back past its end: CROSSING_COVER_*).
+  const ux = Math.cos(pose.bearing), uz = Math.sin(pose.bearing), L = pose.length / 2 + CROSSING_COVER_ALONG_M, W = width / 2 + CROSSING_COVER_ACROSS_M;
   const xs = [L * ux + W * uz, L * ux - W * uz, -L * ux + W * uz, -L * ux - W * uz];
   const zs = [L * uz - W * ux, L * uz + W * ux, -L * uz - W * ux, -L * uz + W * ux];
   const c = CROSSING_DEDUPE_CELL_M;
@@ -384,15 +385,24 @@ function indexMappedCrossing(points, width = 3.7) {
 //: straight through mid-block crosswalks and those at T-junctions and skewed corners, and lane
 //: lines and the bike lane's edges through others (2026-11-25: 159 places in the Marina).
 const CROSSING_LINE_CLEAR_M = 0.6;
+//: How far past a crossing's paint its cells are indexed (m): its length either end (``along``,
+//: the walking way: a divider's middle lies past the end of each carriageway's crossing) and
+//: either side of its band (``across``: the nose cut back short of it, DIVIDER_NOSE_CLEAR_M).
+const CROSSING_COVER_ALONG_M = 2.5, CROSSING_COVER_ACROSS_M = 2.2;
 const mappedCrossingCover = new Map();
 function onMappedCrossing(x, z, margin = CROSSING_LINE_CLEAR_M) {
+  return crossingClearAt(x, z, 0.3, margin) !== null;
+}
+//: Whether (x, z) is within ``along`` of a mapped crossing's ends (the way across the road) and
+//: ``across`` of its band's sides; the crossing (its pose) or null.
+function crossingClearAt(x, z, along, across) {
   const list = mappedCrossingCover.get(`${Math.floor(x / CROSSING_DEDUPE_CELL_M)}:${Math.floor(z / CROSSING_DEDUPE_CELL_M)}`);
-  if (!list) return false;
+  if (!list) return null;
   for (const p of list) {
     const dx = x - p.x, dz = z - p.z, cb = Math.cos(p.bearing), sb = Math.sin(p.bearing);
-    if (Math.abs(dx * cb + dz * sb) <= p.length / 2 + 0.3 && Math.abs(-dx * sb + dz * cb) <= (p.width || 3.7) / 2 + margin) return true;
+    if (Math.abs(dx * cb + dz * sb) <= p.length / 2 + along && Math.abs(-dx * sb + dz * cb) <= (p.width || 3.7) / 2 + across) return p;
   }
-  return false;
+  return null;
 }
 //: ``points`` (lon/lat) in the pieces that stay off mapped crosswalks.
 function splitAtMappedCrossings(points, step = 1.0) {
@@ -1053,18 +1063,68 @@ function bikeLaneOffset(roadWidth, way = null, side = 1) {
   return Math.max(0.8, roadWidth / 2 - parked - BIKE_LANE_M / 2 - 0.18);
 }
 
+//: A lane's line along its kerb (2026-11-26). Set a fixed distance off the street's centre line,
+//: a lane jumped wherever the next piece of the street was mapped at another width -- Bay east
+//: of Fillmore is drawn 24 m across and the piece west of it 12, and the green stopped at one
+//: kerb and started again six metres over, beside the double yellow -- and wandered where the
+//: centre line was not midway between the kerbs. It keeps its distance from the kerb on its side
+//: instead: the city's kerb, read across the street every BIKE_KERB_STEP_M (not in a junction's
+//: box, where the cross street's corner is the nearest kerb), the lane's distance from it what
+//: the cross-section or the parking says (bikeLaneOffset), moved over no faster than one metre in
+//: BIKE_TAPER_M where the kerb steps. Where no kerb is read, the fixed offset as before.
+const BIKE_KERB_STEP_M = 2.0, BIKE_TAPER_M = 6.0, BIKE_KERB_TRUST_M = 5.0;
+const bikeLaneStats = { lanes: 0, kerbFollowed: 0, stations: 0, read: 0, farJoins: 0 };
+function bikeLaneCentreLine(way, roadWidth, side) {
+  const off0 = bikeLaneOffset(roadWidth, way, side);
+  const pts = densifyWay(way.points, BIKE_KERB_STEP_M);
+  if (pts.length < 2 || typeof officialCurbGrid === "undefined" || !officialCurbGrid.size) return offsetWay(pts, side * off0);
+  const fromKerb = Math.max(0.2, roadWidth / 2 - off0);
+  const local = pts.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  const read = local.map(([x, z], i) => {
+    const a = local[Math.max(0, i - 1)], b = local[Math.min(local.length - 1, i + 1)];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    // (offsetWay's sense: + is to the left of travel, (-dz, dx) in x/z with z = -y.)
+    const nx = side * (b[1] - a[1]) / L, nz = -side * (b[0] - a[0]) / L;
+    bikeLaneStats.stations += 1;
+    if (typeof insideJunctionBox === "function" && insideJunctionBox(x, z)) return null;
+    const hits = rayCurbIntersections(x, z, nx, nz, roadWidth / 2 + BIKE_KERB_TRUST_M + 2, officialCurbGrid)
+      .filter((t) => t > BIKE_LANE_M + 0.4).sort((p, q) => p - q);
+    const kerb = hits[0];
+    if (kerb === undefined || Math.abs(kerb - roadWidth / 2) > BIKE_KERB_TRUST_M) return null;
+    bikeLaneStats.read += 1;
+    return Math.max(0.8, kerb - fromKerb);
+  });
+  if (!read.some((v) => v !== null)) return offsetWay(pts, side * off0);
+  bikeLaneStats.kerbFollowed += 1;
+  // The gaps between readings filled in a line between them (the fixed offset past the last).
+  const filled = read.slice();
+  for (let i = 0; i < filled.length; i += 1) {
+    if (filled[i] !== null) continue;
+    let a = i - 1; while (a >= 0 && read[a] === null) a -= 1;
+    let b = i + 1; while (b < read.length && read[b] === null) b += 1;
+    filled[i] = a >= 0 && b < read.length ? read[a] + (read[b] - read[a]) * (i - a) / (b - a) : a >= 0 ? read[a] : b < read.length ? read[b] : off0;
+  }
+  // A reading off by a stray kerb (a driveway's lip, a bulb): the middle of five.
+  const med = filled.map((_, i) => { const w = filled.slice(Math.max(0, i - 2), i + 3).sort((p, q) => p - q); return w[w.length >> 1]; });
+  // Moved over no faster than the taper allows, both ways along.
+  const step = BIKE_KERB_STEP_M / BIKE_TAPER_M;
+  for (let i = 1; i < med.length; i += 1) med[i] = Math.min(Math.max(med[i], med[i - 1] - step), med[i - 1] + step);
+  for (let i = med.length - 2; i >= 0; i -= 1) med[i] = Math.min(Math.max(med[i], med[i + 1] - step), med[i + 1] + step);
+  return offsetWay(pts, med.map((v) => side * v));
+}
 //: A lane's two ends into the join grid, each with the way it points out of the lane: a join
 //: is two ends that face each other, and the direction is what tells one from a T.
-function indexLaneEnds(centre) {
+function indexLaneEnds(centre, street = null, side = 0, width = 0, flow = 0) {
   if (!centre || centre.length < 2) return;
-  for (const [end, prev] of [[centre[0], centre[1]], [centre[centre.length - 1], centre[centre.length - 2]]]) {
+  const length = wayLength(centre);
+  for (const [end, prev, out] of [[centre[0], centre[1], -flow], [centre[centre.length - 1], centre[centre.length - 2], flow]]) {
     const [x, y] = xy(end[0], end[1]);
     const [px, py] = xy(prev[0], prev[1]);
     const len = Math.hypot(x - px, y - py) || 1;
     const key = `${Math.floor(x / BIKE_JOIN_M)}:${Math.floor(-y / BIKE_JOIN_M)}`;
     let bucket = bikeJoinGrid.get(key);
     if (!bucket) bikeJoinGrid.set(key, bucket = []);
-    bucket.push([x, -y, (x - px) / len, -(y - py) / len]);
+    bucket.push([x, -y, (x - px) / len, -(y - py) / len, street, side, width, out, length]);
   }
 }
 //: The outward direction of a lane at one of its ends, for the join tests.
@@ -1100,9 +1160,10 @@ function indexBikeLaneEnds(ways) {
     const roadWidth = renderedRoadWidth(way);
     if (roadWidth < BIKE_LANE_M + 2.2) continue;
     for (const side of sides) {
-      const centre = offsetWay(way.points, side * bikeLaneOffset(roadWidth, way, side));
+      const centre = bikeLaneCentreLine(way, roadWidth, side);
       stampBikeLane(centre, side, bikeLaneOffset(roadWidth, way, side));
-      indexLaneEnds(centre);
+      indexLaneEnds(centre, way.name || null, side, roadWidth, laneFlow(way, side));
+      bikeLaneStats.lanes += 1;
     }
   }
 }
@@ -1114,31 +1175,98 @@ function indexBikeLaneEnds(ways) {
 //: other's started. A lane bends over a few metres to line up with the next block.
 const BIKE_BLEND_M = 12.0;
 
-function bikeLaneJoinTarget(x, z, ux, uz) {
+//: Which way a lane's riders go along its way: +1 with the points, -1 against. A one-way
+//: street's lanes go its way; on a two-way street the right-hand lane (side -1) goes with the
+//: points and the left-hand one against them. At a lane's end, the sign times +1 at the last
+//: point (-1 at the first) is whether the riders leave the lane there (+1) or come into it.
+function laneFlow(way, side) {
+  const one = onewaySign(way);
+  return one !== 0 ? one : side < 0 ? 1 : -1;
+}
+function bikeLaneJoinTarget(x, z, ux, uz, street = null, width = 0, flowOut = 0, length = 0) {
   // Where this lane end meets the lane it joins: halfway to the mean of the other ends here
   // that face it, so both lanes ease by half the gap and meet at one point. Null where the
   // lane simply ends, or where the only other end here is a lane it meets at an angle.
-  let sx = 0, sz = 0, n = 0;
+  // A short piece between long ones takes the whole step, drifted over its whole length (the
+  // target's `drift`): Bay's lane jogged two metres where the thirty-metre piece before
+  // Fillmore had no parking and the block east of it had, an S in the middle of the block.
+  let sx = 0, sz = 0, n = 0, shortest = Infinity, longest = 0;
   const cx = Math.floor(x / BIKE_JOIN_M);
   const cz = Math.floor(z / BIKE_JOIN_M);
   for (let dx = -1; dx <= 1; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) {
       const bucket = bikeJoinGrid.get(`${cx + dx}:${cz + dz}`);
       if (!bucket) continue;
-      for (const [px, pz, vx, vz] of bucket) {
+      for (const [px, pz, vx, vz, , , , , len = 0] of bucket) {
         const gap = Math.hypot(px - x, pz - z);
         if (gap > BIKE_JOIN_M) continue;
         if (gap < 0.05 && (ux === undefined || ux * vx + uz * vz > 0.99)) continue;   // this lane's own end
         if (!laneEndsFace(ux, uz, vx, vz)) continue;
         sx += px; sz += pz; n += 1;
+        shortest = Math.min(shortest, len); longest = Math.max(longest, len);
       }
     }
   }
-  if (!n) return null;
-  return [(x + sx / n) / 2, (z + sz / n) / 2];
+  if (n) {
+    if (length && length <= BIKE_DRIFT_MAX_M && shortest > BIKE_DRIFT_RATIO * length) {
+      const all = [sx / n, sz / n];
+      all.drift = true;
+      return all;
+    }
+    if (length && longest && longest * BIKE_DRIFT_RATIO < length && longest <= BIKE_DRIFT_MAX_M) return [x, z];
+    return [(x + sx / n) / 2, (z + sz / n) / 2];
+  }
+  // A lane carried on past a kerb that steps (a street mapped wider, then narrower): the end of
+  // the same street's lane facing this one straight on, up to BIKE_FAR_JOIN_M ahead and
+  // BIKE_FAR_SIDE_M to one side -- the nearest sideways. Both ease half the step over their
+  // blend (blendLaneEnd), a taper rather than a gap and a lane starting six metres over. Where
+  // one street is mapped much wider than the other the wider one has the room to move over and
+  // takes the whole step, the narrow one staying put: at Bay and Fillmore the lane beside the
+  // island has the island under it if it moves, and the lane on the 24 m piece ten metres over
+  // eases across to meet it. Only a lane whose riders go on into this one: the westbound lane
+  // beside it on the same street ends there too, and joined to it was a green X across Bay.
+  if (!street) return null;
+  let best = null;
+  const reach = Math.ceil(BIKE_FAR_JOIN_M / BIKE_JOIN_M);
+  for (let dx = -reach; dx <= reach; dx += 1) {
+    for (let dz = -reach; dz <= reach; dz += 1) {
+      for (const [px, pz, vx, vz, name, , w = 0, out = 0] of bikeJoinGrid.get(`${cx + dx}:${cz + dz}`) || []) {
+        if (name !== street || ux === undefined || ux * vx + uz * vz > -0.9) continue;
+        if (flowOut && out && flowOut === out) continue;   // both lanes' riders leave here, or both arrive
+        const ahead = (px - x) * ux + (pz - z) * uz, aside = Math.abs(-(px - x) * uz + (pz - z) * ux);
+        if (ahead < -0.5 || ahead > BIKE_FAR_JOIN_M || aside > BIKE_FAR_SIDE_M || aside < 0.05 && ahead < 0.05) continue;
+        if (!best || aside < best.aside) best = { px, pz, aside, w };
+      }
+    }
+  }
+  if (!best) return null;
+  bikeLaneStats.farJoins += 1;
+  if (width && best.w && best.w < width - BIKE_WIDER_M) {    // the wider moves
+    // ...across the junction's box, where the gap is painted as a crossbike: a step this big
+    // drawn as a taper in the block ran the green over the double yellow.
+    const all = [best.px, best.pz];
+    all.inBox = true;
+    return all;
+  }
+  if (width && best.w && best.w > width + BIKE_WIDER_M) return [x, z];               // the narrow stays
+  return [(x + best.px) / 2, (z + best.pz) / 2];
+}
+const BIKE_FAR_JOIN_M = 9, BIKE_FAR_SIDE_M = 11.5, BIKE_WIDER_M = 2.0;
+const BIKE_DRIFT_MAX_M = 45, BIKE_DRIFT_RATIO = 1.5, BIKE_BOX_STEP_MIN_M = 8;
+//: How far back from a lane's end it lies in a junction's box: where a step across is drawn.
+function laneBoxRunM(lane, atStart) {
+  const ordered = atStart ? lane.slice().reverse() : lane;   // (the end in question last)
+  let run = 0;
+  for (let i = ordered.length - 1; i > 0; i -= 1) {
+    const [x, y] = xy(ordered[i][0], ordered[i][1]);
+    if (!insideJunctionBox(x, -y)) break;
+    const [px, py] = xy(ordered[i - 1][0], ordered[i - 1][1]);
+    run += Math.hypot(x - px, y - py);
+  }
+  return run;
 }
 
-function blendLaneEnd(points, target, atStart) {
+function blendLaneEnd(points, target, atStart, maxM = Infinity, wantM = 0) {
   // Ease the lane's last BIKE_BLEND_M sideways so that its end lands on `target`.
   if (!points || points.length < 2) return points;
   const ordered = atStart ? points.slice().reverse() : points;
@@ -1146,6 +1274,10 @@ function blendLaneEnd(points, target, atStart) {
   const shiftX = target[0] - ex;
   const shiftZ = target[1] - (-ey);
   if (Math.hypot(shiftX, shiftZ) < 0.05) return points;
+  // (A bigger step is taken over a longer taper: four metres along for each one over.)
+  // (No longer than the lane, so a lane joined at both ends keeps its other end where it was.)
+  // (Or as long as asked: a whole short piece, or a junction's box.)
+  const blendM = Math.min(maxM, wantM || Math.max(BIKE_BLEND_M, 4 * Math.hypot(shiftX, shiftZ)));
   const out = [];
   let fromEnd = 0;
   for (let i = ordered.length - 1; i >= 0; i -= 1) {
@@ -1154,7 +1286,7 @@ function blendLaneEnd(points, target, atStart) {
       const [nx, ny] = xy(ordered[i + 1][0], ordered[i + 1][1]);
       fromEnd += Math.hypot(x - nx, y - ny);
     }
-    const t = Math.max(0, 1 - fromEnd / BIKE_BLEND_M);
+    const t = Math.max(0, 1 - fromEnd / blendM);
     // Eased, so the bend starts gently rather than as a kink.
     const ease = t * t * (3 - 2 * t);
     out.unshift(ease > 0 ? lonLatFromXZ(x + shiftX * ease, -y + shiftZ * ease) : ordered[i]);
@@ -1333,13 +1465,22 @@ function dashRuns(points, markM, gapM) {
   return runs.filter((run) => run.length >= 2);
 }
 
-function bikeLaneZones(lane, ownWay = null) {
+function bikeLaneZones(lane, ownWay = null, stepped = null) {
   //: Narrower than any street a lane could cross: a break this short is a gap, not a junction.
   const BIKE_MIN_CROSSING_M = 6.0;
   // Every sample along the lane labelled crossing, mixing or lane, and then gathered into runs.
+  // (`stepped`: metres at each end where the lane steps across a junction's box to the lane it
+  // joins -- painted as a crossbike, the dashes a city puts down where a lane jogs over.)
   const labels = [];
   const spans = [0];
+  for (let i = 1; i < lane.length; i += 1) {
+    const [x, y] = xy(lane[i][0], lane[i][1]);
+    const [px, py] = xy(lane[i - 1][0], lane[i - 1][1]);
+    spans.push(spans[i - 1] + Math.hypot(x - px, y - py));
+  }
+  const total = spans[spans.length - 1] || 0;
   for (let i = 0; i < lane.length; i += 1) {
+    if (stepped && (spans[i] < stepped.start || total - spans[i] < stepped.end)) { labels.push("crossing"); continue; }
     const before = lane[Math.max(0, i - 1)];
     const after = lane[Math.min(lane.length - 1, i + 1)];
     const [x, y] = xy(lane[i][0], lane[i][1]);
@@ -1347,10 +1488,6 @@ function bikeLaneZones(lane, ownWay = null) {
     const [ax, ay] = xy(after[0], after[1]);
     const bearing = Math.atan2(-ay + by, ax - bx);
     labels.push(bikeCrossingBreakAt(x, -y, bearing, 0.2, ownWay) ? "crossing" : "lane");
-    if (i) {
-      const [px, py] = xy(lane[i - 1][0], lane[i - 1][1]);
-      spans.push(spans[i - 1] + Math.hypot(x - px, y - py));
-    }
   }
   // A "crossing" too short to be a street -- a sample or two clipping a driveway's carriageway
   // or a mapped crossing's corner -- with lane on both sides of it is lane: it was a gap in the
@@ -1396,21 +1533,28 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
   const sides = cyclewaySides(way);
   if (!sides.length || roadWidth < BIKE_LANE_M + 2.2) return;
   for (const side of sides) {
-    const offset = bikeLaneOffset(roadWidth, way, side);
-    const centre = offsetWay(renderPoints, side * offset);
+    // Along its kerb (bikeLaneCentreLine), as the join grid has it.
+    const centre = bikeLaneCentreLine(way, roadWidth, side);
     if (!centre || centre.length < 2) continue;
     const [sx, sy] = xy(centre[0][0], centre[0][1]);
     const [ex, ey] = xy(centre[centre.length - 1][0], centre[centre.length - 1][1]);
-    const joinStart = bikeLaneJoinTarget(sx, -sy, ...laneEndDirection(centre, true));
-    const joinEnd = bikeLaneJoinTarget(ex, -ey, ...laneEndDirection(centre, false));
+    const flow = laneFlow(way, side);
+    const centreM = wayLength(centre);
+    const joinStart = bikeLaneJoinTarget(sx, -sy, ...laneEndDirection(centre, true), way.name || null, roadWidth, -flow, centreM);
+    const joinEnd = bikeLaneJoinTarget(ex, -ey, ...laneEndDirection(centre, false), way.name || null, roadWidth, flow, centreM);
     const cutStart = joinStart ? 0 : BIKE_END_TRIM_M;
     const cutEnd = joinEnd ? 0 : BIKE_END_TRIM_M;
     let lane = densifyWay(trimWayEnds(centre, cutStart, cutEnd), 2.0);
     if (lane.length < 2) continue;
-    if (joinStart) lane = blendLaneEnd(lane, joinStart, true);
-    if (joinEnd) lane = blendLaneEnd(lane, joinEnd, false);
+    const laneM = wayLength(lane);
+    const wantFor = (target, atStart) => target.drift ? laneM
+      : target.inBox ? Math.max(BIKE_BOX_STEP_MIN_M, laneBoxRunM(lane, atStart)) : 0;
+    if (joinStart) lane = blendLaneEnd(lane, joinStart, true, joinEnd ? laneM : Infinity, wantFor(joinStart, true));
+    if (joinEnd) lane = blendLaneEnd(lane, joinEnd, false, joinStart ? laneM : Infinity, wantFor(joinEnd, false));
+    const stepped = joinStart?.inBox || joinEnd?.inBox
+      ? { start: joinStart?.inBox ? wantFor(joinStart, true) : 0, end: joinEnd?.inBox ? wantFor(joinEnd, false) : 0 } : null;
 
-    for (const run of bikeLaneZones(lane, way)) {
+    for (const run of bikeLaneZones(lane, way, stepped)) {
       if (run.label === "crossing") {
         // No lane lines across a junction -- the lane has no priority there and painting its
         // edges through would say it did. San Francisco marks the gap with a crossbike instead.

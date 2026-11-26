@@ -2296,15 +2296,17 @@ function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   return true;
 }
 
-//: ``y`` is a height, or a function of the end and the point after it that gives one.
-function addCrossingTactilePads(points, crossingWidth, y) {
+//: ``y`` is a height, or a function of the end and the point after it that gives one;
+//: ``skip(end, before)`` true leaves that end without a pad (an end on a divider: there is no
+//: kerb to step down there, the crossing goes on over the street).
+function addCrossingTactilePads(points, crossingWidth, y, skip = null) {
   if (!points || points.length < 2) return 0;
   const yAt = typeof y === "function" ? y : () => y;
   let added = 0;
   const first = points[0], second = points[1];
   const last = points[points.length - 1], penult = points[points.length - 2];
-  if (addTactileWarningPad(first, second, crossingWidth, yAt(first, second))) added += 1;
-  if (addTactileWarningPad(last, penult, crossingWidth, yAt(last, penult))) added += 1;
+  if (!skip?.(first, second) && addTactileWarningPad(first, second, crossingWidth, yAt(first, second))) added += 1;
+  if (!skip?.(last, penult) && addTactileWarningPad(last, penult, crossingWidth, yAt(last, penult))) added += 1;
   return added;
 }
 const deferredTactilePads = [];

@@ -1097,6 +1097,8 @@ function doorOn(entry, edge, t, width, source) {
 // leaves of closed doors, and the partitions of any interior that has been built.
 function wallSegmentsNear(x, z) {
   const out = typeof stationWallsNear === "function" && stationWalls && stationWalls.length ? stationWallsNear(x, z) : [];
+  // The hedges on the dividers (addDividerHedges): not walked through.
+  if (typeof hedgeWallsNear === "function" && hedgeWallGrid.size) for (const s of hedgeWallsNear(x, z)) out.push(s);
   const guest = typeof guestUnder === "function" ? guestUnder(x, z) : null;
   if (guest) {
     const [gx, gz] = hostToGuest(guest, x, z);

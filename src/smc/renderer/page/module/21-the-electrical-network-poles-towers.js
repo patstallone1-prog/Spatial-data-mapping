@@ -1973,6 +1973,8 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     traffic_signal_heads: addTrafficSignalHeads(signalHeads),
     inferred_approach_signs: osmApproach.length,
     electrical: addElectricalNetwork(furniture, lights.rows),
+    // The hedges on the planted dividers, round the poles that stand on them.
+    divider_hedges: addDividerHedges(lights.rows.map((row) => row.anchor).concat(plates.spots || [])),
     bike_racks: (() => {
       cityBikeRacks = placeCityBikeRacks((bikeRacks?.racks || []).filter((r) => !BUILD_WINDOW || BUILD_WINDOW.near(r)),
         lights.rows.map((row) => row.anchor).concat(plates.spots || []));
@@ -2623,3 +2625,299 @@ document.getElementById("reset").addEventListener("click", () => {
   setFirstPerson(false);
 });
 
+
+// ---- the hedges on the dividers (2026-11-26) ----------------------------------------------
+//
+// A divider on a planted street (PLANTED_DIVIDERS: Lombard's) is a bed: HEDGE_KERB_M of the
+// concrete kerb's top left either side, brown soil in the rest, and on it a hedge trimmed square,
+// HEDGE_HEIGHT_M above the kerb's top -- in bushes a few metres long with a hand's width of soil
+// between, short of each nose and stopped round each pole. Not too perfect: the sides bulge and
+// sag a centimetre or two, each bush is a little taller or lower than the next, and sprigs of
+// leaves and the odd twig stand out of the top and the sides where the shears missed them.
+const HEDGE_KERB_M = 0.1524, HEDGE_HEIGHT_M = 0.61, HEDGE_SOIL_SHOW_M = 0.05, HEDGE_NOSE_GAP_M = 0.35;
+const HEDGE_BUSH_M = [2.2, 4.0], HEDGE_GAP_M = [0.28, 0.5], HEDGE_POLE_CLEAR_M = 0.42, HEDGE_STEP_M = 0.5;
+const hedgeStats = { beds: 0, bushes: 0, sprigs: 0, twigs: 0, metres: 0 };
+//: The hedges' sides, for the walker (wallSegmentsNear): [ax, az, bx, bz] in 8 m cells.
+const HEDGE_WALL_CELL_M = 8, hedgeWallGrid = new Map();
+function hedgeWallsNear(x, z) {
+  const out = [], c = HEDGE_WALL_CELL_M;
+  for (let i = -1; i <= 1; i += 1) for (let j = -1; j <= 1; j += 1) for (const s of hedgeWallGrid.get(`${Math.floor(x / c) + i}:${Math.floor(z / c) + j}`) || []) out.push(s);
+  return out;
+}
+function addHedgeWall(seg) {
+  const c = HEDGE_WALL_CELL_M, k = `${Math.floor((seg[0] + seg[2]) / 2 / c)}:${Math.floor((seg[1] + seg[3]) / 2 / c)}`;
+  if (!hedgeWallGrid.has(k)) hedgeWallGrid.set(k, []);
+  hedgeWallGrid.get(k).push(seg);
+}
+//: A small seeded stream (mulberry32) for one bed: the same hedge every time.
+function hedgeStream(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+//: The leaves of a clipped hedge (a canvas: dark gaps, small leaves in four greens, a few lit),
+//: and the bed's soil and bark (browns, flecked). Made once.
+let HEDGE_TEXTURES = null;
+function hedgeTextures() {
+  if (HEDGE_TEXTURES) return HEDGE_TEXTURES;
+  const make = (paint) => {
+    const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+    paint(cv.getContext("2d"), hedgeStream(0x5eed));
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    return t;
+  };
+  const leaves = make((g, r) => {
+    g.fillStyle = "#1d3317"; g.fillRect(0, 0, 256, 256);
+    const greens = ["#2f5426", "#3a6330", "#466f35", "#2a4a22", "#55803c"];
+    for (let i = 0; i < 2600; i += 1) {
+      const x = r() * 256, y = r() * 256, w = 2.5 + r() * 4.5, h = w * (0.45 + r() * 0.25), a = r() * Math.PI;
+      g.fillStyle = r() < 0.06 ? "#6f9a4a" : greens[Math.floor(r() * greens.length)];
+      // (Tiled: a leaf over an edge is drawn again over the other, so the repeat has no seam.)
+      for (const ox of [0, x < 8 ? 256 : x > 248 ? -256 : 0]) for (const oy of [0, y < 8 ? 256 : y > 248 ? -256 : 0]) {
+        g.beginPath(); g.ellipse(x + ox, y + oy, w, h, a, 0, Math.PI * 2); g.fill();
+      }
+    }
+    for (let i = 0; i < 260; i += 1) { g.fillStyle = "rgba(10,20,8,0.55)"; g.beginPath(); g.arc(r() * 256, r() * 256, 1 + r() * 2.2, 0, Math.PI * 2); g.fill(); }
+  });
+  const soil = make((g, r) => {
+    g.fillStyle = "#4b3424"; g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 3800; i += 1) {
+      const v = r();
+      g.fillStyle = v < 0.45 ? "#3c2a1d" : v < 0.8 ? "#5a3f2b" : v < 0.95 ? "#6e5036" : "#7d6650";
+      const x = r() * 256, y = r() * 256, w = 1 + r() * 3.5;
+      g.fillRect(x, y, w, w * (0.4 + r() * 0.5));
+    }
+  });
+  HEDGE_TEXTURES = { leaves, soil };
+  return HEDGE_TEXTURES;
+}
+//: Along a bed's middle line ``pts`` ([[x, z]...]): the point and the way at ``s`` metres.
+function bedPointAt(pts, cum, s) {
+  let i = 1;
+  while (i < pts.length - 1 && cum[i] < s) i += 1;
+  const a = pts[i - 1], b = pts[i], L = cum[i] - cum[i - 1] || 1, k = Math.max(0, Math.min(1, (s - cum[i - 1]) / L));
+  const ux = (b[0] - a[0]) / L, uz = (b[1] - a[1]) / L;
+  return { x: a[0] + (b[0] - a[0]) * k, z: a[1] + (b[1] - a[1]) * k, ux, uz, i, k };
+}
+//: The dividers' beds planted (DIVIDER_BEDS of a PLANTED_DIVIDERS street): soil, the hedge in
+//: bushes, its sprigs and twigs. ``poles``: what stands on the divider ({x, z} or [x, z]).
+function addDividerHedges(poles = []) {
+  const beds = (typeof DIVIDER_BEDS !== "undefined" ? DIVIDER_BEDS : []).filter((b) => b.street && PLANTED_DIVIDERS.test(b.street) && b.pts.length >= 3);
+  if (!beds.length) return hedgeStats;
+  const T = hedgeTextures();
+  const poleXZ = poles.map((p) => (Array.isArray(p) ? p : [p?.x, p?.z])).filter(([x, z]) => Number.isFinite(x) && Number.isFinite(z));
+  const soil = { p: [], uv: [], i: [] }, hedge = { p: [], uv: [], c: [], i: [] };
+  const sprigs = [], twigs = [];
+  const yAt = (bed, x, z) => { const top = pavementTopAt(x, z); return (top === undefined ? bed.top : Math.max(top, bed.top - 0.02)) + groundLiftAt(x, z); };
+  for (const bed of beds) {
+    const pts = bed.pts, cum = [0];
+    for (let i = 1; i < pts.length; i += 1) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const total = cum[cum.length - 1];
+    const halfAt = (s) => { const p = bedPointAt(pts, cum, s); return bed.half[p.i - 1] + (bed.half[p.i] - bed.half[p.i - 1]) * p.k; };
+    const [n0, n1] = bed.noses || [halfAt(1), halfAt(total - 1)];
+    if (!(total > n0 + n1 + 1.5) || Math.max(...bed.half) < HEDGE_KERB_M * 2 + 0.3) continue;
+    hedgeStats.beds += 1;
+    const rand = hedgeStream(Math.round(pts[0][0] * 31 + pts[0][1] * 17) ^ 0x9e37);
+    // The soil: the bed inside the kerb's top, its ends round as the noses are.
+    const soilHalf = (s) => Math.max(0, halfAt(s) - HEDGE_KERB_M);
+    const left = [], right = [];
+    const nose = (s0, r, dir) => {
+      const c = bedPointAt(pts, cum, s0), rr = Math.max(0.05, r - HEDGE_KERB_M);
+      for (let k = 0; k <= 8; k += 1) {
+        const th = (Math.PI / 2) * (k / 8);
+        const a = -dir * rr * Math.cos(th), w = rr * Math.sin(th);
+        const x = c.x + c.ux * a, z = c.z + c.uz * a;
+        left.push([x - c.uz * w, z + c.ux * w]); right.push([x + c.uz * w, z - c.ux * w]);
+      }
+    };
+    nose(n0, n0, 1);
+    for (let s = n0 + HEDGE_STEP_M; s < total - n1; s += HEDGE_STEP_M) {
+      const c = bedPointAt(pts, cum, s), w = soilHalf(s);
+      left.push([c.x - c.uz * w, c.z + c.ux * w]); right.push([c.x + c.uz * w, c.z - c.ux * w]);
+    }
+    { const l = [], r = []; const keepL = left.length, keepR = right.length; nose(total - n1, n1, -1); l.push(...left.splice(keepL).reverse()); r.push(...right.splice(keepR).reverse()); left.push(...l); right.push(...r); }
+    // (Laid as a ladder between its two sides: the strip is long and narrow.)
+    right.reverse();
+    const sBase = soil.p.length / 3;
+    const L = left.length, R = right.length;
+    for (const [x, z] of left) { soil.p.push(x, yAt(bed, x, z) + 0.004, z); soil.uv.push(x / 1.2, z / 1.2); }
+    for (const [x, z] of right) { soil.p.push(x, yAt(bed, x, z) + 0.004, z); soil.uv.push(x / 1.2, z / 1.2); }
+    // Left run 0..L-1 and right run L..L+R-1 (right reversed above): pair them by along.
+    const leftIdx = (k) => sBase + Math.min(L - 1, Math.round(k * (L - 1)));
+    const rightIdx = (k) => sBase + L + Math.min(R - 1, Math.round((1 - k) * (R - 1)));
+    const N = Math.max(L, R);
+    for (let k = 0; k + 1 < N; k += 1) {
+      const a = leftIdx(k / (N - 1)), b = leftIdx((k + 1) / (N - 1)), c = rightIdx((k + 1) / (N - 1)), d = rightIdx(k / (N - 1));
+      if (a !== b) soil.i.push(a, b, c);
+      if (c !== d) soil.i.push(a, c, d);
+    }
+    // The bushes: along the bed short of its noses, round each pole, in lengths with gaps.
+    const s0 = n0 + HEDGE_NOSE_GAP_M, s1 = total - n1 - HEDGE_NOSE_GAP_M;
+    const blocked = [];
+    for (const [px, pz] of poleXZ) {
+      let best = null;
+      for (let i = 1; i < pts.length; i += 1) {
+        const [ax, az] = pts[i - 1], [bx, bz] = pts[i], dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / l2));
+        const d = Math.hypot(ax + dx * t - px, az + dz * t - pz);
+        if (!best || d < best.d) best = { d, s: cum[i - 1] + Math.sqrt(l2) * t };
+      }
+      if (best && best.d < halfAt(best.s) + 0.25) blocked.push([best.s - HEDGE_POLE_CLEAR_M, best.s + HEDGE_POLE_CLEAR_M]);
+    }
+    blocked.sort((a, b) => a[0] - b[0]);
+    const free = [];
+    let from = s0;
+    for (const [b0, b1] of blocked) { if (b0 > from) free.push([from, Math.min(b0, s1)]); from = Math.max(from, b1); }
+    if (from < s1) free.push([from, s1]);
+    for (const [f0, f1] of free) {
+      let s = f0;
+      while (f1 - s > 0.6) {
+        let len = HEDGE_BUSH_M[0] + rand() * (HEDGE_BUSH_M[1] - HEDGE_BUSH_M[0]);
+        // (The last of a run takes what is left rather than leaving a stub of soil.)
+        if (f1 - s - len < HEDGE_BUSH_M[0] * 0.6) len = f1 - s;
+        bush(bed, pts, cum, s, Math.min(f1, s + len), soilHalf, rand, yAt);
+        s += len + HEDGE_GAP_M[0] + rand() * (HEDGE_GAP_M[1] - HEDGE_GAP_M[0]);
+      }
+    }
+  }
+  // One bush: a trimmed block along the bed from ``a`` to ``b`` (m), its section a little
+  // narrower at the top than at the foot with its top edges rounded off, its faces bulging and
+  // sagging a little, and its sprigs and twigs.
+  function bush(bed, pts, cum, a, b, soilHalf, rand, yAt) {
+    hedgeStats.bushes += 1; hedgeStats.metres += b - a;
+    const H = HEDGE_HEIGHT_M + (rand() - 0.5) * 0.05, lean = (rand() - 0.5) * 0.02;
+    // The section, from the left foot round over the top to the right foot: [across (of the
+    // half-width), up (of the height)], with the shade it takes (the top catches the light).
+    const SEC = [[-1, 0, 0.72], [-1.0, 0.45, 0.85], [-0.97, 0.86, 0.95], [-0.88, 0.97, 1.05], [-0.6, 1.0, 1.1], [0, 1.0, 1.12], [0.6, 1.0, 1.1], [0.88, 0.97, 1.05], [0.97, 0.86, 0.95], [1.0, 0.45, 0.85], [1, 0, 0.72]];
+    const stations = [];
+    const n = Math.max(2, Math.ceil((b - a) / 0.35));
+    for (let k = 0; k <= n; k += 1) {
+      const s = a + (b - a) * (k / n), c = bedPointAt(pts, cum, s);
+      const w = Math.max(0.12, soilHalf(s) - HEDGE_SOIL_SHOW_M);
+      // The ends rounded in a little over their last 12 cm, as clipped.
+      const end = Math.min(s - a, b - s), round = end < 0.12 ? Math.sqrt(Math.max(0, end / 0.12)) * 0.25 + 0.75 : 1;
+      stations.push({ c, w: w * round, y: yAt(bed, c.x, c.z), h: H * (end < 0.12 ? 0.9 + 0.1 * end / 0.12 : 1) });
+    }
+    const base = hedge.p.length / 3, wobble = () => (rand() - 0.5) * 0.028;
+    for (const st of stations) {
+      const { c } = st, nx = -c.uz, nz = c.ux;   // the left, across the bed
+      for (const [q, u, shade] of SEC) {
+        const out = (Math.abs(q) > 0.5 && u > 0.05 ? wobble() : 0) + (u > 0.9 && Math.abs(q) < 0.9 ? 0 : 0);
+        const across = q * st.w * (1 - 0.06 * u) + Math.sign(q) * out + lean * u;
+        const up = u * st.h + (u > 0.95 ? wobble() * 0.6 : 0);
+        hedge.p.push(c.x + nx * across, st.y + up, c.z + nz * across);
+        hedge.c.push(shade * (0.94 + rand() * 0.1), shade * (0.95 + rand() * 0.1), shade * (0.92 + rand() * 0.08));
+      }
+    }
+    // UVs: along the bush and round its section, a metre to a repeat.
+    let along = 0;
+    for (let k = 0; k < stations.length; k += 1) {
+      if (k) along += Math.hypot(stations[k].c.x - stations[k - 1].c.x, stations[k].c.z - stations[k - 1].c.z);
+      let round = 0;
+      for (let j = 0; j < SEC.length; j += 1) {
+        if (j) round += Math.hypot((SEC[j][0] - SEC[j - 1][0]) * stations[k].w, (SEC[j][1] - SEC[j - 1][1]) * stations[k].h);
+        hedge.uv.push(along / 0.9, round / 0.9);
+      }
+    }
+    const S = SEC.length;
+    for (let k = 0; k + 1 < stations.length; k += 1) for (let j = 0; j + 1 < S; j += 1) {
+      const p = base + k * S + j, q = p + S;
+      hedge.i.push(p, p + 1, q, p + 1, q + 1, q);
+    }
+    // The two ends, closed: a fan from the middle of each end's section.
+    for (const [k, flip] of [[0, true], [stations.length - 1, false]]) {
+      const st = stations[k], mid = hedge.p.length / 3;
+      hedge.p.push(st.c.x, st.y + st.h * 0.5, st.c.z); hedge.uv.push(0.5, 0.5); hedge.c.push(0.82, 0.84, 0.8);
+      for (let j = 0; j + 1 < S; j += 1) { const p = base + k * S + j; if (flip) hedge.i.push(mid, p + 1, p); else hedge.i.push(mid, p, p + 1); }
+    }
+    // Its sides, for the walker.
+    const first = stations[0], last = stations[stations.length - 1];
+    for (const side of [1, -1]) for (let k = 0; k + 1 < stations.length; k += 1) {
+      const p = stations[k], q = stations[k + 1];
+      addHedgeWall([p.c.x - p.c.uz * p.w * side, p.c.z + p.c.ux * p.w * side, q.c.x - q.c.uz * q.w * side, q.c.z + q.c.ux * q.w * side]);
+    }
+    for (const st of [first, last]) addHedgeWall([st.c.x - st.c.uz * st.w, st.c.z + st.c.ux * st.w, st.c.x + st.c.uz * st.w, st.c.z - st.c.ux * st.w]);
+    // Sprigs the shears missed: on the top, three or so a metre, standing up out of it; on each
+    // side two, standing out of it; and a twig a metre or so, a bare stem with leaves at its end.
+    const len = b - a;
+    const put = (list, s, q, u, out, up, size) => {
+      const st = bedPointAt(pts, cum, s), w = Math.max(0.12, soilHalf(s) - HEDGE_SOIL_SHOW_M), y = yAt(bed, st.x, st.z);
+      const nx = -st.uz, nz = st.ux;
+      list.push({ x: st.x + nx * (q * w + Math.sign(q) * out), y: y + u * H + up, z: st.z + nz * (q * w + Math.sign(q) * out), size, nx: nx * Math.sign(q || 1), nz: nz * Math.sign(q || 1), q, ax: st.ux, az: st.uz });
+    };
+    for (let k = 0, m = Math.round(len * (2.5 + rand() * 1.5)); k < m; k += 1) put(sprigs, a + rand() * len, (rand() - 0.5) * 1.6, 1, 0, 0.01 + rand() * 0.06, 0.035 + rand() * 0.04);
+    for (const side of [-1, 1]) for (let k = 0, m = Math.round(len * (1.5 + rand() * 1.2)); k < m; k += 1) put(sprigs, a + rand() * len, side, 0.25 + rand() * 0.7, 0.01 + rand() * 0.05, 0, 0.03 + rand() * 0.035);
+    for (let k = 0, m = Math.max(1, Math.round(len * (0.6 + rand() * 0.8))); k < m; k += 1) {
+      const top = rand() < 0.35, q = top ? (rand() - 0.5) * 1.4 : (rand() < 0.5 ? -1 : 1);
+      put(twigs, a + 0.2 + rand() * (len - 0.4), q, top ? 0.98 : 0.35 + rand() * 0.6, 0, 0, 0.09 + rand() * 0.14);
+      const tw = twigs[twigs.length - 1];
+      tw.top = top; tw.tilt = 0.25 + rand() * 0.6; tw.spin = (rand() - 0.5) * 1.2;
+    }
+  }
+  const meshes = [];
+  if (soil.i.length) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(soil.p, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(soil.uv, 2));
+    g.setIndex(soil.i); g.computeVertexNormals();
+    // (Faces up whichever way its rings ran.)
+    const nrm = g.attributes.normal;
+    let down = 0; for (let k = 0; k < nrm.count; k += 1) if (nrm.getY(k) < 0) down += 1;
+    if (down > nrm.count / 2) { const idx = g.index.array; for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } g.computeVertexNormals(); }
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: T.soil, color: 0xffffff, roughness: 1, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }));
+    m.userData = { surface: "median_soil", provenance: "inferred_visual" }; m.receiveShadow = true;
+    meshes.push(m);
+  }
+  if (hedge.i.length) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(hedge.p, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(hedge.uv, 2));
+    g.setAttribute("color", new THREE.Float32BufferAttribute(hedge.c, 3));
+    g.setIndex(hedge.i); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: T.leaves, vertexColors: true, color: 0xffffff, roughness: 0.92, metalness: 0 }));
+    m.userData = { surface: "hedge", provenance: "inferred_visual" }; m.castShadow = true; m.receiveShadow = true;
+    meshes.push(m);
+  }
+  const dummy = new THREE.Object3D(), tint = new THREE.Color();
+  if (sprigs.length || twigs.length) {
+    // A sprig: a few leaves bunched (a squashed, lumpy ball), a shade or two off the hedge's.
+    const leafy = new THREE.IcosahedronGeometry(1, 0);
+    { const P = leafy.attributes.position; for (let k = 0; k < P.count; k += 1) { const f = 0.75 + 0.5 * ((Math.sin(k * 12.9898) * 43758.5453) % 1 + 1) % 1; P.setXYZ(k, P.getX(k) * f, P.getY(k) * f * 0.7, P.getZ(k) * f); } leafy.computeVertexNormals(); }
+    const all = sprigs.concat(twigs.map((t) => {
+      // (The leaves at a twig's end.)
+      const out = t.top ? 0 : t.size * Math.sin(t.tilt), up = t.top ? t.size : t.size * Math.cos(t.tilt);
+      return { x: t.x + t.nx * out + t.ax * t.spin * 0.04, y: t.y + up, z: t.z + t.nz * out + t.az * t.spin * 0.04, size: 0.028 + t.size * 0.12 };
+    }));
+    const leafMesh = new THREE.InstancedMesh(leafy, new THREE.MeshStandardMaterial({ map: T.leaves, color: 0xffffff, roughness: 0.9 }), all.length);
+    all.forEach((p, k) => {
+      dummy.position.set(p.x, p.y, p.z); dummy.rotation.set(k * 1.7, k * 2.3, k * 0.9);
+      dummy.scale.set(p.size * (0.8 + (k % 5) * 0.08), p.size, p.size * (0.9 + (k % 3) * 0.1)); dummy.updateMatrix();
+      leafMesh.setMatrixAt(k, dummy.matrix);
+      leafMesh.setColorAt(k, tint.setRGB(0.85 + (k % 7) * 0.035, 0.9 + (k % 4) * 0.04, 0.8 + (k % 6) * 0.03));
+    });
+    leafMesh.instanceMatrix.needsUpdate = true; if (leafMesh.instanceColor) leafMesh.instanceColor.needsUpdate = true;
+    leafMesh.userData = { surface: "hedge_sprig", provenance: "inferred_visual" };
+    meshes.push(leafMesh);
+    hedgeStats.sprigs = all.length;
+  }
+  if (twigs.length) {
+    const stem = new THREE.CylinderGeometry(0.0035, 0.0065, 1, 4).translate(0, 0.5, 0);
+    const mesh = new THREE.InstancedMesh(stem, new THREE.MeshStandardMaterial({ color: 0x5b4a33, roughness: 0.95 }), twigs.length);
+    const up = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3();
+    twigs.forEach((t, k) => {
+      const out = t.top ? 0 : Math.sin(t.tilt), rise = t.top ? 1 : Math.cos(t.tilt);
+      dir.set(t.nx * out + t.ax * t.spin * 0.3, rise, t.nz * out + t.az * t.spin * 0.3).normalize();
+      // (From a few centimetres inside the hedge: it grows out of it.)
+      dummy.position.set(t.x - t.nx * 0.04 * (t.top ? 0 : 1), t.y - (t.top ? 0.04 : 0), t.z - t.nz * 0.04 * (t.top ? 0 : 1));
+      dummy.quaternion.setFromUnitVectors(up, dir); dummy.scale.set(1, t.size + 0.04, 1); dummy.updateMatrix();
+      mesh.setMatrixAt(k, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.userData = { surface: "hedge_twig", provenance: "inferred_visual" };
+    meshes.push(mesh);
+    hedgeStats.twigs = twigs.length;
+  }
+  for (const m of meshes) { m.name = `divider-hedge:${m.userData.surface}`; groups.furniture.add(m); }
+  return hedgeStats;
+}
+window.kerbsideHedges = hedgeStats;   // (for checks: beds, bushes, metres, sprigs, twigs)
