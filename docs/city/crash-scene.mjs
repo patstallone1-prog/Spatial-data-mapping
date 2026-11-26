@@ -34,10 +34,14 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
     cable: new THREE.CylinderGeometry(0.018, 0.018, 1, 6).translate(0, -0.5, 0),
     hook: new THREE.TorusGeometry(0.09, 0.025, 6, 10, Math.PI * 1.5),
     lamp: new THREE.BoxGeometry(0.5, 0.12, 0.22),
+    // The back doors (a pair, hinged at the corners) and the dark of the inside behind them.
+    door: new THREE.BoxGeometry(1, 1.7, 0.06).translate(0.5, 0.85 + 0.38, 0),
+    hold: new THREE.PlaneGeometry(1, 1.7).translate(0, 0.85 + 0.38, 0),
   };
   const MAT = {
     medic: mat(0x1f3a5c), skin: mat(0xb5876a), bed: mat(0xe9e6df), frame: mat(0x8a8f96), steel: mat(0x33383e), cable: mat(0x1c1e21),
     red: new THREE.MeshBasicMaterial({ color: 0xff2a1e, toneMapped: false }), amber: new THREE.MeshBasicMaterial({ color: 0xffa51e, toneMapped: false }), dark: mat(0x40181a),
+    door: mat(0xf1f0ea), inside: new THREE.MeshBasicMaterial({ color: 0x16191c, side: THREE.DoubleSide }),
   };
 
   // ---- the scene ---------------------------------------------------------------------------------
@@ -167,8 +171,10 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
     const stretcher = new THREE.Group(); stretcher.add(new THREE.Mesh(GEO.bed, MAT.bed));
     const legs = [new THREE.Mesh(GEO.legs, MAT.frame), new THREE.Mesh(GEO.legs, MAT.frame)]; legs[0].position.z = -0.7; legs[1].position.z = 0.7; stretcher.add(...legs); g.add(stretcher);
     const lamps = [new THREE.Mesh(GEO.lamp, MAT.red), new THREE.Mesh(GEO.lamp, MAT.red)]; g.add(...lamps);
+    const doors = [new THREE.Mesh(GEO.door, MAT.door), new THREE.Mesh(GEO.door, MAT.door)], hold = new THREE.Mesh(GEO.hold, MAT.inside);
+    g.add(...doors, hold);
     root.add(g);
-    return { g, crew, stretcher, legs, lamps };
+    return { g, crew, stretcher, legs, lamps, doors, hold };
   }
   function truckGear() {
     const g = new THREE.Group();
@@ -183,6 +189,28 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
   //: The point ``back`` metres behind a vehicle's middle and ``side`` to its right, on the ground.
   const behind = (v, back, side = 0) => { const fx = -Math.sin(v.yaw), fz = -Math.cos(v.yaw); return { x: v.x - fx * back - fz * side, z: v.z - fz * back + fx * side }; };
 
+  //: The ambulance's back doors at ``open`` (0 shut .. 1 open, swung out past square to each side),
+  //: hinged at the back corners, and the dark of the inside showing behind them.
+  const OPEN_S = 0.9, CLOSE_S = 0.9, CAB_S = 2.2;
+  const lerpXZ = (p, q, u) => ({ x: p.x + (q.x - p.x) * u, z: p.z + (q.z - p.z) * u });
+  function backDoors(a, G, D, y, open) {
+    const fx = -Math.sin(a.yaw), fz = -Math.cos(a.yaw), rx = -fz, rz = fx;   // forward, and to the right
+    const half = D[0] / 2 - 0.04, w = half, angle = open * 1.75;
+    G.doors.forEach((d, k) => {
+      const s0 = k ? 1 : -1, hinge = behind(a, D[2] / 2 + 0.02, s0 * half);
+      // Shut, the leaf runs from its corner in toward the middle; open, out round behind it.
+      const dx = -s0 * rx * Math.cos(angle) - fx * Math.sin(angle), dz = -s0 * rz * Math.cos(angle) - fz * Math.sin(angle);
+      d.position.set(hinge.x, y, hinge.z);
+      d.rotation.set(0, Math.atan2(-dz, dx), 0);
+      d.scale.set(w, 1, 1);
+      d.visible = open > 0.01;
+    });
+    const back = behind(a, D[2] / 2 + 0.015);
+    G.hold.position.set(back.x, y, back.z);
+    G.hold.rotation.set(0, Math.atan2(-fx, -fz), 0);
+    G.hold.scale.set(D[0] * 0.92, 1, 1);
+    G.hold.visible = open > 0.02;
+  }
   function stepAmbulance(s, dt, now) {
     const a = s.ambulance, D = dims.ambulance || [2.1, 2.5, 5.6];
     a.gear ||= ambulanceGear();
@@ -193,24 +221,54 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
       for (let i = 0; i < list.length; i += 1) if (i < w.i || w.done) list[i].loaded = true;
       if (w.done) {
         clear({ people: list.map((c) => c.id) });
+        // Not off at once: one of the crew in the back with them, the other shuts the doors and
+        // walks round to the cab (closing), and then it goes.
+        a.phase = "closing"; a.closing = now; a.work = null;
+      } else a.work = w;
+    } else if (a.phase === "closing") {
+      if (now - a.closing > (CLOSE_S + CAB_S) * 1000) {
         a.phase = "leaving"; a.left = now; a.route = wayOff(a, "amb") || a.route; a.d = 0; a.v = 1;
         if (!a.route) a.phase = "gone";
         if (s.near && list.length) notify(list.length > 1 ? `The ambulance takes ${list.length} to hospital.` : "The ambulance takes them to hospital.");
-      } else a.work = w;
+      }
     } else if (a.phase === "leaving") { if (drive(a, dt, SCENE.leave_ms + 3, 0) || (a.d > SCENE.off_m && unseenAt(a.x, a.z)) || now - a.left > SCENE.leave_most_s * 1000) a.phase = "gone"; }
     // The crew and the stretcher: from the doors at the back to the casualty and back.
     const y = groundAt(a.x, a.z), doors = behind(a, D[2] / 2 + 0.9), work = a.phase === "working" && a.work && !a.work.done ? a.work : null;
     const c = work ? list[work.i] : null, st = work ? stretcherAt(work.k) : null;
     G.stretcher.visible = Boolean(work); for (const m of G.crew) m.visible = Boolean(work);
+    // The back doors: swung open as the crew get out, shut again by one of them before it goes.
+    const opened = a.phase === "working" ? Math.min(1, (now - a.at) / 1000 / OPEN_S)
+      : a.phase === "closing" ? Math.max(0, 1 - (now - a.closing) / 1000 / CLOSE_S) : 0;
+    backDoors(a, G, D, y, opened);
     if (work && c) {
-      const tx = c.x, tz = c.z, sx = doors.x + (tx - doors.x) * st.reach, sz = doors.z + (tz - doors.z) * st.reach, gy = groundAt(sx, sz);
+      const tx = c.x, tz = c.z;
+      // (In at the back: from the doors to the floor inside, slide 0..1.)
+      const slid = st.slide || 0, inside = behind(a, D[2] / 2 - 1.6), from = st.reach > 0 || !slid ? doors : { x: doors.x + (inside.x - doors.x) * slid, z: doors.z + (inside.z - doors.z) * slid };
+      const sx = from.x + (tx - from.x) * st.reach, sz = from.z + (tz - from.z) * st.reach, gy = groundAt(sx, sz);
       const heading = Math.atan2(-(tx - doors.x), -(tz - doors.z));
       G.stretcher.position.set(sx, gy + st.lift, sz); G.stretcher.rotation.y = heading;
-      for (const leg of G.legs) { leg.scale.y = Math.max(0.1, st.lift); leg.position.y = -st.lift / 2; }
+      // (The legs fold up under it as it runs in.)
+      const legH = st.lift * (1 - 0.85 * slid);
+      for (const leg of G.legs) { leg.scale.y = Math.max(0.1, legH); leg.position.y = -legH / 2; }
       G.stretcher.visible = !st.in;
-      // (One at the head and one at the foot, bent to it while they lift.)
-      G.crew.forEach((m, k) => { const off = (k ? 1 : -1) * 1.15; m.position.set(sx - Math.sin(heading) * off, gy, sz - Math.cos(heading) * off); m.rotation.y = heading + (k ? Math.PI : 0); m.rotation.x = st.lift < 0.5 ? 0.5 : 0; m.visible = !st.in; });
+      // (One at the head and one at the foot, bent to it while they lift; walking, a step's bob.
+      // As it goes in, the one at the head climbs in with it and is out of sight inside.)
+      const moving = st.reach > 0 && st.reach < 1, bob = moving ? Math.abs(Math.sin(now / 1000 * 2 * Math.PI * 0.9)) * 0.035 : 0;
+      G.crew.forEach((m, k) => {
+        const off = (k ? 1 : -1) * 1.15;
+        m.position.set(sx - Math.sin(heading) * off, gy + bob, sz - Math.cos(heading) * off); m.rotation.y = heading + (k ? Math.PI : 0); m.rotation.x = st.lift < 0.5 ? 0.5 : 0;
+        m.visible = !st.in && !(k === 1 && slid > 0.35);
+      });
       c.pose = st.carried ? { x: sx, z: sz, lift: st.lift + 0.12, yaw: heading, hidden: st.in } : null;
+    }
+    if (a.phase === "closing") {
+      // The one left outside: at the doors to swing them shut, then along the side to the cab.
+      const m = G.crew[0], t = (now - a.closing) / 1000, side = D[0] / 2 + 0.45;
+      const at = t < CLOSE_S ? behind(a, D[2] / 2 + 0.7) : (() => { const u = Math.min(1, (t - CLOSE_S) / CAB_S), b0 = behind(a, D[2] / 2 + 0.7), c0 = behind(a, D[2] / 2 + 0.2, -side), c1 = behind(a, -D[2] / 2 + 1.3, -side); return u < 0.3 ? lerpXZ(b0, c0, u / 0.3) : lerpXZ(c0, c1, (u - 0.3) / 0.7); })();
+      const step = t >= CLOSE_S && t < CLOSE_S + CAB_S;
+      m.position.set(at.x, groundAt(at.x, at.z) + (step ? Math.abs(Math.sin(t * 2 * Math.PI * 0.9)) * 0.035 : 0), at.z);
+      m.rotation.set(0, t < CLOSE_S ? a.yaw : a.yaw + Math.PI, 0);
+      m.visible = t < CLOSE_S + CAB_S * 0.95;
     }
     G.lamps.forEach((l, k) => l.position.set(a.x + (k ? 0.45 : -0.45) * Math.cos(a.yaw), y + D[1] + 0.08, a.z - (k ? 0.45 : -0.45) * Math.sin(a.yaw)));
     G.lamps.forEach((l) => { l.rotation.y = a.yaw; });
@@ -326,7 +384,7 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
     //: A casualty's place while the crew has them (on the stretcher; ``hidden`` once inside), or null.
     casualtyPose(id) { for (const s of scenes) { const c = s.casualties.get(id); if (c) return c.loaded ? { hidden: true } : c.pose || null; } return null; },
     has: (id) => scenes.some((s) => !s.cleared && (s.wrecks.has(id) || s.casualties.has(id))),
-    report: () => scenes.map((s) => ({ id: s.id, at: [Math.round(s.x), Math.round(s.z)], age: Math.round((performance.now() - s.t0) / 1000), wrecks: [...s.wrecks.values()].map((w) => ({ id: w.id, truck: w.truck, gone: w.gone })), casualties: [...s.casualties.values()].map((c) => ({ id: c.id, loaded: c.loaded })), ambulance: s.ambulance?.phase || null, trucks: s.trucks.map((t) => t.phase), called: s.called, cleared: s.cleared })),
+    report: () => scenes.map((s) => ({ id: s.id, at: [Math.round(s.x), Math.round(s.z)], age: Math.round((performance.now() - s.t0) / 1000), wrecks: [...s.wrecks.values()].map((w) => ({ id: w.id, truck: w.truck, gone: w.gone })), casualties: [...s.casualties.values()].map((c) => ({ id: c.id, loaded: c.loaded })), ambulance: s.ambulance?.phase || null, ambAt: s.ambulance ? [+s.ambulance.x.toFixed(2), +s.ambulance.z.toFixed(2), +s.ambulance.yaw.toFixed(3)] : null, trucks: s.trucks.map((t) => t.phase), called: s.called, cleared: s.cleared })),
     clearAll() { for (const s of scenes) if (!s.cleared) finish(s, true); },
   };
 }

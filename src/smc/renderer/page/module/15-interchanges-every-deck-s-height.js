@@ -522,7 +522,7 @@ for (const way of DRAW_ORDER) {
     dense.forEach((point, i) => {
       const [x, y] = xy(point[0], point[1]);
       const [px, py] = xy(...dense[Math.max(0, i - 1)]), [qx, qy] = xy(...dense[Math.min(dense.length - 1, i + 1)]);
-      if (insideJunctionBox(x, -y) || crossStreetAt(x, -y, qx - px, -(qy - py))) paintRun(); else run.push(point);
+      if (insideJunctionBox(x, -y) || medianCrossStreetAt(x, -y, qx - px, -(qy - py))) paintRun(); else run.push(point);
     });
     paintRun();
   }
@@ -590,7 +590,7 @@ for (const way of DRAW_ORDER) {
     if (bore) groups.streets.add(bore);
     continue;
   }
- const surfacePoints = isCrossing ? crossingRectanglePoints(renderPoints)
+ const surfacePoints = isCrossing ? crossingOverDividers(crossingRectanglePoints(renderPoints))
  : (isSidewalk || isPath) ? trimWalkwayForCorners(renderPoints, widthMeters) : renderPoints;
   // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
   // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
@@ -648,7 +648,7 @@ for (const way of DRAW_ORDER) {
     // is settled onto the road as drawn afterwards (settleOnto), and it can only follow the
     // road's folds where it has vertices.
     const paintRuns = (isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints])
-      .map((run) => isCrossing ? densifyWay(trimWay(run, 0.48), CROSSING_PAINT_STEP_M) : run)
+      .map((run) => isCrossing ? densifyWay(trimWay(run, CROSSING_PAINT_END_TRIM_M), CROSSING_PAINT_STEP_M) : run)
       .filter((run) => run && run.length >= 2);
     if (!isCrossing || surfaceKind) {
       for (const paintRun of paintRuns) {
@@ -829,6 +829,9 @@ const MEDIAN_STATION_M = 2.0;
 //: node is followed by the next piece, and any margin here is a hole between them. The raised
 //: median stops at the junction box; its nose is where the crossing is.
 const MEDIAN_END_M = 0.0;
+//: The dividers between a divided street's halves (addDividedMedians), as rings for
+//: dividerPieces to lay with the islands: {ring: [[x, z]...], street}.
+var TWIN_DIVIDER_RINGS = [];
 
 function twinInnerEdgeAt(way, x, z, nx, nz) {
   // Along the ray from this half's inner edge across the median: the other half's edge.
@@ -863,6 +866,25 @@ function twinInnerEdgeAt(way, x, z, nx, nz) {
   return best;
 }
 
+//: A street crossing the strip here -- another street's carriageway, at an angle to it: where
+//: one stretch of a median ends and the next begins (the junction), for medianKind. (At more
+//: than 35 degrees to it; written in, as the medians are laid before a constant here is set.)
+function medianCrossStreetAt(x, z, bearing, way) {
+  const cx = Math.floor(x / CARRIAGEWAY_CELL), cz = Math.floor(z / CARRIAGEWAY_CELL);
+  const limit = 35 * Math.PI / 180;
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (const [ax, az, bx, bz, half, other, source] of carriagewayGrid.get((cx + dx) * 1048576 + (cz + dz)) || []) {
+        if (!source || source === way || other === undefined || (way.name && source.name === way.name)) continue;
+        let difference = Math.abs(other - bearing) % Math.PI;
+        if (difference > Math.PI / 2) difference = Math.PI - difference;
+        if (difference < limit) continue;
+        if (distanceToSegmentSquared(x, z, ax, az, bx, bz) < half * half) return true;
+      }
+    }
+  }
+  return false;
+}
 function addDividedMedians() {
   // Broadway east of Polk is two one-way ways, and once each was drawn at its own width from
   // its own kerb the ground between them showed: a dark strip down the middle of the street.
@@ -943,6 +965,52 @@ function addDividedMedians() {
         stations[m] = { a: lerp(from.a, to.a), b: lerp(from.b, to.b), twin: from.twin,
                         raised: from.raised && to.raised };
       }
+    }
+    // A divider (medianKind) is not raised here: each run of raised stations that is one is
+    // handed on as a ring (TWIN_DIVIDER_RINGS), cut back short of its crosswalks with rounded
+    // noses where the islands are laid (dividerPieces), unless an island there already has it.
+    // Each stretch between crosswalks (or junction boxes) is judged on its own: Fillmore's twin
+    // halves run unbroken from Chestnut to Marina, and judged as one strip, the thin islands
+    // north of Bay made the 4.6 m refuge south of it a divider -- never raised, and the gap
+    // paved over by the frontage fill in steps.
+    for (let i = 0; i < stations.length;) {
+      if (!stations[i]?.raised) { i += 1; continue; }
+      let j = i;
+      while (j + 1 < stations.length && stations[j + 1]?.raised) j += 1;
+      const run = stations.slice(i, j + 1);
+      const cut = run.map((st) => {
+        const mx = (st.a[0] + st.b[0]) / 2, mz = (st.a[1] + st.b[1]) / 2;
+        return insideJunctionBox(mx, mz) || crossingClearAt(mx, mz, 0.3, 0.3) !== null
+          || medianCrossStreetAt(mx, mz, Math.atan2(st.a[0] - st.b[0], st.b[1] - st.a[1]), way);
+      });
+      const kindOf = new Array(run.length).fill(null);
+      for (let p = 0; p < run.length;) {
+        if (cut[p]) { p += 1; continue; }
+        let q = p;
+        while (q + 1 < run.length && !cut[q + 1]) q += 1;
+        const piece = run.slice(p, q + 1);
+        const widths = piece.map((st) => Math.hypot(st.b[0] - st.a[0], st.b[1] - st.a[1])).sort((u, v) => u - v);
+        const mid = piece[piece.length >> 1], mx = (mid.a[0] + mid.b[0]) / 2, mz = (mid.a[1] + mid.b[1]) / 2;
+        const lower = way._i < mid.twin._i;
+        if (piece.length >= 2) {
+          const judged = medianKind({ width: widths[widths.length >> 1], length: (piece.length - 1) * MEDIAN_STATION_M, busStop: busStopOnMedian(mx, mz) });
+          // (Counted once, from the half with the lower index, which draws it.)
+          if (lower) countMedianKind(judged);
+          for (let k = p; k <= q; k += 1) kindOf[k] = judged.kind;
+          if (judged.kind === "divider" && lower) {
+            TWIN_DIVIDER_RINGS.push({ ring: piece.map((st) => st.a).concat(piece.map((st) => st.b).reverse()), street: way.name || null });
+          }
+        }
+        p = q + 1;
+      }
+      // A crosswalk's stations stay raised where the strip either side is a refuge (the walk
+      // goes over it); between two dividers, or a divider and the strip's end, they are road.
+      const near = (k, dir) => { for (let m = k + dir; m >= 0 && m < run.length; m += dir) if (!cut[m]) return kindOf[m]; return "divider"; };
+      run.forEach((st, k) => {
+        const kind = cut[k] ? (near(k, -1) === "refuge" || near(k, 1) === "refuge" ? "refuge" : "divider") : kindOf[k];
+        if (kind === "divider") st.raised = false;
+      });
+      i = j + 1;
     }
     let previous = null;
     for (const station of stations) {
@@ -1029,7 +1097,7 @@ for (const pad of deferredTactilePads) {
       }
     }
     return top === undefined ? pad.fallbackY : top + 0.018;
-  });
+  }, (end, before) => crossingEndOnDivider(end, before) !== null);
 }
 deferredTactilePads.length = 0;
 const junctionBoxes = addJunctionBoxes();

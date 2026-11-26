@@ -1063,3 +1063,148 @@ function bridgeClearanceProfile(base,abutments,controls) {
   lift.clearanceBasis="inferred_visual_not_measured";lift.clearanceControls=controls;
   return lift;
 }
+
+// ---- what a strip down the middle of the road is for (2026-11-26) ----------------------------
+//
+// A raised strip in the middle of a street is one of two things. A refuge -- a crossing island --
+// is for people: the crosswalk lands on it or is cut through it, with a yellow pad at each edge,
+// and a person waits there between the carriageways. A divider is for the traffic: it keeps the
+// two ways apart, it ends short of the crosswalk, and the crosswalk crosses the street where it
+// would have been. The hints, strongest first: a bus stop on it makes it a refuge (people board
+// there); too thin for the pads -- one at each edge and room to stand between, REFUGE_MIN_W_M,
+// six feet, the least an accessible refuge is -- makes it a divider; so does very long and thin
+// (DIVIDER_LONG_M or more, DIVIDER_THIN_RATIO times as long as wide). Lombard's, 1.2 m wide, is a
+// divider: its crosswalks put yellow pads on a strip too narrow to stand on, and the strip ran on
+// into the crosswalks (2026-11-26).
+const REFUGE_MIN_W_M = 1.83;
+const DIVIDER_LONG_M = 40, DIVIDER_THIN_RATIO = 15, DIVIDER_THIN_MAX_W_M = 3.0;
+//: A divider's nose stops this far (m) short of a crosswalk's paint.
+const DIVIDER_NOSE_CLEAR_M = 1.0;
+//: The dividers planted with a trimmed hedge (addDividerHedges), by their street's name.
+const PLANTED_DIVIDERS = /^Lombard Street$/;
+//: The strips classified, by kind and why (for checks: window.kerbsideMedianKinds).
+const medianKindStats = { refuge: 0, divider: 0, why: {}, ends: [] };
+//: What a strip in the middle of the road is: {kind: "refuge" | "divider", why}.
+//: (Too thin counts only for a strip -- DIVIDER_STRIP_MIN_M long and DIVIDER_STRIP_RATIO times
+//: its width: a short island or a triangle at a skewed corner, narrow where a crosswalk lands
+//: on its tip, is a refuge -- the "pork chops" of Marina Boulevard's junctions.)
+const DIVIDER_STRIP_MIN_M = 8, DIVIDER_STRIP_RATIO = 4;
+function medianKind({ width, length = 0, busStop = false }) {
+  if (busStop) return { kind: "refuge", why: "bus_stop" };
+  const strip = length >= Math.max(DIVIDER_STRIP_MIN_M, DIVIDER_STRIP_RATIO * width);
+  if (!(width >= REFUGE_MIN_W_M) && strip) return { kind: "divider", why: "too_thin" };
+  if (!strip) return { kind: "refuge", why: "short" };
+  if (length >= DIVIDER_LONG_M && length >= DIVIDER_THIN_RATIO * width && width <= DIVIDER_THIN_MAX_W_M) return { kind: "divider", why: "long_thin" };
+  return { kind: "refuge", why: "room_to_wait" };
+}
+function countMedianKind(k) {
+  medianKindStats[k.kind] += 1;
+  medianKindStats.why[k.why] = (medianKindStats.why[k.why] || 0) + 1;
+  return k;
+}
+//: Whether a bus stops on the strip at (x, z): an island station's spot, or beside a busway.
+function busStopOnMedian(x, z) {
+  if (typeof TRANSIT_ISLAND_SPOTS !== "undefined" && Array.isArray(TRANSIT_ISLAND_SPOTS)
+      && TRANSIT_ISLAND_SPOTS.some(([ix, iz, r]) => Math.hypot(ix - x, iz - z) < r + 4)) return true;
+  return typeof BUSWAY_SEGMENTS !== "undefined" && BUSWAY_SEGMENTS.length > 0 && nearBusway(x, z, 6);
+}
+//: The island kerbs either side of (x, z) along (ux, uz): {lo, hi} (signed metres from (x, z),
+//: lo <= 0 <= hi) where (x, z) stands between an island's two kerbs, else null. The kerbs are
+//: read from ``reach`` back, and an island is between an odd kerb and the next.
+function islandKerbsAround(x, z, ux, uz, reach = 12) {
+  const hits = [];
+  for (const grid of [officialIslandCurbGrid, mappedDividerCurbGrid]) {
+    if (grid && grid.size) for (const v of rayCurbIntersections(x - ux * reach, z - uz * reach, ux, uz, reach * 2, grid)) if (v >= 0 && v <= reach * 2) hits.push(v - reach);
+  }
+  hits.sort((a, b) => a - b);
+  // (The same kerb from both grids, or a kerb's two lines a few centimetres apart: one.)
+  const kerbs = hits.filter((v, i) => i === 0 || v - hits[i - 1] > 0.08);
+  for (let i = 0; i + 1 < kerbs.length; i += 2) {
+    if (kerbs[i] <= 0.02 && kerbs[i + 1] >= -0.02) return { lo: kerbs[i], hi: kerbs[i + 1] };
+  }
+  return null;
+}
+//: How the strip through (x, z) runs along (vx, vz) both ways (to ``most`` m): {length, widest}
+//: -- while it keeps about its width ``w`` across (ux, uz); ``widest`` read within WIDEST_NEAR_M
+//: (a nose is narrower than the strip: a refuge read at its tip was too thin).
+const WIDEST_NEAR_M = 6;
+function islandRun(x, z, ux, uz, w, most = 160) {
+  const vx = -uz, vz = ux, step = 2;
+  let length = 0, widest = w;
+  for (const s of [1, -1]) {
+    for (let d = step; d <= most / 2; d += step) {
+      const k = islandKerbsAround(x + vx * d * s, z + vz * d * s, ux, uz, Math.max(4, w * 2 + 2));
+      if (!k) break;
+      const here = k.hi - k.lo;
+      if (d <= WIDEST_NEAR_M && here <= 9) widest = Math.max(widest, here);
+      if (Math.abs(here - widest) > Math.max(0.5, widest * 0.5)) break;
+      length += step;
+    }
+  }
+  return { length, widest };
+}
+const medianStripCache = new Map();
+//: The strip in the middle of the road at (x, z), read across it along (ux, uz) -- the way a
+//: crosswalk crosses it: {kind, why, width, length, lo, hi} or null where (x, z) is on none.
+function medianStripAt(x, z, ux, uz) {
+  const key = `${Math.round(x * 4)}:${Math.round(z * 4)}:${Math.round(Math.atan2(uz, ux) * 20)}`;
+  if (medianStripCache.has(key)) return medianStripCache.get(key);
+  let out = null;
+  const k = islandKerbsAround(x, z, ux, uz);
+  const width = k ? k.hi - k.lo : 0;
+  if (k && width > 0.3 && width <= 9) {
+    const mx = x + ux * (k.lo + k.hi) / 2, mz = z + uz * (k.lo + k.hi) / 2;
+    const run = islandRun(mx, mz, ux, uz, width);
+    out = { ...countMedianKind(medianKind({ width: run.widest, length: run.length, busStop: busStopOnMedian(mx, mz) })), width: run.widest, length: run.length, lo: k.lo, hi: k.hi };
+  }
+  if (medianStripCache.size > 20000) medianStripCache.clear();
+  medianStripCache.set(key, out);
+  return out;
+}
+//: A crossing's end (lon/lat, with the point before it) on a divider: the divider read across
+//: the crossing's way, and how far on from the end its middle is (m); else null. (A crossing
+//: mapped half across a divided street ends at the divider's kerb, or a step onto it.)
+function crossingEndOnDivider(end, before) {
+  const [ex, ey] = xy(end[0], end[1]), [bx, by] = xy(before[0], before[1]);
+  const L = Math.hypot(ex - bx, ey - by);
+  if (!(L > 0.3)) return null;
+  const ox = (ex - bx) / L, oz = -(ey - by) / L, x = ex, z = -ey;
+  // Across the crosswalk's band too: its middle line can pass just beyond a divider's mapped
+  // nose (the nose ran into the crosswalk; the line misses its tip), and the divider beside it.
+  for (const side of [0, 0.9, -0.9, 1.8, -1.8]) {
+    for (const probe of [0.05, 0.35, -0.2]) {
+      const px = x + ox * probe - oz * side, pz = z + oz * probe + ox * side;
+      const m = medianStripAt(px, pz, ox, oz);
+      if (m && m.kind === "divider") return { ...m, toMiddle: probe + (m.lo + m.hi) / 2, ox, oz };
+    }
+  }
+  return null;
+}
+//: A crossing's span (lon/lat) with each end that stops on a divider carried on to the
+//: divider's middle: the crossing goes on over the street where the divider's nose was cut back,
+//: and meets the crossing mapped from the other carriageway there. (The paint's runs are trimmed
+//: CROSSING_PAINT_END_TRIM_M off each end, short of a kerb; an end over a divider is carried that
+//: much further, so its bars reach the middle.) ``out.overDivider``: which ends were carried.
+const CROSSING_PAINT_END_TRIM_M = 0.48;
+function crossingOverDividers(points) {
+  if (!points || points.length < 2) return points;
+  const out = points.slice();
+  out.overDivider = [false, false];
+  for (const [i, j, e] of [[out.length - 1, out.length - 2, 1], [0, 1, 0]]) {
+    const d = crossingEndOnDivider(out[i], out[j]);
+    if (!d || !(d.toMiddle > -0.5) || d.toMiddle > 5) continue;
+    const [x, y] = xy(out[i][0], out[i][1]), on = Math.max(0, d.toMiddle) + CROSSING_PAINT_END_TRIM_M;
+    out[i] = lonLatFromXZ(x + d.ox * on, -y + d.oz * on);
+    out.overDivider[e] = true;
+    if (medianKindStats.ends.length < 2000) medianKindStats.ends.push([+x.toFixed(1), +(-y).toFixed(1), +d.width.toFixed(2), d.why]);
+  }
+  return out;
+}
+//: Whether a divider's strip is cut away at (x, z): in a junction's box, or within
+//: DIVIDER_NOSE_CLEAR_M of a crosswalk's paint across it.
+function dividerNoseCut(x, z) {
+  return insideJunctionBox(x, z) || crossingClearAt(x, z, CROSSING_COVER_ALONG_M - 0.2, DIVIDER_NOSE_CLEAR_M) !== null;
+}
+//: The dividers' beds as laid (for their hedges, addDividerHedges): {pts: [[x, z]...] the bed's
+//: middle line, half: its half-width (m) at each point, top: the kerb's top, street, source}.
+var DIVIDER_BEDS = [];

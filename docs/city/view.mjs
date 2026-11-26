@@ -77,7 +77,7 @@ import { shopFloor } from "./shop-floor.mjs";
 import { favourRun } from "./favour-run.mjs";
 import { onTheirWay } from "./npc-favours.mjs";
 import { doorHolds, swerveAhead } from "./npc-steer.mjs";
-import { figurePlan, figureReach, npcFigures } from "./npc-figures.mjs";
+import { NO_POCKETS, figurePlan, figureReach, npcFigures } from "./npc-figures.mjs";
 import { BOTTOM_CODE, TOP_CODE, dressFor, looksOf } from "./wardrobe.mjs";
 import { strideBodies } from "./stride.mjs";
 import { bindingOf, objectKit, projectedPx, tierFor } from "./objects.mjs";
@@ -1147,6 +1147,10 @@ diffuseColor.rgb *= kbCloth;`);
     const body = bodyFor(p.person, bodies), o = body.outfit;
     return { body, look: body.look ||= { top: o.topColour, bottom: o.bottoms, shoes: o.shoes, hair: body.hair, skin: body.skin, garment: o.top, legs: o.legs, cut: o.hair, bald: body.bald, heritage: body.heritage, age: p.person?.age ?? 35 } };
   };
+  //: Whether someone has a phone on them: twelve or over, in something with a pocket to keep it in
+  //: (npc-figures.mjs NO_POCKETS) -- the same people the crowd draws with one. Only they can call
+  //: 911 or film; the rest look on (temperament.mjs reactionTo, law.mjs callPlan).
+  const carriesPhone = (person) => { if (!person) return null; const { look } = lookOf({ person }); return !NO_POCKETS.has(look.legs) && (look.age ?? 35) >= 12; };
   //: The form each person was last drawn in (0 a character, 1 jointed, 2 simple, 3 basic), and when.
   const formWas = new Map(), FORM_OF = new Map(), FORM_MEMORY_MS = 450, lockStats = { changes: 0, changesNear: 0, held: 0, near: 0, nearLow: 0, nearSum: 0, nearLowSum: 0, heldLowSum: 0, carChanges: 0, carChangesNear: 0, carHeld: 0 };
   let figuresWere = false;
@@ -1224,7 +1228,7 @@ diffuseColor.rgb *= kbCloth;`);
       const { body, look } = lookOf(p);
       // What they are doing, for the phone and the mouth: the city's clip (clips.mjs) -- filming
       // held up to film, walking or not -- and talking (to you, to each other, on the phone).
-      const clip = p.gesture?.kind === "film" ? "film" : clipFor(p, hash32(p.id));
+      const clip = p.gesture?.kind === "film" ? "film" : p.gesture?.kind === "phone" ? "call" : clipFor(p, hash32(p.id));
       const talking = clip === "talk" || clip === "phone" || clip === "walk_phone";
       // (A cyclist sat on the bicycle as it is drawn: on the ground under it, its crank turned as
       // its wheels have gone.)
@@ -4046,7 +4050,7 @@ diffuseColor.rgb *= kbCloth;`);
   //: share of it when ``fn`` runs: the grip, the blow, the release), fn}.
   const pose = { kind: null, t0: 0, dur: 0, at: 0, fn: null, fired: false };
   function startAct(kind, dur, at, fn) {
-    Object.assign(pose, { kind, t0: performance.now(), dur: dur * 1000, at, fn, fired: false, mocap: false, step: null });
+    Object.assign(pose, { kind, t0: performance.now(), dur: dur * 1000, at, fn, fired: false, mocap: false, step: null, punch: null });
     // The act played as a move captured from life where there is one (Mixamo, models/moves), fitted
     // to the act's time; the posed turns below are the fallback.
     const move = ACT_MOVES[kind]?.(self());
@@ -4097,11 +4101,21 @@ diffuseColor.rgb *= kbCloth;`);
     eatPlay.sync(inHand && R.items[inHand]?.kind === "prepared_food" && !car.active && !car.riding && !climbPlay.busy ? inHand : null);
     eatPlay.step(dt);
     if (pose.kind && pose.step) {
-      // Stepping in behind the punch (stepInFor), eased to a stop as the fist goes out.
-      const S = pose.step, k = Math.min(1, (performance.now() - pose.t0) / 1000 / S.until_s), e = 1 - (1 - k) * (1 - k);
-      ctx.moveAvatarTo?.(S.from.x + S.dx * S.by * e, S.from.z + S.dz * S.by * e);
-      if (k >= 1) pose.step = null;
+      // The step in (stepInFor): the lead foot forward over step_s, the body going with it; then
+      // the punch thrown off it, the rest of the way carried through as the fist goes out.
+      const S = pose.step, now = performance.now(), s = (now - pose.t0) / 1000;
+      if (s < S.step_s) {
+        const k = s / S.step_s, e = k * k * (3 - 2 * k);
+        ctx.moveAvatarTo?.(S.from.x + S.dx * S.by * STEP_SHARE * e, S.from.z + S.dz * S.by * STEP_SHARE * e);
+      } else {
+        if (pose.punch && pose.punch.t0 === null) { ctx.playMove(S.name, { fade: S.guard ? 0.05 : 0.08, out: 0.22 }); pose.punch.t0 = now; }
+        const k = Math.min(1, (s - S.step_s) / S.until_s), e = 1 - (1 - k) * (1 - k);
+        const go = S.by * (STEP_SHARE + (1 - STEP_SHARE) * e);
+        ctx.moveAvatarTo?.(S.from.x + S.dx * go, S.from.z + S.dz * go);
+        if (k >= 1) pose.step = null;
+      }
     }
+    if (pose.kind === "swing" && pose.punch) punchStep(performance.now());
     if (pose.kind) {
       const t = (performance.now() - pose.t0) / pose.dur;
       if (!pose.fired && t >= pose.at) { pose.fired = true; try { pose.fn?.(); } catch (error) { console.warn(error); } }
@@ -4244,6 +4258,11 @@ diffuseColor.rgb *= kbCloth;`);
     if (pp) {
       const B0 = rigBones(), k = Math.max(0, Math.min(1, pp.f ?? 1)), fwd0 = (b, a) => turn(b, -1, 0, 0, a);
       if (pp.kind === "hands_up") { fwd0(B0.rUpper, 2.5 * k); fwd0(B0.lUpper, 2.5 * k); fwd0(B0.rFore, 0.35 * k); fwd0(B0.lFore, 0.35 * k); }
+      // Facing the wall, the palms flat on it a little above the head and apart, the elbows soft.
+      else if (pp.kind === "hands_wall") {
+        fwd0(B0.rUpper, 2.15 * k); fwd0(B0.lUpper, 2.15 * k); turn(B0.rUpper, 0, 0, 1, -0.32 * k); turn(B0.lUpper, 0, 0, 1, 0.32 * k);
+        fwd0(B0.rFore, 0.3 * k); fwd0(B0.lFore, 0.3 * k); fwd0(B0.spine, 0.06 * k);
+      }
       else {
         fwd0(B0.rUpper, -0.5 * k); fwd0(B0.lUpper, -0.5 * k);
         turn(B0.rUpper, 0, 0, 1, -0.28 * k); turn(B0.lUpper, 0, 0, 1, 0.28 * k);
@@ -4296,6 +4315,21 @@ diffuseColor.rgb *= kbCloth;`);
     const t = pose.kind ? Math.min(1, (performance.now() - pose.t0) / pose.dur) : 0;
     // (A motion-captured move is the mixer's, blended in and out there: module 22 playWalkerMove;
     // what is held stays in the hand through it.)
+    // The step in before a punch (stepInFor): the lead (left) foot lifted and set down ahead, the
+    // back leg pushing off, the body over the front foot -- on top of the guard coming up.
+    if (pose.step && B.lThigh && B.rThigh) {
+      const s = (performance.now() - pose.t0) / 1000 / pose.step.step_s;
+      if (s < 1) {
+        const lift = Math.sin(Math.PI * s), k = ease(s);
+        fwd(B.lThigh, 0.5 * lift + 0.18 * k); fwd(B.lShin, -0.8 * lift);
+        fwd(B.rThigh, -0.22 * k); fwd(B.rShin, -0.12 * lift);
+        fwd(B.spine, 0.1 * k);
+      } else if (s < 1.6) {
+        // (Settling onto the front foot as the punch's own stance takes over.)
+        const k = 1 - ease((s - 1) / 0.6);
+        fwd(B.lThigh, 0.18 * k); fwd(B.rThigh, -0.22 * k); fwd(B.spine, 0.1 * k);
+      }
+    }
     if (pose.mocap) { if (p?.hands && pose.kind !== "pickup") inHand(); return; }
     if (pose.kind === "pickup" || pose.kind === "strain") {
       // A squat to the ground in front of the feet: the thighs forward and the shins back (the
@@ -4462,11 +4496,18 @@ diffuseColor.rgb *= kbCloth;`);
       const name = PUNCHES[punchN % PUNCHES.length];
       punchN += 1;
       const reach = ctx.moveReach?.(name) || { at_s: 0.25, ahead_m: 0.65, hand: name === "PunchJab" ? "left" : "right" };
-      const played = ctx.playMove(name, { fade: 0.08, out: 0.22 });
+      const at = me(), step = aim?.kind === "person" ? stepInFor(at, aim, reach) : null;
+      // Out of reach of the fist from where you stand: the step in first -- the lead foot forward,
+      // the guard coming up (PunchGuard) -- then the punch thrown off it, the weight still going
+      // through (the punch's own clip after the step's).
+      const guard = step && ctx.hasMove?.("PunchGuard") ? ctx.playMove("PunchGuard", { fade: 0.06, out: 0.05 }) : null;
+      const punchDur = ctx.moveDuration?.(name);
+      const played = step ? (punchDur ? { duration: punchDur } : null) : ctx.playMove(name, { fade: 0.08, out: 0.22 });
       if (played) {
-        const at = me(), step = aim?.kind === "person" ? stepInFor(at, aim, reach) : null;
-        startAct("swing", played.duration, Math.min(0.95, reach.at_s / played.duration), () => punchLands(aim, reach.hand));
-        Object.assign(pose, { mocap: true, step });
+        const lead = step ? step.step_s : 0;
+        startAct("swing", lead + played.duration, 2, null);
+        Object.assign(pose, { mocap: true, step: step && { ...step, guard: Boolean(guard), name },
+          punch: { aim, hand: reach.hand, at_s: reach.at_s || 0.25, t0: step ? null : performance.now(), done: false } });
         return;
       }
     }
@@ -4477,16 +4518,53 @@ diffuseColor.rgb *= kbCloth;`);
       () => (aim?.kind === "person" && !p.hands ? punchLands(aim, "right") : strikeKey(null, aim)));
   }
   //: The punches thrown in turn, and the pause (ms) after which the next starts from the jab.
-  const PUNCHES = ["PunchJab", "PunchCross", "PunchHook"], PUNCH_RESET_MS = 1400;
+  const PUNCHES = ["PunchJab", "PunchCross", "PunchHook"], PUNCH_RESET_MS = 1400, PUNCH_REACH_M = 1.75;
   let punchAt = 0, punchN = 0;
   //: A body's half-width at the chest (m), and how near the fist must come to it to land.
   const BODY_R = 0.2, FIST_TOUCH = 0.12;
-  //: A step in toward someone a little out of the fist's reach: {from, dx, dz, by, until_s}, the
-  //: weight carried forward as the punch goes out; null where they are close enough already.
+  //: How far out the arm is when the fist meets the body: short of straight, as a real punch
+  //: lands (a locked elbow is a punch that has gone through its target). The stand-off is set
+  //: so that the fist meets the chest at this share of the clip's reach.
+  const PUNCH_BENT = 0.86;
+  //: A step in toward someone out of the fist's reach (up to an arm and a step: nearestHittable):
+  //: {from, dx, dz, by, step_s, until_s} -- most of ``by`` taken in a step before the punch
+  //: (STEP_SHARE), the rest carried through as it goes out; null where they are close enough.
+  const STEP_SHARE = 0.8;
   function stepInFor(at, aim, reach) {
-    const d = Math.hypot(aim.x - at.x, aim.z - at.z), want = Math.max(0.35, (reach.ahead_m || 0.65) + BODY_R - 0.06);
-    if (!(d > want + 0.04)) return null;
-    return { from: { x: at.x, z: at.z }, dx: (aim.x - at.x) / d, dz: (aim.z - at.z) / d, by: Math.min(0.9, d - want), until_s: Math.max(0.12, reach.at_s || 0.2) };
+    const d = Math.hypot(aim.x - at.x, aim.z - at.z), want = Math.max(0.35, PUNCH_BENT * (reach.ahead_m || 0.65) + BODY_R - 0.02);
+    if (!(d > want + 0.06)) return null;
+    const by = Math.min(1.1, d - want);
+    return { from: { x: at.x, z: at.z }, dx: (aim.x - at.x) / d, dz: (aim.z - at.z) / d, by,
+             step_s: 0.2 + 0.16 * Math.min(1, by / 0.8), until_s: Math.max(0.12, reach.at_s || 0.2) };
+  }
+  //: Each frame of a punch: the fist's way out watched from half its reach until a little past
+  //: it, and the blow landed the moment it meets the body (the clip slowed an instant: the
+  //: impact), or a miss once it has gone by.
+  function punchStep(now) {
+    const P = pose.punch;
+    if (!P || P.done || P.t0 === null) return;
+    const s = (now - P.t0) / 1000;
+    if (s < 0.45 * P.at_s) return;
+    const q = P.aim?.kind === "person" ? visible.people.find((e) => e.id === P.aim.q.id) || P.aim.q : null;
+    const late = s > P.at_s + 0.12;
+    if (!q) { if (s >= P.at_s) { P.done = true; strikeKey(null, P.aim); } return; }
+    const d = fistTo(q, P.hand);
+    if (d <= BODY_R + FIST_TOUCH * 0.5 || (late && d <= BODY_R + FIST_TOUCH)) {
+      P.done = true;
+      ctx.holdMove?.(0.25, 70);
+      strikeKey(null, { ...P.aim, q, x: q.x, z: q.z });
+    } else if (late) {
+      P.done = true;
+      notify(`The punch misses ${q.person?.name || "them"}: the fist never reached them.`);
+    }
+  }
+  function fistTo(q, hand) {
+    const B = rigBones(), bone = hand === "left" ? B.lHand : B.rHand;
+    if (!bone?.parent) return Math.hypot(q.x - me().x, q.z - me().z) - 0.75;
+    ctx.avatar.updateMatrixWorld(true);
+    bone.getWorldPosition(handR);
+    ctx.avatar.parent?.worldToLocal(handR);
+    return Math.hypot(handR.x - q.x, handR.z - q.z);
   }
   //: The fist at the moment it is furthest out: on the body of the one it was thrown at -- where
   //: they are now, not where they were -- or a miss. (It landed on whoever had been aimed at within
@@ -4494,14 +4572,7 @@ diffuseColor.rgb *= kbCloth;`);
   function punchLands(aim, hand) {
     if (aim?.kind !== "person") return strikeKey(null, aim);
     const q = visible.people.find((e) => e.id === aim.q.id) || aim.q;
-    const B = rigBones(), bone = hand === "left" ? B.lHand : B.rHand;
-    let d;
-    if (bone?.parent) {
-      ctx.avatar.updateMatrixWorld(true);
-      bone.getWorldPosition(handR);
-      ctx.avatar.parent?.worldToLocal(handR);
-      d = Math.hypot(handR.x - q.x, handR.z - q.z);
-    } else d = Math.hypot(q.x - me().x, q.z - me().z) - 0.75;
+    const d = fistTo(q, hand);
     if (!(d <= BODY_R + FIST_TOUCH)) { notify(`The punch misses ${q.person?.name || "them"}: the fist never reached them.`); return; }
     return strikeKey(null, { ...aim, q, x: q.x, z: q.z });
   }
@@ -4510,8 +4581,10 @@ diffuseColor.rgb *= kbCloth;`);
   //: up to 0.4 m further off (as the blow always has).
   function nearestHittable(reach) {
     const at = me();
-    // A person is hit only within arm's length (a little further with something in the hand).
-    const who = personInReach(Math.min(reach, self()?.hands ? 1.6 : 1.1), -2), t = strikeTarget(reach);
+    // A person is hit within arm's length and a step (stepInFor): a fist reaches 0.65 m, a step
+    // in another 0.8. (Up to 1.1 m it stood and threw from where it was, and a punch from a
+    // little further off was no punch at all.) Something in the hand reaches a little further.
+    const who = personInReach(Math.min(reach, self()?.hands ? 1.6 : PUNCH_REACH_M), -2), t = strikeTarget(reach);
     const dw = who ? Math.hypot(who.x - at.x, who.z - at.z) : Infinity, dt = t ? Math.hypot(t.x - at.x, t.z - at.z) : Infinity;
     if (who && dw <= dt + 0.4) return { kind: "person", q: who, x: who.x, z: who.z, d: dw };
     return t ? { kind: "thing", t, x: t.x, z: t.z, d: dt } : null;
@@ -5006,11 +5079,12 @@ diffuseColor.rgb *= kbCloth;`);
     const inc = incidents[incidents.length - 1];
     const re = blowReaction(q), me0 = me();
     const policeNear = Boolean(patrol.phase) || visible.people.some((e) => e.id !== q.id && ["police", "patrol"].includes(e.person?.role) && Math.hypot(e.x - q.x, e.z - q.z) < 45);
-    const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, age: q.person?.age ?? q.person?.base?.age, strength: re?.victim.strength, x: q.x, z: q.z, yaw: q.yaw },
+    const phone = carriesPhone(q.person);
+    const r = await send("strike_person", { npc: { id: q.id, name: q.person?.name, role: q.person?.role, phone: phone !== false, age: q.person?.age ?? q.person?.base?.age, strength: re?.victim.strength, x: q.x, z: q.z, yaw: q.yaw },
       witnesses: witnessesNear(q.x, q.z) - 1, reaction: re ? { kind: re.kind, zone: re.zone, steps: re.steps, fracture: re.fracture } : null, near: { police: policeNear } });
     if (!r.ok) { notify(r.error); return; }
     // Caught or not (law.mjs): an officer struck arrests you; otherwise it waits on who saw it.
-    if (r.offence) { if (r.arrest) police.arrestNow(r.offence, { x: q.x, z: q.z }); else police.crime(r.offence, { x: q.x, z: q.z }, { victim: { id: q.id, name: q.person?.name } }); }
+    if (r.offence) { if (r.arrest) police.arrestNow(r.offence, { x: q.x, z: q.z }); else police.crime(r.offence, { x: q.x, z: q.z }, { victim: { id: q.id, name: q.person?.name, phone } }); }
     const name = q.person?.name || "them";
     // Away from you, along the blow.
     const ax = q.x - me0.x, az = q.z - me0.z, L = Math.hypot(ax, az) || 1, dx = ax / L, dz = az / L;
@@ -6444,6 +6518,14 @@ diffuseColor.rgb *= kbCloth;`);
   let lastTraffic = [];        // the cars as last placed
   function noteIncident(kind, x, z, byYou = false) {
     const now = performance.now();
+    // (A siren is one incident carried along with it: the ones who looked do not look again, the
+    // next along the street do; it never pushes a fight or a crash out of the list.)
+    if (kind === "siren") {
+      const at = incidents.find((i) => i.kind === "siren");
+      if (at) { at.x = x; at.z = z; at.t0 = now; return; }
+      incidents.unshift({ id: `siren:${Math.round(now)}`, kind, x, z, t0: now, byYou: false, seen: new Set(), called: true });
+      return;
+    }
     for (const i of incidents) if (i.kind === kind && now - i.t0 < 4000 && Math.hypot(i.x - x, i.z - z) < 10) return;
     incidents.push({ id: `${kind}:${Math.round(now)}`, kind, x, z, t0: now, byYou, seen: new Set(), called: false });
     if (incidents.length > 6) incidents.shift();
@@ -6481,6 +6563,7 @@ diffuseColor.rgb *= kbCloth;`);
     animateWalk: (...a) => ctx.animateWalk?.(...a), faceYaw: (y) => { ctx.avatar.rotation.y = y; },
     playMove: (name, o) => ctx.playMove?.(name, o) || null, stopMove: (name) => ctx.stopMove?.(name),
     incident: (kind, x, z) => noteIncident(kind, x, z, false),
+    wallNear: (x, z, r) => ctx.wallNear?.(x, z, r) || null,
     groundAt: (x, z) => ctx.groundAt?.(x, z) ?? groundAt(x, z),
     homeAt: () => {
       const p = self(), owned = Boolean(p?.home && (p.home.building || Number.isFinite(p.home.x)));
@@ -6962,7 +7045,10 @@ diffuseColor.rgb *= kbCloth;`);
       if (!v.moving || v.braking || !(v.speed > 6) || Math.abs(v.x - focus.x) > 70 || Math.abs(v.z - focus.z) > 70) continue;
       threats.push({ x: v.x, z: v.z, vx: -Math.sin(v.yaw) * v.speed, vz: -Math.cos(v.yaw) * v.speed, half: 0.95 });
     }
-    while (incidents.length && now - incidents[0].t0 > REACT.incident_s * 1000) incidents.shift();
+    // A siren going by near you (a patrol car called out, an ambulance coming): heads turn to it.
+    for (const v of police.vehicles()) if (v.siren && v.moving && Math.abs(v.x - focus.x) < 60 && Math.abs(v.z - focus.z) < 60) noteIncident("siren", v.x, v.z);
+    for (const v of scenes.vehicles()) if (v.model === "ambulance" && v.phase === "coming" && Math.abs(v.x - focus.x) < 60 && Math.abs(v.z - focus.z) < 60) noteIncident("siren", v.x, v.z);
+    for (let i = incidents.length - 1; i >= 0; i -= 1) if (now - incidents[i].t0 > REACT.incident_s * 1000) incidents.splice(i, 1);
     for (const e of scan.people) {
       // Tracked only, or drawn low and placed a moment ago: left as it is until its next look.
       const id = e.p.id, was = personTiers.get(id);
@@ -7063,7 +7149,7 @@ diffuseColor.rgb *= kbCloth;`);
           const d = Math.hypot(inc.x - pos.x, inc.z - pos.z);
           if (d > REACT.notice_m) continue;
           inc.seen.add(id);
-          let kind = reactionTo(mind, inc, d, id);
+          let kind = reactionTo(mind, inc, d, id, { phone: carriesPhone(e.p) });
           // (Whether anyone calls about something you did is the law's to weigh: police.mjs.)
           if (kind === "call" && inc.byYou) kind = "watch";
           // (So many do each thing and no more: the rest look on, or walk on.)
@@ -7100,8 +7186,10 @@ diffuseColor.rgb *= kbCloth;`);
               entry.x = re.at.x + ux * re.off; entry.z = re.at.z + uz * re.off; entry.moving = going; entry.yaw = Math.atan2(-ux, -uz); entry.activity = going ? "going to help" : "helping";
             } else {
               entry.x = re.at.x; entry.z = re.at.z; entry.moving = false; entry.yaw = Math.atan2(-ux, -uz);
-              entry.activity = re.kind === "call" ? "calling 911" : re.kind === "film" ? "filming it" : "watching";
-              if (re.kind !== "watch") entry.gesture = { kind: re.kind === "call" ? "phone" : "film", f: 0.5 };
+              entry.activity = re.kind === "call" ? "calling 911" : re.kind === "film" ? "filming it" : re.kind === "glance" ? "looking at the siren" : "watching";
+              // (A siren goes on by: they look to where it is now, not where they first heard it.)
+              if (re.kind === "glance") { const gx = re.inc.x - entry.x, gz = re.inc.z - entry.z; if (gx * gx + gz * gz > 1) entry.yaw = Math.atan2(-gx, -gz); }
+              if (re.kind !== "watch" && re.kind !== "glance") entry.gesture = { kind: re.kind === "call" ? "phone" : "film", f: 0.5 };
               if (re.kind === "call" && !re.inc.called && !re.inc.byYou && now - re.inc.t0 > 2500) { re.inc.called = true; sendPatrol(re.inc); if (Math.hypot(re.ix - you.x, re.iz - you.z) < 45) notify(re.victim ? "The one you hit is calling 911: a patrol car is on its way." : re.inc.byYou ? "Someone who saw it is calling 911." : "A passer-by is calling 911."); }
             }
             if (pos.walk) c.holdWalk(pos.walk.key, Math.min(dt, 0.25), true);
@@ -7109,7 +7197,7 @@ diffuseColor.rgb *= kbCloth;`);
         }
       }
       // A witness to something of yours: whether they call, and their phone out while they do (police.mjs).
-      police.personFrame(id, entry, () => temperamentOf(e.p), dt, Boolean(pos.down));
+      police.personFrame(id, entry, () => temperamentOf(e.p), dt, Boolean(pos.down), carriesPhone(e.p));
       // Struck (strikePerson): carried back along the blow a step at a time, or swayed and back.
       const sg = staggers.get(id);
       if (sg) {
@@ -8610,6 +8698,15 @@ diffuseColor.rgb *= kbCloth;`);
     enterShop, leaveShop, callTaxi, objects: () => ctx.objects?.(), taskKey, strikeKey, listings: () => listings(), routeBuses: () => routeBuses, taxi: () => ({ ...taxi, route: undefined }), stops: () => district.stops || [],
     walkFactor: walkFactorNow, walked, actions: () => actionsHere().map((a) => ({ id: a.id, label: a.label, key: a.key })), openStore, openSide, pickUp, board, things: () => thingsNear(me().x, me().z, 60),
     enterKey, taxiKey, garageHere: myGarageHere, garages: () => ctx.garages, garageRemote: () => remote.door, car: () => car, myBuildings, busLag, click, useSelected, swingKey, throwKey, jumpKey, climbKey,
+    //: The people drawn within ``r`` metres, nearest first, and the act under way, for checks.
+    peopleNear: (r = 10) => { const at = me(); return visible.people.map((q) => ({ id: q.id, x: q.x, z: q.z, yaw: q.yaw, d: Math.hypot(q.x - at.x, q.z - at.z), moving: Boolean(q.moving), indoors: Boolean(q.indoors), down: Boolean(q.down), name: q.person?.name, activity: q.activity || null, gesture: q.gesture?.kind || null, phone: carriesPhone(q.person), figure: figures.stateOf?.(q.id) || null })).filter((q) => q.d <= r).sort((a, b) => a.d - b.d); },
+    //: An arrest on the spot, for checks (as when you strike an officer at arm's length).
+    arrestDrill: () => police.arrestNow({ id: `drill:${Date.now()}`, crime: "battery", severity: 4 }, { x: me().x + 1.6, z: me().z + 0.8 }),
+    //: Someone down in the street a few metres ahead, kept down for ``s`` seconds, for checks of the
+    //: ambulance that comes (crash-scene.mjs).
+    casualtyDrill: (s = 120) => { const at = me(), q = { id: `drill:${Date.now()}`, x: at.x + 4, z: at.z + 1, yaw: 0 }; const t0 = performance.now(); const i = setInterval(() => { if (performance.now() - t0 > s * 1000) clearInterval(i); else scenes.casualty(q, performance.now()); }, 500); return q.id; },
+    hittable: () => { const a = nearestHittable(R.tools.reach_m); return a && { kind: a.kind, d: a.d, id: a.q?.id || null }; },
+    actNow: () => ({ kind: pose.kind, step: pose.step ? { by: pose.step.by, step_s: pose.step.step_s } : null, punch: pose.punch ? { done: pose.punch.done, started: pose.punch.t0 !== null } : null, move: ctx.moveActive?.() }),
     //: On a wall or its top (the arrows climb: the page's walk stands down), and in the air (a jump
     //: under way: it carries on by itself), each stepped by the page (module 26 stepAvatar).
     get climbing() { return climbPlay.climbing; }, get airborne() { return climbPlay.airborne; }, climbPlay: () => climbPlay,

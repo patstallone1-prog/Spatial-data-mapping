@@ -81,21 +81,37 @@ export const REACT = {
   car_side_m: 0.9,            // ... if it would pass this near their shoulder
   jump_m: [1.1, 2.0],         // how far they get out of its way
   jump_s: 1.1,                // and how long before they walk on
-  watch_s: [4, 10], film_s: [6, 12], call_s: [7, 11], help_s: [8, 14],
+  watch_s: [4, 10], glance_s: [1.4, 3.2], film_s: [6, 12], call_s: [7, 11], help_s: [8, 14],
   // At one incident, no more than this many do each: a street does not all telephone at once.
-  most: { help: 3, call: 3, film: 6, flee: 14, watch: 16 },
+  most: { help: 3, call: 3, film: 6, flee: 14, watch: 16, glance: 40 },
   flee_m: [8, 16], flee_ms: 3.4,
+  // Someone with a phone on them (npc-figures.mjs: a pocket for it) calls this much more readily
+  // than the street's average: about one in five has none on them (skirts, leggings, running
+  // shorts, children), and those who do make up the calls.
+  phone_lean: 1.3,
 };
 
 //: What ``t`` does about ``event`` ({kind: "crash" | "fight", id}), ``dist`` m away. The same
 //: person does the same about the same event; another event may take them differently.
 //: "help": goes to it; "call": stops and telephones; "film": holds a phone up to it; "watch":
 //: stops and looks; "flee": gets away from it; "carry_on".
-export function reactionTo(t, event, dist, who = "") {
+//: ``phone``: whether they carry one (npc-figures.mjs: a pocket to keep it in): without one
+//: nobody calls or films -- they look on; with one, the call comes a little more readily than the
+//: street's average (REACT.phone_lean), as the phoneless share no longer calls. Unknown (null):
+//: the street's average.
+export function reactionTo(t, event, dist, who = "", { phone = null } = {}) {
   if (dist > REACT.notice_m) return "carry_on";
+  const kind = reactionOf(t, event, dist, who, phone);
+  if (phone === false && (kind === "call" || kind === "film")) return "watch";
+  return kind;
+}
+function reactionOf(t, event, dist, who, phone) {
   const roll = unit(who, event.id ?? "", "react"), near = 1 - dist / REACT.notice_m;
   // An arrest in the street: the police are there already, so nobody calls or steps in; most
   // stop and look, the less careful film it, the most nervous keep walking a little faster.
+  // A siren going by (a patrol car called out, an ambulance on its way): nothing to do but look --
+  // most nearby turn their heads to it for a moment, the nearer the more; the rest walk on.
+  if (event.kind === "siren") return roll < 0.35 + near * 0.5 ? "glance" : "carry_on";
   if (event.kind === "arrest") {
     if ((1 - t.nerve) * 0.5 > 0.3 + roll * 0.3) return "flee";
     if (t.care < 0.6 && roll < 0.45) return "film";
@@ -106,7 +122,7 @@ export function reactionTo(t, event, dist, who = "") {
   const fear = (1 - t.nerve) * (fight ? 1 : 0.6) * (0.55 + 0.45 * near);
   if (fear > 0.3 + roll * 0.25) return "flee";
   if (t.nerve > 0.62 && t.civic > 0.55 && !fight && roll < 0.75) return "help";
-  if (t.civic > 0.5 && roll < 0.35 + t.civic * 0.4) return "call";
+  if (t.civic > 0.5 && roll < (0.35 + t.civic * 0.4) * (phone ? REACT.phone_lean : 1)) return "call";
   if (t.care < 0.55 && roll < 0.5) return "film";
   if (roll < 0.35 + near * 0.4) return "watch";
   return "carry_on";
@@ -116,6 +132,7 @@ export function reactionTo(t, event, dist, who = "") {
 export function reactionFor(t, kind) {
   const k = clamp01(1 - t.patience * 0.5 + (1 - t.nerve) * 0.2);
   if (kind === "watch") return lerp(REACT.watch_s[0], REACT.watch_s[1], k);
+  if (kind === "glance") return lerp(REACT.glance_s[0], REACT.glance_s[1], k);
   if (kind === "film") return lerp(REACT.film_s[0], REACT.film_s[1], k);
   if (kind === "call") return lerp(REACT.call_s[0], REACT.call_s[1], t.civic);
   if (kind === "help") return lerp(REACT.help_s[0], REACT.help_s[1], t.civic);

@@ -46,9 +46,12 @@ export function reportOdds(R, crime, { role = "bystander", temperament = null, a
 //: A witness's call, planned once (the same for them every time): whether they call at all
 //: (``u`` against reportOdds), how long getting the phone out takes, and whether -- a victim who
 //: fought back, or one standing near you -- they wait until you have gone first.
-export function callPlan(R, crime, { role = "bystander", temperament = null, alarm = false, fought = false, seed = "" } = {}) {
+//: ``phone``: whether they carry one (npc-figures.mjs: a pocket to keep it in): without one they
+//: cannot call; with one, a bystander calls ``law.phone_lean`` times as readily as the street's
+//: average (unknown, null: the average).
+export function callPlan(R, crime, { role = "bystander", temperament = null, alarm = false, fought = false, seed = "", phone = null } = {}) {
   const r = rng("call", seed), L = R.law;
-  const odds = reportOdds(R, crime, { role, temperament, alarm });
+  const odds = phone === false ? 0 : clamp(reportOdds(R, crime, { role, temperament, alarm }) * (phone && role !== "victim" ? L.phone_lean ?? 1 : 1), 0, 1);
   const calls = r() < odds;
   const [a, b] = L.phone_out_s;
   return { calls, odds, role, phone_out_s: a + r() * (b - a), wait_gone: role === "victim" || fought, talked_s: 0, state: calls ? "waiting" : "none", t: 0 };

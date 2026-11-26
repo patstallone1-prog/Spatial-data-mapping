@@ -126,3 +126,16 @@ test("the city acts on the blow: knocked off their feet is down; a stumble leave
   const odd = w.submit("me", "strike_person", { npc: { id: "npc:z", name: "Z", role: "barista", x: 1, z: 0 }, reaction: { kind: "explode", zone: "spleen" } });
   assert.ok(odd.ok && odd.reaction === null);
 });
+
+test("someone hit with no phone on them never calls the police; one with a phone leans to it", () => {
+  let withPhone = 0, without = 0;
+  for (let i = 0; i < 2000; i += 1) {
+    const t = temperamentOf({ id: `h${i}`, age: 30 });
+    const ctx = { reaction: { kind: "flinch" }, strength: 50, attacker: 50, severity: 1, witnesses: 2, seed: `h${i}` };
+    assert.notEqual(instinct(t, { ...ctx, phone: false }).act, "call_police");
+    if (instinct(t, { ...ctx, phone: true }).act === "call_police") withPhone += 1;
+    if (instinct(t, { ...ctx, phone: false }).act === "call_police") without += 1;
+  }
+  assert.equal(without, 0);
+  assert.ok(withPhone > 0);
+});

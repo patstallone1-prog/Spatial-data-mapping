@@ -176,3 +176,14 @@ test("phones: the Apple Store sells them, and the online store has them (at its 
   assert.equal(r.price, R.items.smartphone.price * R.online_store.markup);
   assert.equal(w.players.get("me").inventory.smartphone, 1);
 });
+
+test("only someone with a phone on them calls 911, and those who carry one call more readily than the street's average", () => {
+  const R = loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json", import.meta.url))));
+  const calls = (phone) => { let n = 0; for (let i = 0; i < 4000; i += 1) if (callPlan(R, "battery", { role: "bystander", seed: `w${i}`, phone }).calls) n += 1; return n / 4000; };
+  assert.equal(calls(false), 0);
+  const avg = calls(null), carried = calls(true);
+  assert.ok(carried > avg * 1.15 && carried < avg * 1.45, `${avg} -> ${carried}`);
+  // A victim with no phone cannot call either; one with a phone calls at the victim's own rate.
+  assert.equal(callPlan(R, "battery", { role: "victim", seed: "v", phone: false }).calls, false);
+  assert.equal(callPlan(R, "battery", { role: "victim", seed: "v", phone: true }).odds, 1);
+});

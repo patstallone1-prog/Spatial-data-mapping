@@ -71,8 +71,8 @@ def test_road_lines_stop_at_a_mapped_crosswalk_wherever_it_is() -> None:
     js = _page_js()
     out = run("\n".join([
         "function xy(x, y) { return [x, y]; }",
-        "const CROSSING_DEDUPE_CELL_M = 4.0, mappedCrossingGrid = new Map(), CROSSING_LINE_CLEAR_M = 0.6, mappedCrossingCover = new Map();",
-        *[_extract(n, js) for n in ("crossingDrawPose", "indexMappedCrossing", "onMappedCrossing", "wayLength", "lerpLonLat",
+        "const CROSSING_DEDUPE_CELL_M = 4.0, mappedCrossingGrid = new Map(), CROSSING_LINE_CLEAR_M = 0.6, CROSSING_COVER_ALONG_M = 2.5, CROSSING_COVER_ACROSS_M = 2.2, mappedCrossingCover = new Map();",
+        *[_extract(n, js) for n in ("crossingDrawPose", "indexMappedCrossing", "onMappedCrossing", "crossingClearAt", "wayLength", "lerpLonLat",
                                     "densifyWay", "splitAtMappedCrossings")],
         # A crosswalk across a street running north (y), mid-block at y = 50, 3 m wide.
         "indexMappedCrossing([[-6, 50], [6, 50]], 3.0);",

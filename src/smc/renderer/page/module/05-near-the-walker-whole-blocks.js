@@ -1401,9 +1401,25 @@ function crossingPaintLegs(points) {
     ? rayCurbIntersections(ax, az, dx, dz, length + 0.5, grid)
         .filter((value) => value > 0.2 && value < length - 0.2)
     : [];
-  const officialIslands = islandHits(crossingIslandCurbGrid);
-  const mappedIslands = islandHits(mappedDividerCurbGrid);
+  // A divider's kerbs (medianStripAt) do not break the bars: the crosswalk crosses the street
+  // where the divider's nose was cut back short of it (2026-11-26), and is on roadway there.
+  const dividers = [];
+  const notDivider = (hits) => {
+    if (typeof medianStripAt !== "function" || hits.length < 2) return hits;
+    const sorted = hits.slice().sort((a, b) => a - b), drop = new Set();
+    for (let i = 0; i + 1 < sorted.length; i += 1) {
+      const mid = (sorted[i] + sorted[i + 1]) / 2;
+      const m = medianStripAt(ax + dx * mid, az + dz * mid, dx, dz);
+      if (m && m.kind === "divider" && Math.abs(m.hi - m.lo - (sorted[i + 1] - sorted[i])) < 0.2) {
+        drop.add(sorted[i]); drop.add(sorted[i + 1]); dividers.push([sorted[i], sorted[i + 1]]); i += 1;
+      }
+    }
+    return sorted.filter((v) => !drop.has(v));
+  };
+  const officialIslands = notDivider(islandHits(crossingIslandCurbGrid));
+  const mappedIslands = notDivider(islandHits(mappedDividerCurbGrid));
   const islands = officialIslands.concat(mappedIslands).sort((a, b) => a - b);
+  const onDivider = (tt) => dividers.some(([d0, d1]) => tt >= d0 - 0.05 && tt <= d1 + 0.05);
   // Between an odd and an even island kerb the span stands on the island, not the road --
   // whether or not the carriageway grid runs on beneath it.
   const onIsland = (tt) => officialIslands.filter((v) => v < tt).length % 2 === 1
@@ -1419,7 +1435,7 @@ function crossingPaintLegs(points) {
   for (let i = 0; i <= steps; i += 1) {
     const tt = Math.min(i * CROSSING_STEP_M, length);
     const x = ax + dx * tt, z = az + dz * tt;
-    const on = (insideCarriageway(x, z, 0.05) || insideJunctionBox(x, z)) && !onIsland(tt);
+    const on = (insideCarriageway(x, z, 0.05) || insideJunctionBox(x, z) || onDivider(tt)) && !onIsland(tt);
     if (on && start === null) start = i === 0 ? 0 : edgeBetween(previous, tt);
     if (!on && start !== null) { runs.push([start, edgeBetween(previous, tt)]); start = null; }
     previous = tt;
@@ -1435,6 +1451,10 @@ function crossingPaintLegs(points) {
     if (gap <= CROSSING_BRIDGE_GAP_M && !island) last[1] = runs[i][1];
     else legs.push(runs[i].slice());
   }
+  // An end carried over a divider (crossingOverDividers) is painted to its end: the street
+  // there is where the divider's nose was.
+  if (points.overDivider?.[0]) legs[0][0] = 0;
+  if (points.overDivider?.[1]) legs[legs.length - 1][1] = length;
   const out = legs.filter(([t0, t1]) => t1 - t0 >= CROSSING_LEG_MIN_M)
     .map(([t0, t1]) => [lonLatFromXZ(ax + dx * t0, az + dz * t0), lonLatFromXZ(ax + dx * t1, az + dz * t1)]);
   return out.length ? out : [points];

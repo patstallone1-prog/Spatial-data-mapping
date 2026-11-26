@@ -117,7 +117,7 @@ def test_the_busway_is_painted_and_its_stations_are_islands() -> None:
     # The kerbs either side of the avenue never widen a busway to the avenue.
     assert "if (way.busway) return false;" in _extract("recentreOnKerbEnvelope", js)
     # Red between junctions, so the crosswalks run across it.
-    assert 'if (insideJunctionBox(x, -y) || crossStreetAt(x, -y, qx - px, -(qy - py))) paintRun();' in js
+    assert 'if (insideJunctionBox(x, -y) || medianCrossStreetAt(x, -y, qx - px, -(qy - py))) paintRun();' in js
     assert 'addMerged("busway:fill", fill, "busway")' in js
     canopy = _extract("isTransitCanopy", js)
     assert 'tags.shelter_type === "public_transport"' in canopy and "nearBusway(x, -y, 9)" in canopy
