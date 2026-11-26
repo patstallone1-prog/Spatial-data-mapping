@@ -80,6 +80,8 @@ export const WALK_MS = 1.35, RUN_MS = 3.4;
 export const BAKE_FPS = 30;
 //: A change of clip (idle, walk, run) cross-faded over this long (s).
 const FADE_S = 0.3;
+//: How long a phone stays out with nobody asking for it (a flinch, a frame without the call).
+const PHONE_GRACE_S = 0.8;
 //: The phone they carry (the imported smartphone, beside the page).
 export const PHONE_FILE = "city/models/objects/imp-smartphone.glb";
 //: The slots a person is dressed in, in the order they are drawn.
@@ -854,7 +856,10 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
     // not on a bicycle or at a run.
     const running = v >= 2.3;
     const wantPhone = !q.ride && !running && L.phone ? phoneOf(q.clip) : null;
-    if (wantPhone !== a.phone) { a.phone = wantPhone; a.pull = wantPhone ? 0 : 1; }
+    // (A frame or two without the phone asked for -- a flinch, a step aside -- keeps it out: it is
+    // put away only after PHONE_GRACE_S, and asked for again in that time it carries on.)
+    if (wantPhone) a.phoneSeen = now;
+    if (wantPhone !== a.phone && (wantPhone || !a.phone || now - (a.phoneSeen ?? 0) > PHONE_GRACE_S * 1000)) { a.phone = wantPhone; a.pull = wantPhone ? 0 : 1; }
     let want;
     const gait = v < 0.2 ? "Idle" : "Walk";
     // At work: the clip asked for (carrying walks as it carries), started again for each new ask.
@@ -883,7 +888,10 @@ export function npcFigures(THREE, { loadModel, asset, parent, base = "city/model
       // (A walk from a walk keeps its step: the same place in the stride.)
       const keep = walking(want) && walking(a.clip) && want !== "Run" && a.clip !== "Run";
       a.prev = a.clip; a.pt = a.t; a.clip = want; a.fade = 0;
-      a.t = want.includes(":pull-") || ONCE.test(want) ? 0 : keep ? (a.t / (table[a.prev]?.duration || 1)) * table[want].duration : a.t;
+      // (Getting the phone out walking and then standing is the one reach: the stand's clip goes on
+      // from as far as the walk's had brought it, not from the pocket again -- 2026-11-26.)
+      const samePull = want.includes(":pull-") && a.prev.includes(":pull-") && want.split(":pull-")[1] === a.prev.split(":pull-")[1];
+      a.t = samePull ? a.pull * table[want].duration : want.includes(":pull-") || ONCE.test(want) ? 0 : keep ? (a.t / (table[a.prev]?.duration || 1)) * table[want].duration : a.t;
     }
     const stride = WALK_MS * (pick.height || 1) * (pick.pace || 1);
     const rate = (c) => (c.startsWith("Walk") ? Math.max(0.45, v / stride) : c === "Run" ? Math.max(0.6, v / (RUN_MS * (pick.height || 1))) : 1);

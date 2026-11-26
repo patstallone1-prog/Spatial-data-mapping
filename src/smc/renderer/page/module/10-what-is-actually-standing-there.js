@@ -481,6 +481,10 @@ const homeWindowTexture = (() => {
   ctx.fillStyle = sky;
   ctx.fillRect(3, 3, 27, 90);
   ctx.fillRect(34, 3, 27, 90);
+  // The panes marked as glass in the picture's alpha (module 02 facadeGlass), the frame not.
+  ctx.globalCompositeOperation = "destination-out"; ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(3, 3, 27, 90); ctx.fillRect(34, 3, 27, 90);
+  ctx.globalCompositeOperation = "source-over";
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
@@ -489,6 +493,7 @@ const homeWindowTexture = (() => {
 const homeDecalMaterial = new THREE.MeshStandardMaterial({ map: homeWindowTexture, roughness: 0.14,
   metalness: 0.2, envMapIntensity: 1.0 });
 nightWindows(homeDecalMaterial);   // lit at night from within, some of them (module 02)
+if (typeof facadeGlass === "function") facadeGlass(homeDecalMaterial);   // and mirrors the street at a slant
 const homeDesignMaterials = new Map();
 function homeDesignMaterial(design) {
   if (!design) return homeDecalMaterial;
@@ -515,6 +520,9 @@ function homeDesignMaterial(design) {
   const material = new THREE.MeshStandardMaterial({ map:texture, roughness:.08,metalness:0, envMapIntensity:.4, transparent:true, depthWrite:false, alphaTest:.05 });
   // (Guarded: this function is also run on its own, by the tests.)
   if (typeof nightWindows === "function") nightWindows(material);
+  // Its glass layer (alpha 0.36) mirrors the street at a slant and grows opaque with it.
+  (material.userData ||= {}).glassCoded = false;
+  if (typeof facadeGlass === "function") facadeGlass(material);
   homeDesignMaterials.set(key,material); return material;
 }
 function photoOpeningParts(group,feature,includeWindows=false) {

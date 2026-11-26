@@ -647,8 +647,11 @@ for (const way of DRAW_ORDER) {
     // A crossing's paint is dense along its length -- a vertex every half metre -- because it
     // is settled onto the road as drawn afterwards (settleOnto), and it can only follow the
     // road's folds where it has vertices.
-    const paintRuns = (isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints])
-      .map((run) => isCrossing ? densifyWay(trimWay(run, CROSSING_PAINT_END_TRIM_M), CROSSING_PAINT_STEP_M) : run)
+    const legs = isCrossing ? crossingPaintLegs(surfacePoints) : [surfacePoints];
+    // The legs of one crossing share its run of bars (crossingLegPhases).
+    const phases = isCrossing ? crossingLegPhases(legs, CROSSING_PAINT_END_TRIM_M) : [];
+    const paintRuns = legs
+      .map((run, k) => { const out = isCrossing ? densifyWay(trimWay(run, CROSSING_PAINT_END_TRIM_M), CROSSING_PAINT_STEP_M) : run; if (out && phases[k] != null) out.stripePhase = phases[k]; return out; })
       .filter((run) => run && run.length >= 2);
     if (!isCrossing || surfaceKind) {
       for (const paintRun of paintRuns) {
@@ -657,7 +660,7 @@ for (const way of DRAW_ORDER) {
           ? alongDistances(paintRun).map((along) => halfWidthAt(way, along) * 2) : widthMeters;
         addMerged(`ribbon:${surfaceKind}:${(Math.round(surfaceThickness / 0.05) * 0.05).toFixed(2)}`,
                   ribbon(paintRun, widths, color, opacity,
-                         surfaceY, surfaceThickness, surfaceKind), surfaceKind);
+                         surfaceY, surfaceThickness, surfaceKind, paintRun.stripePhase ?? null), surfaceKind);
       }
     }
     if (isCrossing) {
@@ -1081,6 +1084,24 @@ const pathsLaid = deferredPaths.splice(0).length;
 //: an end with no pavement laid keeps the old height. Laid after the loop, they take the ground
 //: grid's lift like the pavement, not the crossing's line.
 let tactilePadsLaid = 0;
+//: An end of a crossing out in the road -- two crossing ways joined mid-street, three meeting in
+//: a junction with no island mapped -- has no kerb to step down from: nothing paved behind it,
+//: carriageway all round. A pad there was a yellow square and a patch of pavement on the asphalt
+//: (Lombard west, 2026-11-26); the bars just carry on.
+function crossingEndInRoad(end, before) {
+  const [ex, ey] = xy(end[0], end[1]);
+  const [ix, iy] = xy(before[0], before[1]);
+  const len = Math.hypot(ix - ex, iy - ey) || 1;
+  const ux = (ex - ix) / len, uz = (-ey + iy) / len;
+  for (const back of [0.3, 1.0, 1.8]) {
+    for (const side of [-1, 0, 1]) {
+      const x = ex + ux * back - uz * side * 1.2, z = -ey + uz * back + ux * side * 1.2;
+      if (pavementTopAt(x, z) !== undefined) return false;
+      if (!(insideCarriageway(x, z, 0) || insideJunctionBox(x, z))) return false;
+    }
+  }
+  return true;
+}
 for (const pad of deferredTactilePads) {
   tactilePadsLaid += addCrossingTactilePads(pad.points, pad.width, (endpoint, into) => {
     const [ex, ey] = xy(endpoint[0], endpoint[1]);
@@ -1097,7 +1118,7 @@ for (const pad of deferredTactilePads) {
       }
     }
     return top === undefined ? pad.fallbackY : top + 0.018;
-  }, (end, before) => crossingEndOnDivider(end, before) !== null);
+  }, (end, before) => crossingEndOnDivider(end, before) !== null || crossingEndInRoad(end, before));
 }
 deferredTactilePads.length = 0;
 const junctionBoxes = addJunctionBoxes();

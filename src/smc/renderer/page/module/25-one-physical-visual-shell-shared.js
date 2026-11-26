@@ -601,6 +601,7 @@ function buildHomeShell(entry) {
     color: spec.tint, roughness: spec.material.rough, metalness: spec.material.metal,
     envMapIntensity: spec.material.name === "glass" ? 1.6 : spec.material.name === "metal" ? 1.1 : 0.35,
     side: THREE.DoubleSide });
+  if (typeof facadeGlass === "function") facadeGlass(material, spec.material);   // (a metal or glass cladding mirrors the street)
   const group = new THREE.Group();
   group.name = `house-shell:${id}`;
   // This shell's own copies of the shared lining, glass and frame materials, disposed with it.
@@ -616,6 +617,7 @@ function buildHomeShell(entry) {
   const bandMaterials=bands.map(b=>b.frontBasis ? new THREE.MeshStandardMaterial({
     map:bareFacadeTextureFor(b.material,spec.seed),color:b.tint,roughness:b.material.rough,metalness:b.material.metal,
     envMapIntensity:b.material.name==="glass" ? 1.6 : b.material.name==="metal" ? 1.1 : .35,side:THREE.DoubleSide}) : material);
+  if (typeof facadeGlass === "function") for (let i = 0; i < bands.length; i += 1) if (bandMaterials[i] !== material) facadeGlass(bandMaterials[i], bands[i].material);
   const trimMaterials=new Map();
   // As the decal reads until updateShellGlass sets it for the camera, the next frame.
   shellGlass.opacity = shellGlassOpacity(Infinity);

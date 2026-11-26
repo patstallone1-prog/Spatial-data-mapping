@@ -45,14 +45,37 @@ def test_the_crosswalk_an_approach_stops_behind_is_a_painted_one_across_it() -> 
         "console.log(JSON.stringify({ none, ignored, found: approachCrosswalk(a) }));",
     ])
     assert result["none"] is None and result["ignored"] is None
-    assert result["found"] == {"along": 9, "width": 3.7}
+    found = result["found"]
+    assert found["along"] == 9 and found["width"] == 3.7 and abs(found["side"]) == 0.5
+    # Square across the street: no skew for the bar to follow.
+    assert abs(found["slope"]) < 1e-9
+
+
+def test_a_bar_behind_a_skewed_crosswalk_runs_parallel_to_it() -> None:
+    # MUTCD 3B.16: the stop line is parallel to the crosswalk it stands behind. At a skewed
+    # junction (-1970, -880) it was laid square to the lane and ran diagonally across the bars.
+    js = _page_js()
+    result = _node([
+        "const CROSSING_DEDUPE_CELL_M = 4; const crossingDrawGrid = new Map();",
+        "const add = (pose) => { const k = `${Math.floor(pose.x / 4)}:${Math.floor(pose.z / 4)}`;"
+        " if (!crossingDrawGrid.has(k)) crossingDrawGrid.set(k, []); crossingDrawGrid.get(k).push(pose); };",
+        _extract("crossingBearingDifference", js),
+        _extract("approachCrosswalk", js),
+        "const a = { jx: 0, jz: 0, ux: 1, uz: 0, half: 5 };",
+        "add({ x: 9, z: 0, bearing: Math.PI / 2 + 0.3, length: 10, width: 3.7 });",
+        "console.log(JSON.stringify({ found: approachCrosswalk(a) }));",
+    ])
+    slope = result["found"]["slope"]
+    assert abs(abs(slope) - __import__("math").tan(0.3)) < 0.02
+    paint = _extract("paintRoadLegends", js)
+    assert "skew = crosswalk.slope" in paint and "(side - skewAt) * skew" in paint
 
 
 def test_stop_and_signal_approaches_get_their_paint_after_the_furniture() -> None:
     js = _page_js()
     paint = _extract("paintRoadLegends", js)
     # The bar behind the crosswalk's near line; STOP behind the bar, on stop approaches only.
-    assert "crosswalk.along + crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing" in paint
+    assert "crosswalk.along + (crosswalk.width / 2 + ROAD_LEGEND.barBehindCrossing) * Math.hypot(1, skew)" in paint
     assert 'if (kind !== "stop") continue;' in paint
     # Claimed on the paint plan; laid, settled, by layStreetPaint (docs/street-paint.mjs).
     lay = _extract("layStreetPaint", js)
