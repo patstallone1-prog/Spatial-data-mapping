@@ -145,3 +145,11 @@ def test_the_shipped_census_has_sides_for_its_blocks() -> None:
     assert all(set(s["sides"]) <= {1, -1} for s in segs)
     assert all(len(s["p"]) >= 2 for s in segs)
     assert data["source"]["both_sides_share"] == 0.40
+
+
+def test_the_build_tool_writes_the_shipped_file() -> None:
+    """tools/build_marina_confidence.py is the one writer of docs/marina-confidence.json."""
+    spec = importlib.util.spec_from_file_location("build_marina_confidence", ROOT / "tools" / "build_marina_confidence.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert callable(module.main) and callable(module.build)

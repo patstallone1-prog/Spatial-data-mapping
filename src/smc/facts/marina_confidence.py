@@ -127,7 +127,7 @@ def _resample(line: Sequence[Sequence[float]], step: float = 1.0) -> list[tuple[
     out: list[tuple[float, float]] = []
     for i in range(1, len(line)):
         (ax, ay), (bx, by) = line[i - 1], line[i]
-        n = max(1, int(math.ceil(math.hypot(bx - ax, by - ay) / step)))
+        n = max(1, math.ceil(math.hypot(bx - ax, by - ay) / step))
         out.extend((ax + (bx - ax) * k / n, ay + (by - ay) * k / n) for k in range(n))
     if line:
         out.append((line[-1][0], line[-1][1]))
@@ -168,7 +168,7 @@ def island_evidence(island: dict[str, Any], ev: Evidence) -> dict[str, float]:
     near = lambda pts: any(box[0] <= x <= box[2] and box[1] <= y <= box[3] for x, y in pts)  # noqa: E731
 
     def on_or_by(px: float, py: float, reach: float) -> bool:
-        return _in_ring(px, py, ring) or _line_dist(px, py, list(ring) + [ring[0]]) <= reach
+        return _in_ring(px, py, ring) or _line_dist(px, py, [*list(ring), ring[0]]) <= reach
 
     out: dict[str, float] = {}
     # A raised median the lidar read, along the island: a third of its readings on it or by it.
@@ -198,7 +198,7 @@ def island_evidence(island: dict[str, Any], ev: Evidence) -> dict[str, float]:
     # The survey's kerb round an outline the photograph drew (for a survey island this is the
     # island itself, and says nothing more).
     if island["basis"] == "aerial":
-        edge = _resample(list(ring) + [ring[0]], 1.0)
+        edge = _resample([*list(ring), ring[0]], 1.0)
         kerb_lines = [k for k in ev.kerbs if near(k)]
         covered = sum(any(_line_dist(x, y, k) <= 1.0 for k in kerb_lines) for x, y in edge)
         out["kerb"] = covered / max(1, len(edge))
@@ -344,8 +344,8 @@ def area_confidence(x: float, y: float, ev: Evidence, junction_scores: Sequence[
 
 
 def auc(scores: Sequence[float], labels: Sequence[bool]) -> float | None:
-    pos = [s for s, l in zip(scores, labels) if l]
-    neg = [s for s, l in zip(scores, labels) if not l]
+    pos = [s for s, lab in zip(scores, labels, strict=False) if lab]
+    neg = [s for s, lab in zip(scores, labels, strict=False) if not lab]
     if not pos or not neg:
         return None
     wins = sum((p > n) + 0.5 * (p == n) for p in pos for n in neg)
@@ -373,7 +373,7 @@ def calibration(ev: Evidence) -> dict[str, Any]:
             "mean_predicted_without_lidar": round(sum(scores) / len(scores), 3),
         }
         by_band: dict[str, list[int]] = {}
-        for sc, lab in zip(scores, labels):
+        for sc, lab in zip(scores, labels, strict=False):
             by_band.setdefault(band(sc), [0, 0])
             by_band[band(sc)][0] += 1
             by_band[band(sc)][1] += int(lab)
@@ -466,7 +466,7 @@ def load_evidence(root: Path, bbox: Sequence[float] = MARINA_BBOX) -> tuple[Evid
         if not inb(pts):
             continue
         xy = to(pts)
-        for end, nxt in ((xy[0], xy[1]), (xy[-1], xy[-2])):
+        for end, _nxt in ((xy[0], xy[1]), (xy[-1], xy[-2])):
             ends.setdefault((round(end[0] / 2), round(end[1] / 2)), []).append(end)
     for group in ends.values():
         if len(group) >= 2:
@@ -511,12 +511,12 @@ def build(root: Path) -> dict[str, Any]:
                           "evidence": {k: round(v, 2) for k, v in e.items()}})
     jscores = [(j["x"], j["y"], j["p"]) for j in ev.junctions]
     iscores = [(i["x"], i["y"], i["p"]) for i in ev.islands]
-    for out, src in zip(junctions, ev.junctions):
+    for out, src in zip(junctions, ev.junctions, strict=False):
         a, parts = area_confidence(src["x"], src["y"], ev, jscores, iscores)
         out["area_confidence"] = round(a, 3)
         out["area_band"] = band(round(a, 3))
         out["area_evidence"] = {k: round(v, 2) for k, v in parts.items()}
-    for out, src in zip(islands, ev.islands):
+    for out, src in zip(islands, ev.islands, strict=False):
         a, parts = area_confidence(src["x"], src["y"], ev, jscores, iscores)
         out["area_confidence"] = round(a, 3)
         out["area_band"] = band(round(a, 3))
