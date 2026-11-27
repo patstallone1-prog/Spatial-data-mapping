@@ -470,6 +470,8 @@ function setAppMode(mode) {
       fellTree: (ids) => (typeof natureWorld !== "undefined" ? natureWorld?.fell?.(ids) : null),
       // The object catalogue's view of what is round the walker: what a blow can land on.
       objects: () => (typeof objectProximity !== "undefined" ? objectProximity : null),
+      // The stop flags the region has up (module 20 addStopFlags): the city's stops use them.
+      stopFlags: () => (typeof drawnStopFlags !== "undefined" ? drawnStopFlags : []),
       // This device's account (kerbside-account.mjs): the money the backend has put in it.
       account: () => accountLibrary(),
       // The bicycle racks drawn round (x, z) -- this page's and the attached region's, in this

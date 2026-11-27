@@ -3463,11 +3463,15 @@ diffuseColor.rgb *= kbCloth;`);
     for (const s of district.stops || []) { const d = Math.hypot(s.x - p.x, s.z - p.z); if (d < reach && (!best || d < best.d)) best = { ...s, d }; }
     return best;
   }
-  // Bus stops: a pole and a flag at each, in Muni's red and yellow.
+  // Bus stops: a pole and a flag at each, in Muni's red and yellow -- only where the region has
+  // no flag up for the stop. The region draws every agency's stop with its pole and its Muni
+  // flag (module 20 addStopFlags), and this pole stood a metre from it, a second flag of
+  // another colour (Fillmore & Chestnut: three flags in 8 m).
   const stopGroup = new THREE.Group(); stopGroup.name = "city-bus-stops"; group.add(stopGroup);
   function drawStops() {
     stopGroup.clear();
-    const list = district.stops || [];
+    const up = ctx.stopFlags?.() || [];
+    const list = (district.stops || []).filter((st) => !up.some((f) => Math.hypot(f.x - st.x, f.z - st.z) < 14));
     if (!list.length) return;
     const pole = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.04, 0.05, 2.9, 6).translate(0, 1.45, 0), lambert({ color: 0x9aa1a6 }), list.length);
     const flag = new THREE.InstancedMesh(box(0.05, 0.42, 0.62, 2.55), lambert({ color: 0xc8102e }), list.length);

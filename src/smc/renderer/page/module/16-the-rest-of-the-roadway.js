@@ -53,9 +53,25 @@ function roadwayCovered(x, z) {
 //: there are such islands, they are the region's islands: the fill no longer strings ragged
 //: strips between fragments of kerb.
 const ISLAND_RINGS = ORTHO_ISLANDS?.schema === "kerbside.islands/1" ? (ORTHO_ISLANDS.islands || [])
-  .filter((island) => island.basis !== "survey_unconfirmed" || island.closed_in_survey)
+  // (And those confirmed from a photograph: module 15 CONFIRMED_SURVEY_ISLAND_LINES.)
+  .filter((island) => (typeof surveyedIslandKept === "function" ? surveyedIslandKept(island)
+    : island.basis !== "survey_unconfirmed" || island.closed_in_survey))
   .map((island) => island.p.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }))
   .filter((ring) => ring.length >= 4) : null;
+
+//: The way a one-way ``way`` carries traffic at (x, z), as a unit x/z vector; null on a two-way
+//: way or one with no points near.
+function travelAlong(way, x, z) {
+  const sign = onewaySign(way);
+  if (!sign || !way.points || way.points.length < 2) return null;
+  let best = null, bestD = Infinity;
+  for (let i = 1; i < way.points.length; i += 1) {
+    const [ax, ay] = xy(way.points[i - 1][0], way.points[i - 1][1]), [bx, by] = xy(way.points[i][0], way.points[i][1]);
+    const d = distanceToSegmentSquared(x, z, ax, -ay, bx, -by);
+    if (d < bestD) { bestD = d; const len = Math.hypot(bx - ax, by - ay) || 1; best = [sign * (bx - ax) / len, sign * -(by - ay) / len]; }
+  }
+  return best;
+}
 
 function fillRoadwayToKerbs() {
   if (!officialCurbGrid.size) return { asphalt: 0, islands: 0, lines: 0 };
@@ -156,11 +172,19 @@ function fillRoadwayToKerbs() {
             // A line where two carriageways meet across the strip.
             const left = carriagewaySourceAt(...at(t0 - 0.35, 0));
             const right = carriagewaySourceAt(...at(t1 + 0.35, 0));
-            if (left && right && left.source !== right.source && width <= 3.5) {
+            // (None where an island the survey has stands between them: the island parts them.)
+            const parted = typeof surveyedIslandAcross === "function" && surveyedIslandAcross(...at(t0 - 1.0, 0), ...at(t1 + 1.0, 0));
+            if (left && right && left.source !== right.source && width <= 3.5 && !parted) {
               const mid = (t0 + t1) / 2;
+              // Opposing: the two run opposite ways. Parallel was asked, and two one-way ways the
+              // same way -- Fillmore's southbound lanes and its right-turn lane at Chestnut -- had
+              // a double yellow between them.
+              const lx = left.source && travelAlong(left.source, ...at(t0 - 0.35, 0));
+              const rx = right.source && travelAlong(right.source, ...at(t1 + 0.35, 0));
               const opposing = onewaySign(left.source) !== 0
                 && onewaySign(right.source) !== 0
-                && Math.abs(((left.bearing - right.bearing) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI) < Math.PI / 3;
+                && Math.abs(((left.bearing - right.bearing) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI) < Math.PI / 3
+                && !(lx && rx && lx[0] * rx[0] + lx[1] * rx[1] > 0);
               const offsets = opposing ? [-(MARK_W + DOUBLE_GAP_M) / 2, (MARK_W + DOUBLE_GAP_M) / 2] : [0];
               run.line = { sink: opposing ? lines.yellow : lines.white, points: offsets.map((off) => at(mid + off, 0)) };
             }
@@ -444,7 +468,55 @@ function addClosedOfficialIslandSurfaces() {
     stampPavedRing(ring, ROAD_TOP_M + MEDIAN_KERB_M + 0.006);
     laid += 1;
   }
+  addSurveyedIslandSkirts(surveyed);
   return laid;
+}
+// A short island the survey has in the gap between two carriageways stands where the inferred
+// median would have been raised. With that median not raised, the road ribbons either side did not
+// meet round the island's ends, and the ground showed through: a bluish hole at the south nose of
+// Fillmore's bus island (docs/73). Under each short island, road surface is laid out to
+// ISLAND_SKIRT_M round it. It is laid only where it is within reach of a carriageway, and a little
+// below the junction boxes, so it shows only where nothing else is drawn.
+// (A skirt point is kept within ISLAND_SKIRT_REACH_M of a carriageway: the gap between a slip
+// lane and the lanes beside it is not in either, and showed the ground at the island's nose.)
+const ISLAND_SKIRT_M = 2.5, ISLAND_SKIRT_MAX_M = 45, ISLAND_SKIRT_REACH_M = 3;
+function addSurveyedIslandSkirts(surveyed) {
+  let skirts = 0;
+  const top = ROAD_TOP_M - JUNCTION_BOX_DROP_M - 0.003;
+  for (const ring of surveyed) {
+    if (!ring || ring.length < 3) continue;
+    let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+    for (const [x, z] of ring) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    if (Math.hypot(x1 - x0, z1 - z0) > ISLAND_SKIRT_MAX_M) continue;   // (a long median has its halves either side)
+    const points = ring.map(([x, z]) => [x, z]);
+    let near = 0;
+    for (const [x, z] of ring) {
+      for (let k = 0; k < 8; k += 1) {
+        const a = (k * Math.PI) / 4;
+        for (const r of [ISLAND_SKIRT_M / 2, ISLAND_SKIRT_M]) {
+          const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+          if (insideCarriageway(px, pz, -ISLAND_SKIRT_REACH_M)) { points.push([px, pz]); near += 1; }
+        }
+      }
+    }
+    if (!near) continue;
+    const hull = convexHull(points);
+    if (hull.length < 3) continue;
+    const position = [], uv = [], index = [];
+    for (const [x, z] of hull) { position.push(x, top, z); uv.push(x / 8, z / 8); }
+    for (let i = 1; i + 1 < hull.length; i += 1) index.push(0, i + 1, i);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(position, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    geometry.setIndex(index);
+    geometry.computeVertexNormals();
+    if (geometry.attributes.normal.getY(0) < 0) { index.reverse(); geometry.setIndex(index); geometry.computeVertexNormals(); }
+    const mesh = new THREE.Mesh(geometry, surfaceMaterial("road", 0xffffff, 1.0));
+    mesh.userData.surface = "road";
+    addMerged("junction:box", mesh, "road");
+    skirts += 1;
+  }
+  islandStats.skirts = skirts;
 }
 const officialIslandsLaid = addClosedOfficialIslandSurfaces();
 window.kerbsideIslands = islandStats;   // (for checks: how many were kept, trimmed off the roadway, dropped)
@@ -467,6 +539,13 @@ function addFrontageFill() { return runSteps(addFrontageFillSteps()); }
 function* addFrontageFillSteps() {
   for (const { way, renderPoints, side, inner, walk, roadTop, color, opacity } of frontageSides) {
     yield;
+    // Not a divided half's median side: what it finds at that kerb is the median, not a footway,
+    // and carried out to the "frontage" it paved the roadway between the halves (Fillmore north of
+    // Chestnut: its angled parking).
+    if (typeof isDividedHalf === "function" && isDividedHalf(way) && side === -(way.walk_sides?.[0] ?? 0)) {
+      frontageStats.skipped.median = (frontageStats.skipped.median || 0) + 1;
+      continue;
+    }
     // As far as the surveyed sidewalk reaches, or where it was not surveyed the width drawn.
     if (!(way.walk_m > 0)) frontageStats.unsurveyed += 1;
     const reach = inner + Math.max(walk, way.walk_m || 0);
@@ -500,6 +579,11 @@ function* addFrontageFillSteps() {
         if (t === null) break;
         top = top === null ? t : Math.max(top, t);
         from += FRONTAGE_PROBE_M;
+      }
+      // (Nor from an island the survey has: an island is not a footway to carry out.)
+      if (top !== null && typeof surveyedIslandAt === "function" && surveyedIslandAt(...point(inner + 0.3))) {
+        frontageStats.skipped.island = (frontageStats.skipped.island || 0) + 1;
+        return { kind: "blocked" };
       }
       if (top === null) {
         const [px, pz] = point(inner + 0.05);

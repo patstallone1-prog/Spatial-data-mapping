@@ -1949,7 +1949,20 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
   // approach plates, the corner blades, and OpenStreetMap's other signs where the city has none.
   const generic = officialSigns.length ? [] : signs.filter((s) => s.p);
   const corners = cornerStreetNameSigns();
-  const plateRecords = officialSigns.concat(osmApproach, generic, corners);
+  // The inventory's Muni flags carry no routes: the routes are the nearest Muni stop's.
+  const muniStops = (transitStops?.stops || []).filter((stop) => stop.agency === "sfmta" && Number.isFinite(stop.lon));
+  const withRoutes = officialSigns.map((sign) => {
+    if (plateStyleFor(sign) !== "muni_flag" || !sign.p || !muniStops.length) return sign;
+    const [sx, sy] = xy(sign.p[0], sign.p[1]);
+    let best = null, bestD = 25;
+    for (const stop of muniStops) {
+      const [tx, ty] = xy(stop.lon, stop.lat);
+      const d = Math.hypot(tx - sx, ty - sy);
+      if (d < bestD) { best = stop; bestD = d; }
+    }
+    return best ? { ...sign, routes: best.routes || [] } : sign;
+  });
+  const plateRecords = withRoutes.concat(osmApproach, generic, corners);
   await prepaintPlates(plateRecords);
   const plates = addOfficialSignPlates(plateRecords, signalHeads);
   await maybeYield();
@@ -1982,7 +1995,7 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
     })(),
     generic_signs: generic.length,
     corner_name_posts: signStats.cornerPosts,
-    bus_flags: addInstancedFurniturePanels(stops, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
+    bus_flags: addStopFlags(stops.filter((item) => { const a = furnitureAnchor(item); return a && !stopFlagNear(a.x, a.z); })),
     ad_panels: addAdStructures(smallAds, creatives),
     billboards: addBillboards(billboards,creatives),
     shelters: addMuniShelters(shelters, creatives),

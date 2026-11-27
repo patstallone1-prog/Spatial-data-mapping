@@ -233,13 +233,26 @@ const PLATE_STYLES = {
   // MUTCD R3-1/R3-2/R3-4 (and R10-11 with ON RED): the turn arrow under a red circle and slash.
   no_turn:     { bg: "#ffffff", fg: "#111111", shape: "plate", w: 0.61, h: 0.76, border: "#111111", symbol: "no_turn" },
   accessible_parking: { bg: "#ffffff", fg: "#1f4fa3", shape: "plate", w: 0.30, h: 0.46, border: "#1f4fa3" },
+  // The Muni stop flag. The inventory lists the flag itself as a sign ("MUNI LOCAL (FLAG)
+  // BLUE", "MUNI LANDOR FLAG - TYPE 6"), and its words were set on a green guide plate. It is
+  // the stop's flag: white, a blue band (the inventory's colour for local service) with MUNI.
+  muni_flag:   { bg: "#ffffff", fg: "#111111", shape: "plate", w: 0.46, h: 0.56, border: "#1f5fae", symbol: "muni" },
+  // MUNI W12-1: two arrows down and out, on the nose of an island traffic passes either side of.
+  keep_either: { bg: "#f2c027", fg: "#111111", shape: "diamond", w: 0.76, h: 0.76, border: "#111111", symbol: "double_arrow" },
 };
+//: The inventory's names for the Muni stop flag itself.
+const MUNI_FLAG_LABEL = /^MUNI (LOCAL \(FLAG\)|LANDOR FLAG|SOLAR LANDOR SIGN|\([A-Z]\) )/;
+//: The stop flags drawn, inventory and transit both: one flag to a stop (addTransitStops, and the
+//: living city's own stop poles, which stand aside where one is already up).
+const drawnStopFlags = [];
 
 function plateStyleFor(sign) {
   const category = String((sign.tags || {}).SIGN_CATEGORY || "").toUpperCase();
   const klass = String((sign.tags || {}).SIGN_CLASS || "").toUpperCase();
   const label = String(sign.label || "").toUpperCase();
   if (sign.sign_kind === "stop" || label === "STOP") return "stop";
+  if (MUNI_FLAG_LABEL.test(label)) return "muni_flag";
+  if (/^DOUBLE ARROW-LEFT & RIGHT|^\(45 LA-DN\/45 RA-DN\)/.test(label)) return "keep_either";
   if (sign.sign_kind === "all_way" || category === "ALL WAY") return "all_way";
   if (sign.sign_kind === "yield" || label.startsWith("YIELD")) return "yield";
   if (category === "STREET NAME") return "street_name";
@@ -311,7 +324,7 @@ function plateSilhouetteSlot(style) {
 function plateSlot(sign, forcedStyle = null, silhouette = false) {
   const style = forcedStyle || plateStyleFor(sign);
   const text = silhouette ? "" : plateLegend(sign.label);
-  const key = silhouette ? `back|${style}` : `${style}|${text}`;
+  const key = silhouette ? `back|${style}` : `${style}|${text}${sign.routes?.length ? `|${sign.routes.join(" ")}` : ""}`;
   const cached = PLATE_SLOTS.get(key);
   if (cached) return cached;
   let atlas = plateAtlases[plateAtlases.length - 1];
@@ -374,6 +387,31 @@ function plateSlot(sign, forcedStyle = null, silhouette = false) {
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("DO NOT", px + pw / 2, py + ph / 2 - r * 0.45);
     ctx.fillText("ENTER", px + pw / 2, py + ph / 2 + r * 0.45);
+    words = "";
+  } else if (!silhouette && spec.symbol === "muni") {
+    // The band across the top with MUNI in it, and what the stop is under it.
+    ctx.fillStyle = spec.border;
+    ctx.fillRect(px, py, pw, ph * 0.36);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${Math.round(ph * 0.2)}px Helvetica, Arial, sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("MUNI", px + pw / 2, py + ph * 0.185);
+    const label = String(sign.label || "").toUpperCase();
+    const line = label.match(/\(([A-Z])\) ([A-Z]+)/) || label.match(/\(FLAG\) ([A-Z])- LINE/);
+    const routes = (sign.routes || []).slice(0, 4).join(" ");
+    words = line ? (line[2] ? `${line[1]} ${line[2]}` : `${line[1]} LINE`) : routes || "BUS STOP";
+    textTop = py + ph * 0.38; textH = ph * 0.6;
+  } else if (!silhouette && spec.symbol === "double_arrow") {
+    // Two arrows from the middle, down to the left and down to the right.
+    const cx = px + pw / 2, cy = py + ph / 2, r = pw * 0.2;
+    ctx.strokeStyle = "#111111"; ctx.fillStyle = "#111111"; ctx.lineWidth = r * 0.28; ctx.lineCap = "butt";
+    for (const dir of [-1, 1]) {
+      const tx = cx + dir * r * 1.05, ty = cy + r * 1.05;
+      ctx.beginPath(); ctx.moveTo(cx + dir * r * 0.1, cy - r * 0.6); ctx.lineTo(cx + dir * r * 0.1, cy - r * 0.1);
+      ctx.lineTo(tx - dir * r * 0.32, ty - r * 0.32); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - dir * r * 0.72, ty - r * 0.05);
+      ctx.lineTo(tx - dir * r * 0.05, ty - r * 0.72); ctx.closePath(); ctx.fill();
+    }
     words = "";
   } else if (!silhouette && spec.symbol === "no_turn") {
     // The arrow, then the red circle and slash over it, in the top of the plate; whatever the
@@ -979,6 +1017,8 @@ const SIGNAL_BLADE_BOTTOM_M = 3.0;
 const SIGNAL_HEAD_MID_M = 4.18;
 const SIGNAL_HEAD_H_M = 0.98;
 const SIGNAL_HEAD_W_M = 0.38;
+//: A signal pole's radius (addTrafficSignalHeads draws it 0.075 m, a fifth wider at its foot).
+const SIGNAL_POLE_R_M = 0.075;
 let signPlateGrid = new Map();
 const signStats = { plates: 0, blades: 0, cornerJunctions: 0, cornerPosts: 0, lowered: 0,
   overflowPosts: 0, dropped: 0, droppedPanels: 0, movedOffCrossing: 0, droppedOnCrossing: 0,
@@ -1200,9 +1240,28 @@ function cornerStreetNameSigns() {
   return out;
 }
 
+//: One face of a plate: a quad reading ``slot`` from ``sink``, facing ``yaw``.
+function plateQuad(sink, slot, cx, cz, yaw, bottom, top, mirrored = false) {
+  const rx = Math.cos(yaw), rz = -Math.sin(yaw), hw = slot.w / 2;
+  const s = mirrored ? -1 : 1;
+  const base = sink.positions.length / 3;
+  const corners = [[cx - s * rx * hw, bottom, cz - s * rz * hw], [cx + s * rx * hw, bottom, cz + s * rz * hw],
+    [cx + s * rx * hw, top, cz + s * rz * hw], [cx - s * rx * hw, top, cz - s * rz * hw]];
+  const uv = mirrored
+    ? [[slot.u1, slot.v0], [slot.u0, slot.v0], [slot.u0, slot.v1], [slot.u1, slot.v1]]
+    : [[slot.u0, slot.v0], [slot.u1, slot.v0], [slot.u1, slot.v1], [slot.u0, slot.v1]];
+  for (let i = 0; i < 4; i += 1) {
+    sink.positions.push(corners[i][0], corners[i][1], corners[i][2]);
+    sink.uvs.push(uv[i][0], uv[i][1]);
+    sink.colours.push(1, 1, 1);
+  }
+  sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+
 function addOfficialSignPlates(records, signalHeads = []) {
   // Every sign on its post, the plates stacked where several share one.
   signPlateGrid = new Map();
+  drawnStopFlags.length = 0;
   const seenFaces = new Set();
   const anchors = records.map((item, index) => ({ item, index, anchor: furnitureAnchor(item) }))
     .filter((row) => {
@@ -1276,23 +1335,7 @@ function addOfficialSignPlates(records, signalHeads = []) {
   const racks = [];
   const delineators = [];
   const lanterns = [];
-  // One face of a plate: a quad reading ``slot`` from ``sink``, facing ``yaw``.
-  const quad = (sink, slot, cx, cz, yaw, bottom, top, mirrored = false) => {
-    const rx = Math.cos(yaw), rz = -Math.sin(yaw), hw = slot.w / 2;
-    const s = mirrored ? -1 : 1;
-    const base = sink.positions.length / 3;
-    const corners = [[cx - s * rx * hw, bottom, cz - s * rz * hw], [cx + s * rx * hw, bottom, cz + s * rz * hw],
-      [cx + s * rx * hw, top, cz + s * rz * hw], [cx - s * rx * hw, top, cz - s * rz * hw]];
-    const uv = mirrored
-      ? [[slot.u1, slot.v0], [slot.u0, slot.v0], [slot.u0, slot.v1], [slot.u1, slot.v1]]
-      : [[slot.u0, slot.v0], [slot.u1, slot.v0], [slot.u1, slot.v1], [slot.u0, slot.v1]];
-    for (let i = 0; i < 4; i += 1) {
-      sink.positions.push(corners[i][0], corners[i][1], corners[i][2]);
-      sink.uvs.push(uv[i][0], uv[i][1]);
-      sink.colours.push(1, 1, 1);
-    }
-    sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
-  };
+  const quad = plateQuad;
   // A post holds what fits on it between the panel height and a pedestrian's knee; what does
   // not goes on a second post beside it along the kerb, as the city puts up a second pole.
   const overflowSpot = (post, yaw) => {
@@ -1333,8 +1376,11 @@ function addOfficialSignPlates(records, signalHeads = []) {
       if (first) top += slot.h;
       first = false;
       const nx = Math.sin(yaw), nz = Math.cos(yaw);
-      const cx = post.anchor.x + nx * PLATE_STANDOFF_M;
-      const cz = post.anchor.z + nz * PLATE_STANDOFF_M;
+      // On a signal's pole (0.075 m, thicker than a sign post) the plate stands off the pole's
+      // own face: at the sign post's 5 cm the pole ran down the middle of it.
+      const standoff = post.signal ? SIGNAL_POLE_R_M + PLATE_STANDOFF_M : PLATE_STANDOFF_M;
+      const cx = post.anchor.x + nx * standoff;
+      const cz = post.anchor.z + nz * standoff;
       const rect = placePlate(post, cx, cz, yaw, slot.w, slot.h, top, post.anchor.y + PLATE_MIN_BOTTOM_M);
       if (!rect) {
         if (!overflow.length) overflowYaw = yaw;
@@ -1343,6 +1389,7 @@ function addOfficialSignPlates(records, signalHeads = []) {
         continue;
       }
       highest = Math.max(highest, rect.top);
+      if (slot.style === "muni_flag") drawnStopFlags.push({ x: post.anchor.x, z: post.anchor.z, source: "sfmta_inventory" });
       quad(slot.atlas.sink, slot, cx, cz, yaw, rect.bottom, rect.top);
       // The back: aluminium, the same outline, a hair behind the face, wound the other way.
       const shadow = plateSilhouetteSlot(slot.style);
@@ -1384,9 +1431,11 @@ function addOfficialSignPlates(records, signalHeads = []) {
       }
       if (!rect) { signStats.dropped += 1; continue; }
       const nx = Math.sin(yaw), nz = Math.cos(yaw);
-      quad(slot.atlas.sink, slot, post.anchor.x + nx * BLADE_FACE_OFFSET_M, post.anchor.z + nz * BLADE_FACE_OFFSET_M,
+      // Clamped round a signal's pole, the faces either side of it rather than through it.
+      const faceOff = post.signal ? SIGNAL_POLE_R_M * 1.2 + 0.01 : BLADE_FACE_OFFSET_M;
+      quad(slot.atlas.sink, slot, post.anchor.x + nx * faceOff, post.anchor.z + nz * faceOff,
         yaw, rect.bottom, rect.top);
-      quad(slot.atlas.sink, slot, post.anchor.x - nx * BLADE_FACE_OFFSET_M, post.anchor.z - nz * BLADE_FACE_OFFSET_M,
+      quad(slot.atlas.sink, slot, post.anchor.x - nx * faceOff, post.anchor.z - nz * faceOff,
         yaw + Math.PI, rect.bottom, rect.top);
       bladeBottom = rect.top + PLATE_GAP_M;
       highest = Math.max(highest, rect.top);
@@ -1422,6 +1471,53 @@ function addOfficialSignPlates(records, signalHeads = []) {
   return { signs, posts: postCount, racks: racks.length, delineators: delineators.length,
     spots: posts.filter((p) => p.kind === "sign" && !p.signal).map((p) => p.anchor) };
 }
+
+//: Points this close to a flag already up are the same stop: its pole holds the one flag.
+const STOP_FLAG_SAME_M = 9;
+//: Whether a stop's pole would stand by a flag already drawn (the inventory's, or another
+//: agency's stop at the same kerb): one pole and one flag to a stop.
+function stopFlagNear(x, z, reach = STOP_FLAG_SAME_M) {
+  return drawnStopFlags.some((f) => Math.hypot(f.x - x, f.z - z) < reach);
+}
+//: The flags of the transit stops: on the face of each stop's pole, at the flag's height, in front
+//: of the pole and not through it. A Muni stop's is the Muni flag with its routes; another
+//: agency's is a plain BUS STOP plate. Each is a plate, placed against the plates standing.
+function addStopFlags(records) {
+  const sinks = new Map(), backs = new Map();
+  let drawn = 0;
+  records.forEach((item, index) => {
+    const anchor = furnitureAnchor(item);
+    if (!anchor) return;
+    const muni = /sfmta|muni/i.test(String(item.source || item.agency || "muni"));
+    const sign = muni ? { label: "MUNI LOCAL (FLAG) BLUE", routes: item.routes || [], tags: {} }
+      : { label: "BUS STOP", tags: {} };
+    const slot = plateSlot(sign, muni ? "muni_flag" : "regulatory");
+    const yaw = furnitureBearing(item, index, anchor);
+    const nx = Math.sin(yaw), nz = Math.cos(yaw);
+    const cx = anchor.x + nx * PLATE_STANDOFF_M, cz = anchor.z + nz * PLATE_STANDOFF_M;
+    const rect = placePlate(null, cx, cz, yaw, slot.w, slot.h, anchor.y + FURNITURE_POST_H_M - 0.05,
+      anchor.y + PLATE_MIN_BOTTOM_M);
+    if (!rect) { signStats.droppedPanels += 1; return; }
+    if (!sinks.has(slot.atlas.index)) sinks.set(slot.atlas.index, newSink());
+    plateQuad(sinks.get(slot.atlas.index), slot, cx, cz, yaw, rect.bottom, rect.top);
+    const shadow = plateSilhouetteSlot(slot.style);
+    if (!backs.has(shadow.atlas.index)) backs.set(shadow.atlas.index, newSink());
+    plateQuad(backs.get(shadow.atlas.index), shadow, cx - nx * 0.004, cz - nz * 0.004, yaw, rect.bottom, rect.top, true);
+    drawnStopFlags.push({ x: anchor.x, z: anchor.z, source: item.source || "transit" });
+    drawn += 1;
+  });
+  for (const [index, sink] of sinks) {
+    const mesh = flushSink(sink, plateMaterial(plateAtlases[index]), "furniture:bus_stop");
+    if (mesh) groups.furniture.add(mesh);
+  }
+  for (const [index, sink] of backs) {
+    const mesh = flushSink(sink, new THREE.MeshStandardMaterial({ map: plateAtlases[index].texture, transparent: true,
+      alphaTest: 0.5, side: THREE.FrontSide, roughness: 0.6, metalness: 0.35 }), "furniture:sign_back");
+    if (mesh) groups.furniture.add(mesh);
+  }
+  return drawn;
+}
+window.kerbsideStopFlags = () => drawnStopFlags.map((f) => ({ ...f }));
 
 //: The audit of what was drawn: any two plates that meet, and any post on a crossing. Both
 //: must be zero; window.kerbsideSigns() reports them.
@@ -1499,7 +1595,7 @@ function addTrafficSignalHeads(records) {
   const rows = records.map((head) => ({ item: { bearing: head.yaw * 180 / Math.PI }, index: 0,
     anchor: { x: head.x, y: head.y, z: head.z } }));
   if (!rows.length) return 0;
-  addFurniturePostsAt(rows.map((r) => r.anchor), 4.65, 0.075, 0x4b5051);
+  addFurniturePostsAt(rows.map((r) => r.anchor), 4.65, SIGNAL_POLE_R_M, 0x4b5051);
   const body = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
     new THREE.MeshStandardMaterial({ color: 0x202524, roughness: 0.58, metalness: 0.32 }), rows.length);
   const lamps = SIGNAL_LENS_DARK.map((dark) => {

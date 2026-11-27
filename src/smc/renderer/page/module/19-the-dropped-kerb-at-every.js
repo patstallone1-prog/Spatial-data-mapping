@@ -1387,7 +1387,8 @@ function addTransitStops(transit, creatives = {}) {
   stopZones.length = 0;
   const lonOf = (x) => midLon + x / metersPerLon, latOf = (z) => midLat - z / metersPerLat;
   for (const stop of stops) {
-    const item = { p: [stop.lon, stop.lat], bearing: null, source: `gtfs:${stop.agency}`, provenance: stop.physical_source };
+    const item = { p: [stop.lon, stop.lat], bearing: null, source: `gtfs:${stop.agency}`, provenance: stop.physical_source,
+      routes: stop.routes || [] };
     let [x, y] = xy(stop.lon, stop.lat);
     let z = -y;
     // A stop on an island station stands on the island, which has its own canopy and benches.
@@ -1501,10 +1502,27 @@ function addTransitStops(transit, creatives = {}) {
       stopZones.push({ kx, kz, dx, dz, nx, nz, fits, id: stop.id ?? stop.stop_id ?? `${stop.agency}:${stopZones.length}` });
     }
   }
+  // One pole and one flag to a stop. Where the city's inventory has the stop's flag up (drawn
+  // with the signs, addOfficialSignPlates), or another agency's stop has its pole at the same
+  // kerb, that pole is the stop's: at Fillmore & Chestnut three flags stood within 8 m.
+  const flagged = [];
+  if (typeof addStopFlags === "function") {
+    const at = [];
+    for (const item of poles) {
+      const a = furnitureAnchor(item);
+      if (!a) continue;
+      if (stopFlagNear(a.x, a.z) || at.some((b) => Math.hypot(b.x - a.x, b.z - a.z) < 4)) {
+        transitStats.sharedFlag = (transitStats.sharedFlag || 0) + 1;
+        continue;
+      }
+      at.push(a); flagged.push(item);
+    }
+  } else flagged.push(...poles);
   const placed = {
     stops: stops.length,
-    poles: addStreetFurniturePosts(poles),
-    flags: addInstancedFurniturePanels(poles, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
+    poles: addStreetFurniturePosts(flagged),
+    flags: typeof addStopFlags === "function" ? addStopFlags(flagged)
+      : addInstancedFurniturePanels(flagged, 0.48, 0.34, 0x2a6db8, "furniture:bus_stop", 2.25, "lower"),
     shelters: instanceParts(SHELTER_PARTS, shelters, "furniture:shelter"),
     shelter_ads: addShelterAdFaces(shelters, creatives),
     benches: instanceParts(BENCH_PARTS, benches, "furniture:bench"),

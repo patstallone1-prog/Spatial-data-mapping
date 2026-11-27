@@ -479,6 +479,102 @@ function parkingAsphaltTexture() {
 }
 let PARKING_ASPHALT = null;
 
+//: A thin lot -- a strip no wider than PARKING_STRIP_MAX_M on average (twice its area over its
+//: perimeter) -- is a row of angled stalls along each of its long edges that has a lane outside
+//: it, each edge in its own frame. Its rectangle frame can be far deeper than the strip: the
+//: median lot on Fillmore north of Chestnut is 6 m wide and 520 m long, but a wedge at its south
+//: end made its frame 34.8 m deep, so it was laid out as two rows of square bays and kept none.
+const PARKING_STRIP_MAX_M = 8.8;
+function parkingStripWidth(ring) {
+  let area = 0, per = 0;
+  for (let i = 0; i + 1 < ring.length; i += 1) {
+    const [ax, az] = ring[i], [bx, bz] = ring[i + 1];
+    area += ax * bz - bx * az;
+    per += Math.hypot(bx - ax, bz - az);
+  }
+  return per > 0 ? Math.abs(area) / per : Infinity;   // (twice the area, |sum| / 2 * 2, over the perimeter)
+}
+function angledStripStallsOnRing(ring, inside, usable) {
+  const width = parkingStripWidth(ring);
+  if (!(width <= PARKING_STRIP_MAX_M) || width < PARKING_ANGLE_MIN_DEPTH_M * 0.75) return null;
+  const out = { stalls: [], stripes: [] };
+  for (let i = 0; i + 1 < ring.length; i += 1) {
+    const [ax, az] = ring[i], [bx, bz] = ring[i + 1];
+    const L = Math.hypot(bx - ax, bz - az);
+    if (L < 6 * PARKING_BAY_W_M) continue;
+    const ex = (bx - ax) / L, ez = (bz - az) / L;
+    // The normal into the lot.
+    let nx = -ez, nz = ex;
+    if (!inside(ax + ex * L / 2 + nx * 0.6, az + ez * L / 2 + nz * 0.6)) { nx = -nx; nz = -nz; }
+    const got = angledStripStalls({ ox: ax, oz: az, ex, ez, nx, nz, u0: 0, u1: L, depth: Math.max(width, PARKING_ANGLE_DEPTH_M) },
+      inside, usable, { lowOnly: true });
+    if (got) { out.stalls.push(...got.stalls); out.stripes.push(...got.stripes); }
+  }
+  return out.stalls.length ? out : null;
+}
+//: Angled stalls in a strip lot along a street: at PARKING_ANGLE_DEG to the lane they are entered
+//: from, nosing in ahead of the traffic and to its side (a car turns in without backing), each
+//: PARKING_BAY_W_M wide square to its own length. The lane is the carriageway along one long side
+//: of the lot; the way its traffic runs sets which way the stalls lean (module 16 travelAlong).
+//: Returns { stalls: [{x, z, yaw}], stripes: [[ax, az, bx, bz]] } or null.
+const PARKING_ANGLE_DEG = 45, PARKING_ANGLE_MIN_DEPTH_M = 3.8, PARKING_ANGLE_DEPTH_M = 5.2, PARKING_ANGLE_OVER_M = 2.5;
+function angledStripStalls(layout, inside, usable, opts = {}) {
+  const { ox, oz, ex, ez, nx, nz, u0, u1, depth } = layout;
+  const at = (u, v) => [ox + ex * u + nx * v, oz + ez * u + nz * v];
+  const W = PARKING_BAY_W_M, m = PARKING_EDGE_M, theta = PARKING_ANGLE_DEG * Math.PI / 180;
+  const span = u1 - u0;
+  if (span < 4 * W || depth > PARKING_BAY_L_M * 2.5) return null;
+  // Which long side the lane is on, read along the strip: v below 0 or past the depth.
+  let low = 0, high = 0;
+  for (let k = 1; k < 10; k += 1) {
+    const u = u0 + span * k / 10;
+    if (insideCarriageway(...at(u, -1.2), 0)) low += 1;
+    if (insideCarriageway(...at(u, depth + 1.2), 0)) high += 1;
+  }
+  if (opts.lowOnly ? low < 4 : Math.max(low, high) < 4) return null;
+  const fromLow = opts.lowOnly || low >= high;
+  // The way the lane's traffic runs along u: the stalls lean that way.
+  let lean = 1;
+  {
+    const [sx, sz] = at((u0 + u1) / 2, fromLow ? -1.5 : depth + 1.5);
+    const lane = typeof carriagewaySourceAt === "function" ? carriagewaySourceAt(sx, sz, 0.5) : null;
+    const dir = lane && typeof travelAlong === "function" ? travelAlong(lane.source, sx, sz) : null;
+    if (dir) lean = dir[0] * ex + dir[1] * ez >= 0 ? 1 : -1;
+  }
+  const stalls = [], stripes = [];
+  const along = W / Math.sin(theta);                      // a stall's run along the lane
+  const sign = fromLow ? 1 : -1, edge = fromLow ? 0 : depth;
+  // (Clear of the island the far side, which is the survey's: module 15.)
+  const surveyedOn = (x, z) => typeof surveyedIslandAt === "function" && surveyedIslandAt(x, z);
+  const open = (x, z) => inside(x, z) && !surveyedOn(x, z);
+  for (let u = u0 + m + 0.5; u + along + PARKING_ANGLE_DEPTH_M / Math.tan(theta) <= u1 - m; u += along) {
+    // From the strip's far side -- the median's kerb, or the lot's far edge -- out toward the lane,
+    // a stall's depth, its head at that kerb. The lane's ribbon often takes in the parking beside
+    // it (Fillmore's northbound half does, its left parking lane), so the stall may stand up to
+    // PARKING_ANGLE_OVER_M past the lot's mapped edge, on that parking lane.
+    const mid = u + along / 2;
+    let far = m;
+    while (far < depth + PARKING_ANGLE_OVER_M && open(...at(mid, edge + sign * (far + 0.25)))) far += 0.25;
+    const near = Math.max(-PARKING_ANGLE_OVER_M, far - PARKING_ANGLE_DEPTH_M);
+    const reach = far - near;
+    if (reach < PARKING_ANGLE_MIN_DEPTH_M) continue;
+    const vNear = edge + sign * near, vFar = edge + sign * far, shift = lean * reach / Math.tan(theta);
+    const corners = [at(u, vNear), at(u + along, vNear), at(u + along + shift, vFar), at(u + shift, vFar)];
+    const centre = at(mid + shift / 2, (vNear + vFar) / 2);
+    // The head of the stall on the strip, and none of it on the island.
+    const headIn = (t) => at(u + t * along + shift, vFar - sign * 0.1);
+    if (![headIn(0), headIn(1), centre].every(([x, z]) => open(x, z) || (inside(x, z) === false && !surveyedOn(x, z) && insideCarriageway(x, z, -0.5)))) continue;
+    if (![headIn(0), headIn(1)].every(([x, z]) => open(x, z))) continue;
+    if (corners.some(([x, z]) => surveyedOn(x, z))) continue;
+    if (usable && !usable([centre])) continue;
+    stripes.push([...corners[0], ...corners[3]], [...corners[1], ...corners[2]]);
+    const [cx, cz] = at(u + along / 2 + shift / 2, (vNear + vFar) / 2);
+    const fx = ex * shift + nx * (vFar - vNear), fz = ez * shift + nz * (vFar - vNear), fl = Math.hypot(fx, fz) || 1;
+    stalls.push({ x: cx, z: cz, yaw: Math.atan2(-fx / fl, -fz / fl), angled: true });
+  }
+  return stalls.length ? { stalls, stripes } : null;
+}
+
 //: A lot's frame: the frontage edge as the u axis, the lot's depth behind it as v. The frontage
 //: is the longest ring edge with a street kerb facing it within `reach`; a lot with no street
 //: at any edge (one inside a block, reached by an alley) takes its longest edge.
@@ -733,6 +829,11 @@ function addParkingLot(way) {
       }
       return true;
     };
+    // A thin strip with a lane along it is angled stalls, and no rows (angledStripStallsOnRing).
+    // (Angled stalls may stand on the lane's parking lane, so only a footway rules one out.)
+    const unpaved = (pts) => pts.every(([x, z]) => !((pavementTopAt(x, z) || 0) > 0.1));
+    const stripAngled = parkingStripWidth(ring) <= PARKING_STRIP_MAX_M ? angledStripStallsOnRing(ring, inside, unpaved) : null;
+    if (stripAngled) rows.length = 0;
     let firstAccessible = true;
     for (const row of rows) {
       const count = Math.floor((ub - ua) / W);
@@ -772,8 +873,18 @@ function addParkingLot(way) {
         }
       }
     }
-    way._parking = { layout, rows: rows.length, entryU, endAisles: ends };
+    // A strip too narrow for a row and its aisle, along a street: angled stalls, nosed in from
+    // the lane beside it (angledStripStalls). Fillmore's median north of Chestnut is one, mapped
+    // as a car park between the median kerb and the northbound lanes: it had no stalls, and no
+    // cars parked in it.
+    const angled = stripAngled || (rows.length ? null : angledStripStalls(layout, inside, unpaved));
+    if (angled) {
+      stripes.push(...angled.stripes);
+      for (const q of angled.stalls) stalls.push(q);
+    }
+    way._parking = { layout, rows: rows.length, entryU, endAisles: ends, angled: angled ? angled.stalls.length : 0 };
   }
+  const lineYAt = (x, z) => (insideCarriageway(x, z, -0.1) ? ROAD_TOP_M + 0.030 : PARKING_LINE_Y);
   const lineGeometry = (segments, width) => {
     const positions = [], index = [];
     for (const [ax, az, bx, bz] of segments) {
@@ -781,8 +892,11 @@ function addParkingLot(way) {
       const len = Math.hypot(dx, dz) || 1;
       const px = -dz / len * width / 2, pz = dx / len * width / 2;
       const base = positions.length / 3;
-      positions.push(ax + px, PARKING_LINE_Y, az + pz, ax - px, PARKING_LINE_Y, az - pz,
-                     bx - px, PARKING_LINE_Y, bz - pz, bx + px, PARKING_LINE_Y, bz + pz);
+      // (On a carriageway -- an angled stall stands out on the lane's parking lane -- a stripe is
+      // painted at the road's paint height: at the lot's it was under the road and not seen.)
+      const ya = lineYAt(ax, az), yb = lineYAt(bx, bz);
+      positions.push(ax + px, ya, az + pz, ax - px, ya, az - pz,
+                     bx - px, yb, bz - pz, bx + px, yb, bz + pz);
       index.push(base, base + 1, base + 2, base, base + 2, base + 3);
     }
     const geometry = new THREE.BufferGeometry();
