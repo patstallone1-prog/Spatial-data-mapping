@@ -1602,8 +1602,11 @@ function addBusZonePaint(records, plan = null) {
         // The zone's rectangle of asphalt, claimed on the paint plan as paint already down: a
         // stop's white box is not laid over it, and the stop's words go inside it.
         if (plan && span > 0.5) {
+          // Between the zone's two lines -- the kerb and its white edge -- so its words are centred
+          // between them, not across the edge line.
+          const inner = BUS_ZONE_WIDTH_M - BUS_ZONE_BORDER_M, [qx, qz] = corner(span / 2, near + inner / 2);
           plan.claim({ kind: "zone", id: `zone:${zones}`, group: `zone:${zones}`, fixed: true, rank: 4,
-            x: zoneAt[0], z: zoneAt[1], ux, uz, along: span / 2, across: BUS_ZONE_WIDTH_M / 2 });
+            x: qx, z: qz, ux, uz, along: span / 2, across: inner / 2 });
         }
         quad(fill, ax, az, bx, bz, cx, cz, dx, dz, BUS_ZONE_Y);
         // The white edge: along the traffic side and across each end (the kerb side is the kerb).
@@ -1921,6 +1924,8 @@ async function renderStreetFurniture(furniture, transit = null, creatives = {}, 
   // Every pass that paints the road claims its paint here; it is laid, settled, at the end.
   const paintPlan = newPaintPlan();
   for (const arrow of paintedArrows) paintPlan.claim({ kind: "arrow", fixed: true, rank: 5, ...arrow });
+  // The bike lanes' bands, laid already: no word or box is laid in a bike lane.
+  for (const band of (typeof paintedBikeBands !== "undefined" ? paintedBikeBands : [])) paintPlan.claim({ kind: "bike", fixed: true, rank: 5, ...band });
   const osmApproach = expandApproachSigns((inferred.street_signs || [])
     .filter((s) => s.sign_kind === "stop" || s.sign_kind === "yield"))
     .filter((s) => {

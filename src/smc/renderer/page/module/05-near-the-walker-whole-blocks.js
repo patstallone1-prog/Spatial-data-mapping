@@ -1455,6 +1455,9 @@ function crossingPaintLegs(points) {
   // there is where the divider's nose was.
   if (points.overDivider?.[0]) legs[0][0] = 0;
   if (points.overDivider?.[1]) legs[legs.length - 1][1] = length;
+  // An end carried on to an island's kerb (crossingReachesIslands) is painted to the kerb.
+  if (points.onIsland?.[0]) legs[0][0] = 0;
+  if (points.onIsland?.[1]) legs[legs.length - 1][1] = length;
   const out = legs.filter(([t0, t1]) => t1 - t0 >= CROSSING_LEG_MIN_M)
     .map(([t0, t1]) => Object.assign([lonLatFromXZ(ax + dx * t0, az + dz * t0), lonLatFromXZ(ax + dx * t1, az + dz * t1)], { along: [t0, t1] }));
   return out.length ? out : [points];

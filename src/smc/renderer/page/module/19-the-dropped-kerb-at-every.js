@@ -595,7 +595,53 @@ function nearestGroundOffRoad(x, z, reach) {
   return null;
 }
 
+//: A stop's flag stands on a pavement or on a kerbed island beside the stop, never in the road.
+//: "Off the carriageway" was not enough: at Fillmore & Chestnut the gap between the street's two
+//: halves is not carriageway, and the Muni flag's pole stood there, in the asphalt beside the
+//: bus island (2026-11-26). Raised pavement or a surveyed island, clear of the crossings.
+const STOP_FLAG_GROUND_REACH_M = 10;
+function onStopFlagGround(x, z) {
+  if (insideCarriageway(x, z, 0.05) || insideJunctionBox(x, z) || buildingAt(x, z)) return false;
+  if (typeof onCrossingGround === "function" && onCrossingGround(x, z)) return false;
+  // On an island, a hand in from its kerb all round.
+  if (typeof surveyedIslandAt === "function" && surveyedIslandAt(x, z)) {
+    return [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]].every(([dx, dz]) => surveyedIslandAt(x + dx, z + dz));
+  }
+  const top = pavementTopAt(x, z);
+  return top !== undefined && top > ROAD_TOP_M + 0.04;
+}
+//: The nearest stop-flag ground to (x, z), within reach, as an anchor; or null.
+function stopFlagGroundNear(x, z, reach = STOP_FLAG_GROUND_REACH_M) {
+  const at = (px, pz) => {
+    const top = pavementTopAt(px, pz);
+    return { x: px, z: pz, y: (top === undefined ? ROAD_TOP_M + KERB_FALLBACK : top) + groundLiftAt(px, pz) };
+  };
+  if (onStopFlagGround(x, z)) return at(x, z);
+  for (let r = 0.3; r <= reach + 1e-6; r += 0.3) {
+    const n = Math.max(12, Math.round(r * 8));
+    for (let k = 0; k < n; k += 1) {
+      const a = (k / n) * Math.PI * 2;
+      const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+      if (onStopFlagGround(px, pz)) return at(px, pz);
+    }
+  }
+  return null;
+}
+//: A stop flag's anchor: the sign's own, moved on to stop-flag ground if it is not on it, or
+//: null (the flag is not drawn) where there is none within reach.
+function stopFlagAnchor(item) {
+  const a = furnitureAnchor(item);
+  if (!a) return null;
+  const spot = stopFlagGroundNear(a.x, a.z);
+  if (!spot) { stopFlagGroundStats.dropped += 1; return null; }
+  if (spot.x !== a.x || spot.z !== a.z) stopFlagGroundStats.moved += 1;
+  return spot;
+}
+var stopFlagGroundStats = { moved: 0, dropped: 0 };
+window.kerbsideStopFlagGround = () => ({ ...stopFlagGroundStats });
+
 function furnitureAnchor(item, reach = FURNITURE_SNAP_REACH_M) {
+  if (item && item.fixedAnchor) return item.fixedAnchor;
   if (!item || !item.p || item.p.length < 2) return null;
   let [x, y] = xy(item.p[0], item.p[1]);
   let z = -y;
@@ -1509,8 +1555,9 @@ function addTransitStops(transit, creatives = {}) {
   if (typeof addStopFlags === "function") {
     const at = [];
     for (const item of poles) {
-      const a = furnitureAnchor(item);
+      const a = stopFlagAnchor(item);
       if (!a) continue;
+      item.fixedAnchor = a;
       if (stopFlagNear(a.x, a.z) || at.some((b) => Math.hypot(b.x - a.x, b.z - a.z) < 4)) {
         transitStats.sharedFlag = (transitStats.sharedFlag || 0) + 1;
         continue;

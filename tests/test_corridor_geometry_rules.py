@@ -2520,7 +2520,7 @@ function isRoadTunnel(way) { return way.tunnel_kind === "road"; }
 """
 
 LANE_FUNCTIONS = ("onewaySign", "laneCountForWay", "nominalRoadWidth", "renderedRoadWidth", "kerbDeltaAt", "halfWidthAt",
-                  "crossSectionRowAt", "fitLaneBands", "crossSectionBands", "crossSectionBandsNearMiddle",
+                  "crossSectionRowAt", "parkingSidesAt", "fitLaneBands", "crossSectionBands", "crossSectionBandsNearMiddle",
                   "crossSectionMarkKind", "travelSpanAt",
                   "travelSpan", "laneOffsets", "laneMarkingProfile", "laneMarkingPaints",
                   "bikeLaneOffset")
@@ -3591,3 +3591,32 @@ def test_the_page_draws_no_loader_of_its_own():
     assert "Entering the world" in shell and "const drawBar = () =>" in shell
     assert "fill.style.width" not in shell
     assert js
+
+
+def test_the_census_parks_a_block_and_the_lanes_are_rebuilt_from_its_edge() -> None:
+    """SFMTA's parking census says which blocks of a way are parked (docs/75). On a parked block
+    the kerb travel lanes give way to parking lanes and the lanes left are rebuilt between them;
+    off the block the way's own sides hold. A one-sided census block takes the side the map or
+    the meters already park rather than adding a second."""
+    way = {"kind": "street", "name": "Test Street", "road_m": 14.0, "road_source": "curb_geometry", "lanes": 4,
+           "xs": [[a, 7.0, -7.0, "M", "r", [["t", 3.5, "M", 0.8, -1], ["t", 3.5, "M", 0.8, -1],
+                                            ["t", 3.5, "M", 0.8, 1], ["t", 3.5, "M", 0.8, 1]]] for a in (10, 50, 150)],
+           "_parkingBlocks": [{"from": 0, "to": 100, "sides": [1, -1], "sure": 0.77, "cnn": "1"}]}
+    one_sided = dict(way, parking_sides=[-1], _parkingOwn=[-1],
+                     _parkingBlocks=[{"from": 0, "to": 100, "sides": [1], "sure": 0.55, "cnn": "2"}])
+    result = _run_lanes(f"""
+    const way = {json.dumps(way)}, one = {json.dumps(one_sided)};
+    const kinds = (w, a) => (crossSectionBands(w, a, 7.0) || []).map((b) => b.kind);
+    console.log(JSON.stringify({{
+      on: kinds(way, 50), off: kinds(way, 150), sidesOn: parkingSidesAt(way, 50), sidesOff: parkingSidesAt(way, 150),
+      span: travelSpanAt(way, 50, 7.0), oneSides: parkingSidesAt(one, 50),
+    }}));
+    """)
+    assert result["on"] == ["parking", "travel", "travel", "parking"], result["on"]
+    assert result["off"] == ["travel"] * 4
+    assert result["sidesOn"] == [1, -1] and result["sidesOff"] == []
+    # The travel lanes run from the parked cars' edge: 14 m less two 2.4 m lanes (the test's own
+    # constant), shared by the two left.
+    assert abs(result["span"][0] - (7.0 - 2.4)) < 1e-9 and abs(result["span"][1] + (7.0 - 2.4)) < 1e-9
+    assert result["oneSides"] == [-1]
+

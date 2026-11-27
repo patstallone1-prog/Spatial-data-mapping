@@ -605,3 +605,44 @@ function setAppMode(mode) {
     if (new URLSearchParams(location.search).get("city") !== "0") { livingCityWanted = true; WORLD_READY.then(() => setTimeout(start, 1500)); }
   }
 }
+
+// ---- How sure the Marina's junctions and islands are (docs/74, docs/marina-confidence.json) ----
+//
+// Every Marina intersection and kerb island has a confidence that it is drawn as it stands, and
+// one for the ground within 25 m of it, from the city's records, the survey, the aerial
+// photographs, the lidar and OpenStreetMap agreeing (smc.facts.marina_confidence). Read on
+// demand: kerbsideConfidence() resolves to the file; kerbsideConfidenceOverlay(true) rings each
+// place on the ground, its own score inside (green high, amber medium, red low) and its
+// surroundings' outside.
+let marinaConfidence = null;
+let marinaConfidenceOverlay = null;
+function loadMarinaConfidence() {
+  marinaConfidence ||= fetch(sharedAsset("marina-confidence.json"), { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  return marinaConfidence;
+}
+window.kerbsideConfidence = () => loadMarinaConfidence();
+const CONFIDENCE_COLOURS = { high: 0x2fbf5a, medium: 0xf0b429, low: 0xe5484d };
+window.kerbsideConfidenceOverlay = async (on = true) => {
+  if (marinaConfidenceOverlay) { scene.remove(marinaConfidenceOverlay); marinaConfidenceOverlay = null; }
+  if (!on) return 0;
+  const data = await loadMarinaConfidence();
+  if (!data) return 0;
+  const group = new THREE.Group();
+  group.name = "confidence-overlay";
+  const ring = (inner, outer, colour) => new THREE.Mesh(new THREE.RingGeometry(inner, outer, 40).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.85, depthTest: false }));
+  const place = (item, size) => {
+    const [x, y] = xy(item.lon, item.lat), z = -y;
+    const top = pavementTopAt(x, z);
+    const ground = (top === undefined ? ROAD_TOP_M : top) + groundLiftAt(x, z) + 0.25;
+    const own = ring(size * 0.55, size, CONFIDENCE_COLOURS[item.band] || 0xffffff);
+    const area = ring(size * 1.15, size * 1.45, CONFIDENCE_COLOURS[item.area_band] || 0xffffff);
+    for (const m of [own, area]) { m.position.set(x, ground, z); m.renderOrder = 999; group.add(m); }
+  };
+  for (const j of data.intersections || []) place(j, 3.0);
+  for (const i of data.islands || []) place(i, 1.6);
+  scene.add(group);
+  marinaConfidenceOverlay = group;
+  return group.children.length / 2;
+};

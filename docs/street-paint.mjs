@@ -107,6 +107,7 @@ export const PAINT_KINDS = {
   arrow: { solid: true },   // a turn arrow in a lane
   box: { solid: true },     // a white bus box from an agency's stop
   zone: { solid: true },    // a red bus zone from the city's curb policies
+  bike: { solid: true },    // a bike lane's band, between its two lines
   bar: { solid: false },    // a stop line across the arriving lanes
 };
 //: Paint this close (m) to other paint it may not share asphalt with is taken to be on it.

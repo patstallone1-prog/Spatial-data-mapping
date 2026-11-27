@@ -494,6 +494,17 @@ function parkingStripWidth(ring) {
   }
   return per > 0 ? Math.abs(area) / per : Infinity;   // (twice the area, |sum| / 2 * 2, over the perimeter)
 }
+//: Whether a stall (its four corners and centre, x/z) stands on a crosswalk or in a junction's
+//: box, sampled along both its stripes: paint is never laid over other paint.
+function stallOverCrossingOrJunction(corners, centre) {
+  const hit = (x, z) => (typeof insideJunctionBox === "function" && insideJunctionBox(x, z))
+    || (typeof onMappedCrossing === "function" && onMappedCrossing(x, z, 0.3));
+  if (hit(centre[0], centre[1])) return true;
+  for (const [a, b] of [[corners[0], corners[3]], [corners[1], corners[2]]]) {
+    for (let t = 0; t <= 1.0001; t += 0.25) if (hit(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)) return true;
+  }
+  return false;
+}
 function angledStripStallsOnRing(ring, inside, usable) {
   const width = parkingStripWidth(ring);
   if (!(width <= PARKING_STRIP_MAX_M) || width < PARKING_ANGLE_MIN_DEPTH_M * 0.75) return null;
@@ -566,6 +577,9 @@ function angledStripStalls(layout, inside, usable, opts = {}) {
     if (![headIn(0), headIn(1), centre].every(([x, z]) => open(x, z) || (inside(x, z) === false && !surveyedOn(x, z) && insideCarriageway(x, z, -0.5)))) continue;
     if (![headIn(0), headIn(1)].every(([x, z]) => open(x, z))) continue;
     if (corners.some(([x, z]) => surveyedOn(x, z))) continue;
+    // Never over a crosswalk or into the junction: a strip mapped to the cross street's kerb
+    // ran its stall lines through the crossing and across the junction (Fillmore at Bay).
+    if (typeof stallOverCrossingOrJunction === "function" && stallOverCrossingOrJunction(corners, centre)) continue;
     if (usable && !usable([centre])) continue;
     stripes.push([...corners[0], ...corners[3]], [...corners[1], ...corners[2]]);
     const [cx, cz] = at(u + along / 2 + shift / 2, (vNear + vFar) / 2);
@@ -1314,6 +1328,49 @@ function crossingOverDividers(points) {
   }
   return out;
 }
+//: A crossing's span (lon/lat) with each end that stops short of an island the survey has --
+//: ahead of it along the crossing, within CROSSING_TO_ISLAND_M -- carried on to the island's
+//: kerb. The span is clipped to the carriageway (crossingRoadSpanPoints), and the asphalt
+//: between a carriageway and an island is not carriageway: at Fillmore & Chestnut both
+//: crossings that meet the bus island stopped 1.3 m and 4.5 m short of it, and their yellow pads
+//: stood in the road (2026-11-26). An end just inside an island (within CROSSING_INTO_ISLAND_M)
+//: is brought back to its kerb. ``out.onIsland``: which ends now land on an island's kerb.
+const CROSSING_TO_ISLAND_M = 6.0, CROSSING_INTO_ISLAND_M = 3.0;
+function crossingReachesIslands(points, id = null) {
+  if (!points || points.length < 2 || typeof surveyedIslandAt !== "function") return points;
+  const out = points.slice();
+  out.overDivider = points.overDivider;
+  out.onIsland = [false, false];
+  for (const [i, j, e] of [[out.length - 1, out.length - 2, 1], [0, 1, 0]]) {
+    const [x, y] = xy(out[i][0], out[i][1]), [px, py] = xy(out[j][0], out[j][1]);
+    const len = Math.hypot(x - px, y - py);
+    if (!(len > 0.5)) continue;
+    const dx = (x - px) / len, dz = -(y - py) / len, z = -y;
+    const on = (t) => surveyedIslandAt(x + dx * t, z + dz * t);
+    let kerbAt = null;
+    if (on(0)) {
+      // Inside: back to where the line enters the island, no further than the crossing's middle.
+      let t = 0;
+      const back = Math.min(CROSSING_INTO_ISLAND_M, len / 2);
+      while (t - 0.1 >= -back && on(t - 0.1)) t -= 0.1;
+      if (t > -back + 1e-6) kerbAt = t;
+    } else {
+      for (let t = 0.1; t <= CROSSING_TO_ISLAND_M + 1e-6; t += 0.1) {
+        if (on(t)) { kerbAt = t; break; }
+        // (Never on across a building or another carriageway's lanes to an island beyond.)
+        if (buildingAt(x + dx * t, z + dz * t)) break;
+      }
+    }
+    if (kerbAt === null) continue;
+    if (Math.abs(kerbAt) > 0.05) out[i] = lonLatFromXZ(x + dx * kerbAt, z + dz * kerbAt);
+    out.onIsland[e] = true;
+    crossingIslandStats.reached += 1;
+    if (crossingIslandStats.ends.length < 400) crossingIslandStats.ends.push({ id, end: e, from: [+x.toFixed(2), +z.toFixed(2)], by: +kerbAt.toFixed(2) });
+  }
+  return out;
+}
+var crossingIslandStats = { reached: 0, ends: [] };
+window.kerbsideCrossingIslands = () => ({ ...crossingIslandStats, ends: crossingIslandStats.ends.slice() });
 //: Whether a divider's strip is cut away at (x, z): in a junction's box, or within
 //: DIVIDER_NOSE_CLEAR_M of a crosswalk's paint across it.
 function dividerNoseCut(x, z) {
