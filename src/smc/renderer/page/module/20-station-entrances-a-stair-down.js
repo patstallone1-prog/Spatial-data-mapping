@@ -567,7 +567,7 @@ function approachLegs(x, z, reach = 6) {
           const oneway = onewaySign(v.way);
           const inbound = oneway === 0 || oneway === -step;
           legs.push({ way: v.way, x: v.x, z: v.z, ux, uz, bearing, inbound,
-            half: renderedRoadWidth(v.way) / 2 });
+            half: renderedRoadWidth(v.way) / 2, pts: v.pts, i: v.i, step });
         }
       }
     }
@@ -727,8 +727,16 @@ function noteLegendApproach(junction, leg, kind, city = false) {
   const noted = legendApproachKeys.get(key);
   if (noted) { if (city) noted.city = true; return; }
   const oneway = onewaySign(leg.way) !== 0;
+  // Where the junction is along the way, and which way the way runs from it, for the lanes the
+  // way's cross-sections have there (arrivingLaneBands).
+  let vertexAlong = null;
+  if (Array.isArray(leg.pts) && Number.isInteger(leg.i)) {
+    vertexAlong = 0;
+    for (let k = 1; k <= leg.i && k < leg.pts.length; k += 1) vertexAlong += Math.hypot(leg.pts[k][0] - leg.pts[k - 1][0], leg.pts[k][1] - leg.pts[k - 1][1]);
+  }
   const approach = { jx: junction.x, jz: junction.z, ux: leg.ux, uz: leg.uz, half: leg.half,
-    oneway, lanes: arrivingLanes(leg.way, oneway), kind, city, key };
+    oneway, lanes: arrivingLanes(leg.way, oneway), kind, city, key,
+    way: leg.way, vertexAlong, step: leg.step || 0 };
   legendApproachKeys.set(key, approach);
   legendApproaches.push(approach);
 }
@@ -840,6 +848,28 @@ function unmarkedStopLineAlong(a, at, side, onRoad) {
 }
 //: The paint for every noted approach, claimed on the plan (layStreetPaint lays what is
 //: settled). Returns counts of what was claimed and what could not be placed.
+//: The arriving lanes of an approach ``dist`` metres out from its junction, from its way's
+//: cross-section there: [{mid, width}] across the approach (its side coordinate: positive to the
+//: arriving drivers' right, from the way's centre line), kerb side last. Null where the way has
+//: no section there, so the caller falls back on dividing the arriving half evenly. The lanes
+//: are the section's travel and turn bands, after the parking (fitLaneBands): a STOP is in the
+//: middle of the lane the driver is in, never across a parking lane or a bike lane.
+function arrivingLaneBands(a, dist) {
+  if (!a.way || a.vertexAlong === null || !a.step || typeof crossSectionBands !== "function") return null;
+  const along = a.vertexAlong + a.step * dist;
+  const half = typeof halfWidthAt === "function" ? halfWidthAt(a.way, along) : a.half;
+  const bands = crossSectionBands(a.way, along, half);
+  if (!bands) return null;
+  // The way's offsets are left of the way as it runs; the approach's side is left of the leg's
+  // outward direction, which is the way's direction where it runs out of the junction (step +1).
+  const arriving = -a.step;   // the arriving traffic's direction along the way
+  const lanes = bands.filter((b) => (b.kind === "travel" || b.kind === "turn")
+    && (a.oneway || (b.dir ? b.dir === arriving : (b.left + b.right) / 2 * a.step > 0)))
+    .map((b) => ({ mid: a.step * (b.left + b.right) / 2, width: Math.abs(b.left - b.right) }))
+    .filter((l) => l.width >= 2.2);
+  if (!lanes.length) return null;
+  return lanes.sort((p, q) => p.mid - q.mid);
+}
 function paintRoadLegends(plan) {
   const counts = { approaches: legendApproaches.length, bars: 0, words: 0, noCrosswalk: 0, offRoad: 0,
     cityApproaches: 0, cityUnmarked: 0, narrowed: 0 };
@@ -899,12 +929,20 @@ function paintRoadLegends(plan) {
     // STOP in each travel lane, its foot toward the driver. The lanes are counted from the
     // way's tags (a two-way street without them has one each way) and run out from the
     // centreline; what is left at the kerb is the parking lane.
-    const lanes = Math.max(1, Math.min(4, a.lanes || 1));
-    const lane = Math.min(ROAD_LEGEND.laneMax, (o1 - o0) / lanes);
-    const first = a.oneway ? (o0 + o1) / 2 - (lane * lanes) / 2 : o0;
+    // Centred in each lane the way's cross-section has arriving there (arrivingLaneBands), the
+    // parking lane and any bike lane left out; where it has none, the arriving half shared out.
     const w0 = b1 + ROAD_LEGEND.wordGap, w1 = w0 + ROAD_LEGEND.wordLength;
-    for (let i = 0; i < lanes; i += 1) {
-      const mid = first + lane * (i + 0.5), half = Math.min(ROAD_LEGEND.wordWidth, lane - 0.5) / 2;
+    let cells = arrivingLaneBands(a, (w0 + w1) / 2);
+    if (cells) cells = cells.filter((c) => c.mid - c.width / 2 > o0 - 0.6 && c.mid + c.width / 2 < o1 + 0.6).slice(0, 4);
+    if (cells && cells.length) counts.inBands = (counts.inBands || 0) + 1;
+    else {
+      const lanes = Math.max(1, Math.min(4, a.lanes || 1));
+      const lane = Math.min(ROAD_LEGEND.laneMax, (o1 - o0) / lanes);
+      const first = a.oneway ? (o0 + o1) / 2 - (lane * lanes) / 2 : o0;
+      cells = Array.from({ length: lanes }, (_, i) => ({ mid: first + lane * (i + 0.5), width: lane }));
+    }
+    for (let i = 0; i < cells.length; i += 1) {
+      const mid = cells[i].mid, half = Math.min(ROAD_LEGEND.wordWidth, cells[i].width - 0.5) / 2;
       if (!onRoad([at(w1, mid - half), at(w1, mid + half), at(w0, mid + half), at(w0, mid - half)])) { counts.offRoad += 1; continue; }
       const [wx, wz] = at((w0 + w1) / 2, mid);
       // The word reads in the direction of travel (against the leg's outward direction), and
@@ -1258,6 +1296,68 @@ function plateQuad(sink, slot, cx, cz, yaw, bottom, top, mirrored = false) {
   sink.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
+//: One sign to a message, a street and a way of facing. The inventory, OpenStreetMap and the
+//: approaches inferred at each junction each put plates up, and the city records a replaced
+//: sign beside the old one: two SPEED LIMIT plates, 25 and 20, faced southbound traffic on
+//: Fillmore a pole apart (2026-11-26). Two plates with the same legend for the same street,
+//: facing the same way (within SIGN_SAME_FACING_DEG), are one within SIGN_SAME_M; speed limits
+//: for the same street and way within SPEED_LIMIT_SAME_M are one whatever their numbers, the
+//: lower kept. The street is the carriageway the plate faces, SIGN_FACES_ROAD_M in front of it.
+//: A pole left holding nothing is not put up.
+const SIGN_SAME_M = 15, SPEED_LIMIT_SAME_M = 60, SIGN_SAME_FACING_DEG = 35, SIGN_FACES_ROAD_M = 2.5;
+const signDuplicateStats = { plates: 0, speedLimits: 0, poles: 0 };
+function plateStreetKey(x, z, yaw) {
+  const px = x + Math.sin(yaw) * SIGN_FACES_ROAD_M, pz = z + Math.cos(yaw) * SIGN_FACES_ROAD_M;
+  const hit = typeof carriagewaySourceAt === "function" ? carriagewaySourceAt(px, pz, 1.0) : null;
+  const way = hit && hit.source;
+  if (!way) return null;
+  return String(way.name || way.osm_id || "").toUpperCase() || null;
+}
+function speedLimitValue(label) {
+  const m = /SPEED LIMIT\D*(\d{1,2})/i.exec(String(label || ""));
+  return m ? Number(m[1]) : null;
+}
+function dropDuplicatePlates(posts) {
+  const seen = [];
+  const cosSame = Math.cos(SIGN_SAME_FACING_DEG * Math.PI / 180);
+  for (const post of posts) {
+    if (post.kind !== "sign") continue;
+    for (const row of post.rows) {
+      const style = plateStyleFor(row.item);
+      if (style === "street_name") continue;
+      const yaw = furnitureBearing(row.item, row.index, post.anchor);
+      const street = plateStreetKey(post.anchor.x, post.anchor.z, yaw);
+      if (!street) continue;
+      const speed = style === "speed_limit" ? speedLimitValue(row.item.label) : null;
+      seen.push({ post, row, style, legend: plateLegend(row.item.label), yaw, street, speed,
+        x: post.anchor.x, z: post.anchor.z });
+    }
+  }
+  // Lower speed limits first, so the lower is the one kept; otherwise in the order put up.
+  const order = seen.map((p, i) => [p, i]).sort((a, b) => ((a[0].speed ?? 0) - (b[0].speed ?? 0)) || (a[1] - b[1]));
+  const kept = [], drop = new Set();
+  for (const [p] of order) {
+    const twin = kept.find((q) => q.street === p.street
+      && Math.cos(q.yaw - p.yaw) > cosSame
+      && (p.speed !== null && q.speed !== null
+        ? Math.hypot(q.x - p.x, q.z - p.z) < SPEED_LIMIT_SAME_M
+        : q.style === p.style && q.legend === p.legend && Math.hypot(q.x - p.x, q.z - p.z) < SIGN_SAME_M));
+    if (twin) {
+      drop.add(p.row);
+      if (p.speed !== null) signDuplicateStats.speedLimits += 1; else signDuplicateStats.plates += 1;
+    } else kept.push(p);
+  }
+  if (!drop.size) return;
+  for (let k = posts.length - 1; k >= 0; k -= 1) {
+    const post = posts[k];
+    if (post.kind !== "sign") continue;
+    const before = post.rows.length;
+    post.rows = post.rows.filter((row) => !drop.has(row));
+    if (before && !post.rows.length && !post.signal) { posts.splice(k, 1); signDuplicateStats.poles += 1; }
+  }
+}
+window.kerbsideSignDuplicates = () => ({ ...signDuplicateStats });
+
 function addOfficialSignPlates(records, signalHeads = []) {
   // Every sign on its post, the plates stacked where several share one.
   signPlateGrid = new Map();
@@ -1327,6 +1427,23 @@ function addOfficialSignPlates(records, signalHeads = []) {
     posts.push(post);
     file(post);
   }
+  // A pole with the Muni flag on it stands on a pavement or the stop's island, never in the road
+  // (onStopFlagGround, module 19): a sign post is moved there with all it holds; on a signal's
+  // pole in the road, the flag goes on a pole of its own there.
+  if (typeof stopFlagGroundNear === "function") {
+    for (const post of posts.slice()) {
+      const flags = post.rows.filter((row) => plateStyleFor(row.item) === "muni_flag");
+      if (!flags.length || onStopFlagGround(post.anchor.x, post.anchor.z)) continue;
+      const spot = stopFlagGroundNear(post.anchor.x, post.anchor.z);
+      if (!post.signal && spot) { post.anchor = spot; stopFlagGroundStats.moved += 1; continue; }
+      post.rows = post.rows.filter((row) => !flags.includes(row));
+      if (!post.rows.length && !post.signal) posts.splice(posts.indexOf(post), 1);
+      if (!spot) { stopFlagGroundStats.dropped += flags.length; continue; }
+      posts.push({ anchor: spot, raw: { x: spot.x, z: spot.z }, rows: flags, kind: "sign" });
+      stopFlagGroundStats.moved += 1;
+    }
+  }
+  dropDuplicatePlates(posts);
   // The backs read the same atlas for their outline and are painted over it in grey, so
   // they are sunk by atlas as the faces are.
   const backSinks = new Map();

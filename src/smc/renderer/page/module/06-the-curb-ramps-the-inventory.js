@@ -301,6 +301,8 @@ function crossingOverlaps(pose, width) {
 }
 //: Shortens ``points`` (lon/lat, changed in place) from whichever end lies in a drawn crossing's
 //: paint until it no longer overlaps one; false when that would leave it too short to draw.
+//: The most of another crossing's paint an island-landing end may share at the island's nose (m²).
+const CROSSING_ISLAND_CORNER_M2 = 3.0;
 function trimCrossingClear(points, width) {
   let pose = crossingDrawPose(points);
   if (!pose) return false;
@@ -311,6 +313,15 @@ function trimCrossingClear(points, width) {
     const other = hits[0], ux = Math.cos(pose.bearing), uz = Math.sin(pose.bearing);
     const fromStart = (other.x - pose.x) * ux + (other.z - pose.z) * uz < 0;
     const end = fromStart ? 0 : points.length - 1, toward = fromStart ? points.length - 1 : 0;
+    // An end carried on to an island's kerb (crossingReachesIslands) stays on the island: where
+    // it only clips the corner of the crossing on the island's other side -- the two land on the
+    // island's nose side by side -- it is not cut back off the island into the road (Fillmore &
+    // Chestnut's slip lane, 2026-11-26: cut back 1.7 m, it stopped in the lane).
+    if (points.onIsland?.[fromStart ? 0 : 1]
+        && crossingOverlapArea(crossingPaintRect(pose, width), crossingPaintRect(other, other.width)) <= CROSSING_ISLAND_CORNER_M2) {
+      crossingTrimStats.islandKept = (crossingTrimStats.islandKept || 0) + 1;
+      return true;
+    }
     let cut = 0;
     const whole = pose.length, keep = points[end].slice();
     for (let t = 0.25; whole - t >= CROSSING_MIN_AFTER_TRIM_M; t += 0.25) {
@@ -503,8 +514,9 @@ function arrowKind(token) {
 }
 
 //: Where each lane's centre sits, as an offset from the street's own centreline.
-//: The parked cars' lane along a kerb, where the city's parking policies say one is.
-const PARKING_LANE_M = 2.4;
+//: The parked cars' lane along a kerb, where the city's parking policies say one is: SFMTA's
+//: standard parallel parking lane, 8 ft (2026-11-26; it was 2.4 m).
+const PARKING_LANE_M = 2.44;
 
 // ---- the cross-sections -----------------------------------------------------------------
 //
@@ -560,6 +572,127 @@ function crossSectionRowAt(way, along, half = null) {
 
 //: The bands at a station closed to the page's drawn width: [{kind, dir, left, right}] from
 //: the left kerb (+half) inward, or null where the station is unresolved or cannot close.
+// ---- the parking census: each block's parked sides -------------------------------------------
+//
+// OpenStreetMap tags the parking on fewer than half the streets, and the meters only stand on the
+// metered blocks. SFMTA's On-Street Parking Census (DataSF 9ivs-nf5y; tools/build_parking_census.py)
+// counts the spaces on every block; the build says from the count and the kerb free of driveways
+// which sides are parked. Each census block is laid on the street way it runs along (same name,
+// parallel, its middle within reach), as a range of the way's length with the sides as the way
+// runs. A block the census parks has a parking lane at those kerbs; the travel lanes are what is
+// left (fitLaneBands). The census adds parking only: a block it counts none on keeps what the map
+// and the meters say, since the census's zero is often a block it did not survey.
+const PARKING_CENSUS = { reach_m: 12, parallel_cos: 0.94, end_trim_m: 2 };
+let parkingCensusRecord = null;
+function parkingCensusOnce() {
+  if (parkingCensusRecord) return parkingCensusRecord;
+  const url = typeof asset === "function" ? asset("sf-corridor-parking-census.json") : "sf-corridor-parking-census.json";
+  return parkingCensusRecord = fetch(url, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+}
+function censusStreetKey(name) {
+  return String(name || "").toUpperCase().replace(/\b(STREET|ST|AVENUE|AVE|BOULEVARD|BLVD|WAY|PLACE|PL|TERRACE|TER|COURT|CT|DRIVE|DR|ROAD|RD|LANE|LN|ALLEY|AL)\b/g, "")
+    .replace(/[^A-Z0-9]/g, "");
+}
+//: The census's blocks on the ways: way._parkingBlocks = [{from, to, sides, sure, cnn}], from and
+//: to in metres along the way, sides +1 left of the way as it runs and -1 right.
+function applyParkingCensus(streets, census) {
+  if (census?.schema !== "kerbside.parking_census/1" || !Array.isArray(census.segments)) return 0;
+  const byName = new Map();
+  for (const way of streets) {
+    const key = censusStreetKey(way.name);
+    if (!key) continue;
+    const pts = way.points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    const cum = [0];
+    for (let i = 1; i < pts.length; i += 1) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    let list = byName.get(key);
+    if (!list) byName.set(key, list = []);
+    list.push({ way, pts, cum });
+  }
+  // Where a point projects on to a way: [distance, metres along, direction of the segment, x, z].
+  const project = (entry, x, z) => {
+    let best = null;
+    for (let i = 1; i < entry.pts.length; i += 1) {
+      const [ax, az] = entry.pts[i - 1], [bx, bz] = entry.pts[i], ux = bx - ax, uz = bz - az, L2 = ux * ux + uz * uz;
+      if (!(L2 > 0)) continue;
+      const t = Math.max(0, Math.min(1, ((x - ax) * ux + (z - az) * uz) / L2));
+      const d = Math.hypot(x - ax - ux * t, z - az - uz * t);
+      if (!best || d < best[0]) best = [d, entry.cum[i - 1] + Math.sqrt(L2) * t, ux / Math.sqrt(L2), uz / Math.sqrt(L2), ax + ux * t, az + uz * t];
+    }
+    return best;
+  };
+  let matched = 0;
+  for (const seg of census.segments) {
+    parkingLaneStats.census_blocks += 1;
+    const list = byName.get(censusStreetKey(seg.street));
+    if (!list || !Array.isArray(seg.p) || seg.p.length < 2) continue;
+    const pts = seg.p.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+    const a = pts[0], b = pts[pts.length - 1], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (!(len > 4)) continue;
+    const dx = (b[0] - a[0]) / len, dz = (b[1] - a[1]) / len;
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    // A divided street's halves are both named; each half takes the census's sides on its own
+    // side of the block's line (its kerb), so both are matched, not only the nearest.
+    for (const entry of list) {
+      const m = project(entry, mid[0], mid[1]);
+      if (!m || m[0] > PARKING_CENSUS.reach_m) continue;
+      const cos = m[2] * dx + m[3] * dz;
+      if (Math.abs(cos) < PARKING_CENSUS.parallel_cos) continue;
+      const pa = project(entry, a[0], a[1]), pb = project(entry, b[0], b[1]);
+      let from = Math.min(pa[1], pb[1]) + PARKING_CENSUS.end_trim_m, to = Math.max(pa[1], pb[1]) - PARKING_CENSUS.end_trim_m;
+      if (!(to - from > 4)) continue;
+      // The census's sides are as its line runs; flip them where the way runs the other way.
+      let sides = (seg.sides || []).map((s) => (cos > 0 ? s : -s));
+      // A half of a divided street, the census's line down the middle of the two: the half has
+      // the census's kerb on its own side of that line, at its outer kerb (the side of the way
+      // away from the line); its median side is not the census's.
+      const oneway = typeof onewaySign === "function" ? onewaySign(entry.way) !== 0 : Boolean(entry.way.oneway);
+      if (oneway && m[0] > 3.5) {
+        const q = [m[4], m[5]], vx = q[0] - mid[0], vz = q[1] - mid[1];
+        const censusSide = dx * vz - dz * vx < 0 ? 1 : -1;      // the side of the census line the half is on
+        const outer = m[2] * vz - m[3] * vx < 0 ? 1 : -1;       // the way's side facing away from the line
+        sides = (seg.sides || []).includes(censusSide) ? [outer] : [];
+      }
+      (entry.way._parkingBlocks ||= []).push({ from, to, sides, sure: seg.sure, cnn: seg.cnn });
+      parkingLaneStats.census_block_sides += sides.length;
+      matched += 1;
+    }
+  }
+  parkingLaneStats.census_matched = matched;
+  for (const list of byName.values()) for (const { way, cum } of list) {
+    if (!way._parkingBlocks) continue;
+    way._parkingBlocks.sort((p, q) => p.from - q.from);
+    way._parkingLength = cum[cum.length - 1];
+  }
+  return matched;
+}
+//: The sides the census parks over at least half the way's length.
+function censusMajoritySides(way) {
+  const blocks = way && way._parkingBlocks, total = way && way._parkingLength;
+  if (!blocks || !(total > 0)) return [];
+  const out = [];
+  const own = Array.isArray(way.parking_sides) ? way.parking_sides : [];
+  for (const side of [1, -1]) {
+    const covered = blocks.reduce((sum, b) => sum + (b.sides.includes(side) && (b.sides.length > 1 || !own.length) ? b.to - b.from : 0), 0);
+    if (covered >= total / 2) out.push(side);
+  }
+  return out;
+}
+//: The parked sides at a point along a way: the way's own (map tags and the meters), and the
+//: census block's there. Without an along, or off every block, the way's own.
+function parkingSidesAt(way, along = null) {
+  const blocks = way && way._parkingBlocks;
+  if (along === null || !Array.isArray(blocks)) return Array.isArray(way && way.parking_sides) ? way.parking_sides : [];
+  const own = Array.isArray(way._parkingOwn) ? way._parkingOwn : (Array.isArray(way.parking_sides) ? way.parking_sides : []);
+  const block = blocks.find((b) => along >= b.from && along <= b.to);
+  if (!block || !block.sides.length) return own;
+  // The census does not say which side a one-sided block is parked on (the build guesses it
+  // from the driveways): where the map or the meters already park a side, that is the one.
+  if (block.sides.length === 1 && own.length) return own;
+  const out = new Set(own);
+  for (const s of block.sides) out.add(s);
+  return out.size === own.length ? own : [...out].sort((p, q) => q - p);
+}
+
 // ---- the parking the city says is there, and the lanes that fit beside it ----------------------
 //
 // A street's lanes were shared out over whatever the map's tags left of its width: where the tags
@@ -573,12 +706,13 @@ function crossSectionRowAt(way, along, half = null) {
 // its parking meters along it has a parking lane, PARKING_STALL_M wide; and the lanes are those
 // that fit in what is left at LANE_FIT_MIN_M or more -- a two-way street loses them a pair at a
 // time, one each way, so it is not left with two lanes one way and one the other.
-const PARKING_STALL_M = 2.4;
+const PARKING_STALL_M = 2.44;
 const LANE_FIT_MIN_M = 2.9;
 //: A side has a parking lane when it has this many of the city's meters, and one at least to
 //: every so many metres of the street; a meter belongs to the street it stands within reach of.
 const PARKING_METERS = { least: 2, every_m: 45, reach_m: 14, cell_m: 30 };
-const parkingLaneStats = { meters: 0, placed: 0, sides_known: 0, sides_added: 0, ways_refitted: 0, ready: false };
+const parkingLaneStats = { meters: 0, placed: 0, sides_known: 0, sides_added: 0, ways_refitted: 0, ready: false,
+                           census_blocks: 0, census_matched: 0, census_block_sides: 0, census_sides_added: 0 };
 async function settleParkingLanes() {
   if (parkingLaneStats.ready || typeof streetFurnitureOnce !== "function") return parkingLaneStats;
   parkingLaneStats.ready = true;
@@ -624,6 +758,9 @@ async function settleParkingLanes() {
     if (!c) counts.set(best.way, c = [0, 0]);
     c[best.side > 0 ? 0 : 1] += 1;
   }
+  // The census's blocks (SFMTA's On-Street Parking Census, docs/75): which sides of each block
+  // are parked, laid on the ways they run along.
+  try { applyParkingCensus(streets, await parkingCensusOnce()); } catch (error) { console.warn("kerbside: the parking census was not applied", error); }
   for (const way of streets) {
     const tagged = Array.isArray(way.parking_sides) ? way.parking_sides : [];
     const known = new Set(tagged), c = counts.get(way) || [0, 0];
@@ -631,6 +768,19 @@ async function settleParkingLanes() {
       if (known.has(side) || n < PARKING_METERS.least || n < way._parkLen / PARKING_METERS.every_m) continue;
       known.add(side); parkingLaneStats.sides_added += 1;
       (way.parking_basis ||= {})[side] = `sfmta_parking_meters:${n}`;
+    }
+    // The map's and the meters' sides hold the whole way; the census's hold block by block
+    // (parkingSidesAt). A side the census parks over most of the way is the way's too, for the
+    // city's traffic, which reads one set of sides a way.
+    if (way._parkingBlocks) {
+      way._parkingOwn = [...known].sort((p, q) => q - p);
+      const own = way.parking_sides;
+      way.parking_sides = way._parkingOwn;
+      for (const side of censusMajoritySides(way)) if (!known.has(side)) {
+        known.add(side); parkingLaneStats.census_sides_added += 1;
+        (way.parking_basis ||= {})[side] = "sfmta_parking_census";
+      }
+      way.parking_sides = own;
     }
     delete way._parkLen;
     parkingLaneStats.sides_known += known.size;
@@ -645,6 +795,8 @@ async function settleParkingLanes() {
     }
   }
   window.kerbsideParkingLanes = () => ({ ...parkingLaneStats });
+  window.kerbsideParkingBlocks = (name) => (DATA.ways || []).filter((w) => w._parkingBlocks && (!name || censusStreetKey(w.name) === censusStreetKey(name)))
+    .map((w) => ({ id: w.osm_id ?? w.id, name: w.name, sides: w.parking_sides, lanes: w.lanes, lanes_fit: w.lanes_fit, blocks: w._parkingBlocks }));
   return parkingLaneStats;
 }
 //: A station's bands made to agree with the parking known at the kerbs and to fit the street:
@@ -652,9 +804,10 @@ async function settleParkingLanes() {
 //: against it; then lanes of traffic taken out until those left are LANE_FIT_MIN_M wide or
 //: there is one each way -- on a two-way street one from each direction at a time, the ones
 //: nearest the kerbs. Changes ``bands`` in place; returns it.
-function fitLaneBands(way, bands, half) {
+function fitLaneBands(way, bands, half, along = null) {
   const moving = (b) => b.kind === "travel" || b.kind === "turn";
-  const sides = Array.isArray(way && way.parking_sides) ? way.parking_sides : [];
+  const sides = typeof parkingSidesAt === "function" ? parkingSidesAt(way, along)
+    : (Array.isArray(way && way.parking_sides) ? way.parking_sides : []);
   const stall = () => ({ kind: "parking", width: PARKING_STALL_M, dir: 0, sub: "parallel", fitted: true });
   if (sides.includes(1) && moving(bands[0])) bands.unshift(stall());
   if (sides.includes(-1) && moving(bands[bands.length - 1])) bands.push(stall());
@@ -679,7 +832,7 @@ function crossSectionBands(way, along, half) {
   if (!row || row[4] === "u") return null;
   const bands = row[5].map((b) => ({ kind: CROSS_SECTION_KIND[b[0]] || b[0], width: b[1], dir: b[4] || 0, sub: b[5] || "" }));
   if (bands.some((b) => b.kind === "unresolved")) return null;
-  fitLaneBands(way, bands, half);
+  fitLaneBands(way, bands, half, along);
   const travel = bands.filter((b) => b.kind === "travel" || b.kind === "turn");
   if (!travel.length) return null;
   const fixed = bands.filter((b) => !(b.kind === "travel" || b.kind === "turn")).reduce((sum, b) => sum + b.width, 0);
@@ -837,7 +990,8 @@ function travelSpan(way, roadWidth) {
     const travel = bands.filter((b) => b.kind === "travel" || b.kind === "turn");
     return [travel[0].left, travel[travel.length - 1].right];
   }
-  const sides = Array.isArray(way && way.parking_sides) ? way.parking_sides : [];
+  const sides = typeof parkingSidesAt === "function" ? parkingSidesAt(way, null)
+    : (Array.isArray(way && way.parking_sides) ? way.parking_sides : []);
   const parkLeft = sides.includes(1) ? PARKING_LANE_M : 0;
   const parkRight = sides.includes(-1) ? PARKING_LANE_M : 0;
   // A street too narrow to park on both sides and still drive has the lanes it has.
@@ -1562,6 +1716,23 @@ function bikeLaneZones(lane, ownWay = null, stepped = null) {
   return runs.filter((run) => run.points.length >= 2);
 }
 
+//: The bike lanes' bands as laid, in pieces of up to 8 m, each the band between its two lines:
+//: claimed on the paint plan (module 21), so no STOP or box is laid in a bike lane.
+const paintedBikeBands = [];
+function notePaintedBikeBand(points) {
+  if (!Array.isArray(points) || points.length < 2) return;
+  const pts = points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  for (let i = 1; i < pts.length; i += 1) {
+    const [ax, az] = pts[i - 1], [bx, bz] = pts[i], len = Math.hypot(bx - ax, bz - az);
+    if (!(len > 0.5)) continue;
+    const n = Math.ceil(len / 8), ux = (bx - ax) / len, uz = (bz - az) / len;
+    for (let k = 0; k < n; k += 1) {
+      const t0 = (k / n) * len, t1 = ((k + 1) / n) * len, tm = (t0 + t1) / 2;
+      paintedBikeBands.push({ x: ax + ux * tm, z: az + uz * tm, ux, uz, along: (t1 - t0) / 2,
+        across: Math.max(0.2, BIKE_LANE_M / 2 - BIKE_EDGE_W_M) });
+    }
+  }
+}
 function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
   const sides = cyclewaySides(way);
   if (!sides.length || roadWidth < BIKE_LANE_M + 2.2) return;
@@ -1602,6 +1773,7 @@ function addBikeLaneMarkings(way, renderPoints, roadWidth, roadTop) {
       }
       // (Broken where a mapped crosswalk crosses it: the crosswalk is painted, not the lane.)
       for (const piece of splitAtMappedCrossings(run.points)) {
+        if (run.label !== "mixing" && typeof notePaintedBikeBand === "function") notePaintedBikeBand(piece);
         const fill = ribbon(piece, BIKE_LANE_M, 0xffffff, 1.0, roadTop + 0.010, 0.012, "bike");
         if (fill) addMerged("bike:fill", fill, "bike");
         // Both edges, every metre of the way, whether or not there is green under them: the lines

@@ -180,6 +180,7 @@ function medianSideSurveyed(renderPoints, side, inner) {
   return sampled > 0 && hits >= sampled / 3;
 }
 
+var walkSideStats = {};
 function walkSidesToDraw(way, renderPoints, inner) {
   // Both sides unless OpenStreetMap says otherwise and the ground agrees with it.
   const stated = way.walk_sides;
@@ -199,6 +200,10 @@ function walkSidesToDraw(way, renderPoints, inner) {
     // laid there, the "pavement" covered the roadway between the halves (Fillmore north of
     // Chestnut, its angled parking under 4 m of paving either side of the median).
     if (isDividedHalf(way) && typeof medianSideSurveyed === "function" && medianSideSurveyed(renderPoints, side, inner)) continue;
+    // Or any divided half whose other half is found beside it: its median side is the median
+    // (raised, parked along or planted), and the pavement laid there covered the gap -- a
+    // parking strip or a planted strip between the halves read as a paved divide.
+    if (way._twin === true && isDividedHalf(way)) { if (typeof walkSideStats !== "undefined") walkSideStats.medianSide = (walkSideStats.medianSide || 0) + 1; continue; }
     const kerb = offsetWay(renderPoints, side * (inner + 1.6));
     let sampled = 0;
     let covered = 0;
@@ -2366,6 +2371,8 @@ function addCrossingAsphaltBackstop(points, crossingWidth, roadTop) {
   return true;
 }
 
+window.kerbsideTactilePads = (x, z, r = 30) => tactileWarningPads
+  .filter((c) => Math.hypot(c[0][0] - x, c[0][1] - z) < r).map((c) => c.map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]));
 function addTactileWarningPad(endpoint, intoCrossing, crossingWidth, y) {
   const pad = tactilePadCorners(endpoint, intoCrossing, crossingWidth);
   if (!pad) return false;

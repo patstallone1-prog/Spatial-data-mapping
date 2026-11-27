@@ -660,7 +660,7 @@ for (const way of DRAW_ORDER) {
     if (bore) groups.streets.add(bore);
     continue;
   }
- const surfacePoints = isCrossing ? crossingOverDividers(crossingRectanglePoints(renderPoints))
+ const surfacePoints = isCrossing ? crossingReachesIslands(crossingOverDividers(crossingRectanglePoints(renderPoints)), way.osm_id)
  : (isSidewalk || isPath) ? trimWalkwayForCorners(renderPoints, widthMeters) : renderPoints;
   // This kerb, not the city's median kerb. Four thousand nine hundred of these carry their own
   // measured height, spread from 60 to 445 mm; the fallback is the corridor median.
@@ -911,6 +911,37 @@ const MEDIAN_END_M = 0.0;
 //: dividerPieces to lay with the islands: {ring: [[x, z]...], street}.
 var TWIN_DIVIDER_RINGS = [];
 
+//: How much of a divided street's gap, at a station, is parking rather than median: from this
+//: half's inner edge (``near``) and from the twin's (``far``), in metres. A half parked on its
+//: median side (the map, the meters or the census: parkingSidesAt) has a parking lane's width of
+//: the gap that is road wherever that strip is not already carriageway; and a car park mapped in
+//: the gap is road out to its far side. What is left is the median: Fillmore's angled parking,
+//: Richardson's and the boulevards' median-side lanes were under a median the gap's full width.
+const MEDIAN_PARKING_STEP_M = 0.25;
+function medianParkingTrim(way, twin, along, side, ex, ez, nx, nz, edge) {
+  const out = { near: 0, far: 0 };
+  if (!(edge > 0)) return out;
+  const at = (d) => [ex + nx * d, ez + nz * d];
+  const road = (d) => { const [x, z] = at(d); return insideCarriageway(x, z, 0); };
+  // A parking lane on this half's median side, where the half's own ribbon stops short of it.
+  const sidesHere = typeof parkingSidesAt === "function" ? parkingSidesAt(way, along) : (way.parking_sides || []);
+  if (sidesHere.includes(side) && !road(Math.min(edge, PARKING_LANE_M) * 0.5)) out.near = Math.min(edge, PARKING_LANE_M);
+  // The twin's: its median side is the one facing this half.
+  const twinSides = Array.isArray(twin?.parking_sides) ? twin.parking_sides : [];
+  const twinMedian = Array.isArray(twin?.walk_sides) && twin.walk_sides.length === 1 ? -twin.walk_sides[0] : 0;
+  if (twinMedian && twinSides.includes(twinMedian) && !road(edge - Math.min(edge, PARKING_LANE_M) * 0.5)) out.far = Math.min(edge - out.near, PARKING_LANE_M);
+  // A car park in the gap: road from the edge it touches to its far side.
+  if (typeof insideParkingRegion === "function") {
+    let d = out.near;
+    while (d + MEDIAN_PARKING_STEP_M <= edge - out.far && insideParkingRegion(...at(d + MEDIAN_PARKING_STEP_M / 2))) d += MEDIAN_PARKING_STEP_M;
+    out.near = d;
+    let e = out.far;
+    while (edge - e - MEDIAN_PARKING_STEP_M >= out.near && insideParkingRegion(...at(edge - e - MEDIAN_PARKING_STEP_M / 2))) e += MEDIAN_PARKING_STEP_M;
+    out.far = e;
+  }
+  return out;
+}
+
 function twinInnerEdgeAt(way, x, z, nx, nz) {
   // Along the ray from this half's inner edge across the median: the other half's edge.
   const cx = Math.floor(x / CARRIAGEWAY_CELL);
@@ -1026,10 +1057,18 @@ function addDividedMedians() {
       // (Not where the survey has an island in the gap: that island is the median, drawn at its
       // own kerbs, and the rest of the gap is roadway.)
       const surveyed = Boolean(found) && surveyedIslandAcross(ex, ez, ex + nx * found.edge, ez + nz * found.edge);
-      const raised = found && found.edge >= MEDIAN_MIN_M && !surveyed
+      // The raised part is the gap less what is parked in it: a parking lane along either half's
+      // median side, and a car park mapped in the gap (angled stalls along a median), are road,
+      // not kerb (medianParkingTrim). The rest of the gap stays roadway.
+      const trim = found ? medianParkingTrim(way, found.twin, along, side, ex, ez, nx, nz, found.edge) : null;
+      const near0 = trim ? trim.near : 0, far0 = trim ? trim.far : 0;
+      const kept = found ? found.edge - near0 - far0 : 0;
+      const raised = found && kept >= MEDIAN_MIN_M && !surveyed
         && !insideJunctionBox(ex, ez) && !insideJunctionBox(ex + nx * 1.0, ez + nz * 1.0);
+      if (found && (near0 || far0)) medianSurveyStats.parkedTrim = (medianSurveyStats.parkedTrim || 0) + 1;
       stations.push(found && found.edge >= 0.05
-        ? { a: [ex, ez], b: [ex + nx * found.edge, ez + nz * found.edge], twin: found.twin, raised, surveyed, nx, nz }
+        ? { a: [ex + nx * near0, ez + nz * near0], b: [ex + nx * (found.edge - far0), ez + nz * (found.edge - far0)],
+            twin: found.twin, raised, surveyed, nx, nz }
         : null);
     }
     // Two stations either side of a surveyed one are not raised either: an inferred piece
@@ -1398,6 +1437,21 @@ function turnArrowSpin(dx, dy) {
 //: ones: spread over the whole road they put Bay Street's three forward arrows across all five
 //: lanes, two in the oncoming traffic's.
 function turnArrowLanes(way, roadWidth, count) {
+  // The lanes the way's cross-section has where the arrows are, near its end: each arrow in the
+  // middle of its own lane, measured, not the street's middle section shared out evenly.
+  const rows = way && way.xs;
+  if (rows && rows.length && count >= 1 && typeof crossSectionBands === "function") {
+    const along = Math.max(0, rows[rows.length - 1][0] - 4);
+    const half = typeof halfWidthAt === "function" ? halfWidthAt(way, along) : roadWidth / 2;
+    const bands = crossSectionBands(way, along, half);
+    const oneway1 = typeof onewaySign === "function" ? onewaySign(way) !== 0 : Boolean(way.oneway);
+    const lanes = bands ? bands.filter((b) => (b.kind === "travel" || b.kind === "turn")
+      && (oneway1 || (b.dir ? b.dir === 1 : (b.left + b.right) / 2 < 0))) : [];
+    if (lanes.length === count) {
+      return { offsets: lanes.map((b) => (b.left + b.right) / 2),
+        laneWidth: lanes.reduce((sum, b) => sum + (b.left - b.right), 0) / count, measured: true };
+    }
+  }
   const [left, right] = travelSpan(way, roadWidth);
   const oneway = typeof onewaySign === "function" ? onewaySign(way) !== 0 : Boolean(way.oneway);
   const total = Number(way.lanes) || 0, forward = Number(way.lanes_fwd) || 0;

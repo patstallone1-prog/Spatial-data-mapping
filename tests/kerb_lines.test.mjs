@@ -195,8 +195,8 @@ test('lanes of traffic are the ones that fit beside the parking at the kerbs', (
 });
 
 test('parking is known from the meters, the city drives the lanes that fit, and each metered space is marked', () => {
-  assert.match(ramps, /fitLaneBands\(way, bands, half\);/);
-  assert.match(ramps, /const PARKING_STALL_M = 2\.4;/);
+  assert.match(ramps, /fitLaneBands\(way, bands, half, along\);/);
+  assert.match(ramps, /const PARKING_STALL_M = 2\.44;/);   // SFMTA standard parallel lane, 8 ft (docs/75)
   // A side is metered parking on a count and a density of the city's own meters, beside the street.
   assert.match(ramps, /n < PARKING_METERS\.least \|\| n < way\._parkLen \/ PARKING_METERS\.every_m/);
   assert.match(ramps, /way\.parking_basis \|\|= \{\}\)\[side\] = `sfmta_parking_meters:\$\{n\}`/);
