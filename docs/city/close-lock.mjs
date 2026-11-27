@@ -327,9 +327,17 @@ export function feetTracker(ground, G = GROUND_AHEAD) {
     //: The ground under ``p`` ({id, x, z, yaw}); ``close``: in the close ring (looked ahead for).
     at(p, now, close = true) {
       let f = feet.get(p.id);
-      if (!f) { if (feet.size > 8000) feet.clear(); f = [NaN, NaN, 0, false, NaN, NaN, -Infinity]; feet.set(p.id, f); }
-      if (close && (!(Math.hypot(p.x - f[4], p.z - f[5]) < G.relook_m) || now - f[6] > G.relook_ms)) {
-        f[3] = groundAhead(ground, p.x, p.z, p.yaw, G)[0]; f[4] = p.x; f[5] = p.z; f[6] = now; stats.looks += 1; if (f[3]) stats.rough += 1;
+      if (!f) { if (feet.size > 8000) feet.clear(); f = [NaN, NaN, 0, false, NaN, NaN, -Infinity, NaN]; feet.set(p.id, f); }
+      // Looked again each relook_m they go, or each relook_ms while they are moving or have turned
+      // since: one standing still, facing the same way, has the same ground ahead of them (the
+      // timed look for everyone in the close ring was 40 ms of every second, 2026-11-27).
+      if (close) {
+        const dx = p.x - f[4], dz = p.z - f[5], d2 = dx * dx + dz * dz;
+        const turned = !(Math.abs(Math.sin(((p.yaw || 0) - f[7]) / 2)) < 0.26);   // more than 30 degrees
+        if (!(d2 < G.relook_m * G.relook_m) || turned || (d2 > 1e-4 && now - f[6] > G.relook_ms)) {
+          f[3] = groundAhead(ground, p.x, p.z, p.yaw, G)[0]; f[4] = p.x; f[5] = p.z; f[6] = now; f[7] = p.yaw || 0;
+          stats.looks += 1; if (f[3]) stats.rough += 1;
+        }
       }
       if (!close) f[3] = false;
       const every = f[3] ? G.fine_m : G.coarse_m;

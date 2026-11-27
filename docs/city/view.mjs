@@ -688,6 +688,9 @@ export async function startCity(ctx) {
   // removes and disposes every child of the root that is not), and the city went with it -- the
   // people and the traffic went on being worked out and were drawn into nothing (2026-11-08).
   group.userData.bayWide = true;
+  // Whatever is made under it in play has its shaders compiled before it is drawn (module 27's
+  // compile gate): made in play, each new surface froze the page while it compiled.
+  group.userData.compileGate = true;
   ctx.root.add(group);
   // What moves is left out of the stand-in the shadows are traced through (proxy-light.mjs).
   globalThis.__kerbsideProxyLight?.dynamic.add(group);
@@ -6820,8 +6823,15 @@ diffuseColor.rgb *= kbCloth;`);
     const w = pos.walk, city = district.city;
     if (!w?.pave || !city?.walkEnds) return null;
     let P = walkPlans.get(id);
-    const every = WALK_PLAN.every_s * 1000 * (0.85 + 0.3 * ((hash32(id) % 1000) / 1000));
-    if (!P || P.key !== w.key || now - P.at > every || now >= P.recheck) {
+    // A plan is kept while it holds (2026-11-27). Every walker looked again every two seconds
+    // whatever was ahead, the whole six seconds of route read and weighed each time. Now a walker
+    // looks again only when: their walk changes; most of the route planned is walked; a look-again
+    // was asked for (someone stepped into the line, a stop is over); or, sensed a few times a
+    // second, someone or something is a few feet ahead in the line they are taking -- a person
+    // stopped or lying there, a car moving across it. (And at the latest every PLAN_KEPT_MS.)
+    const stale = !P || P.key !== w.key || now >= P.recheck || now - P.at > PLAN_KEPT_MS
+      || w.d - P.d0 > P.reach * 0.6 || (now - P.sensed > PLAN_SENSE_MS && blockedAhead(entry, pos, P, now));
+    if (stale) {
       const end = w.pave.length;
       const along = (m) => (w.d + m <= end + 0.01 ? city.walkEnds(w.pave, w.d + m, 0, null, null) : null);
       const people = [];
@@ -6834,7 +6844,8 @@ diffuseColor.rgb *= kbCloth;`);
       if (car.active) cars.push({ x: car.x, z: car.z, vx: -Math.sin(car.yaw) * car.speed, vz: -Math.cos(car.yaw) * car.speed, half: ((VEHICLE_DIMS[car.model] || VEHICLE_DIMS.sedan)[2] || 4.4) / 2 });
       swerveFrom = entry;
       const plan = planWalk({ speed: entry.person?.pace || 1.3 }, { along, ground: (x, z) => ctx.groundAt?.(x, z) ?? groundAt(x, z), people, cars, free: swerveFree });
-      P = { plan, at: now, d0: w.d, key: w.key, side: P?.key === w.key ? P.side : 0, want: plan.side, stopAt: null, recheck: Infinity };
+      const reach = plan.pts.length ? plan.pts[plan.pts.length - 1].m : 0;
+      P = { plan, at: now, d0: w.d, key: w.key, side: P?.key === w.key ? P.side : 0, want: plan.side, stopAt: null, recheck: Infinity, reach, sensed: now };
       walkPlans.set(id, P);
     }
     // Someone stepped into the line taken since the look: over to the alternative now, and look again soon.
@@ -6859,6 +6870,27 @@ diffuseColor.rgb *= kbCloth;`);
       if (!stop && P.recheck === Infinity) P.recheck = now;   // the stop is over: look again before going on
     }
     return { side: P.side, stop, kind: st?.kind || null, slow: Math.max(0, 1 - paceAt(P.plan, m)) };
+  }
+  const PLAN_KEPT_MS = 8000, PLAN_SENSE_MS = 250, SENSE_AHEAD_M = 2.5, SENSE_CAR_M = 6;
+  //: Something a few feet ahead of ``entry`` in the line its plan takes, that the plan did not
+  //: allow for: someone there now (stood, lying, or come into the line), or a car moving within a
+  //: few metres. A stop already planned for it is left to run.
+  function blockedAhead(entry, pos, P, now) {
+    P.sensed = now;
+    if (P.plan.stop && P.stopAt !== null) return false;
+    const fx = -Math.sin(pos.yaw || 0), fz = -Math.cos(pos.yaw || 0);
+    for (const o of aheadOf(entry)) {
+      if (o.indoors) continue;
+      const dx = o.x - entry.x, dz = o.z - entry.z, ahead = dx * fx + dz * fz, side = dx * fz - dz * fx;
+      if (ahead > 0.3 && ahead < SENSE_AHEAD_M && Math.abs(-side - P.side) < 0.55 && (o.down || !o.moving)) return true;
+    }
+    for (const v of lastTraffic) {
+      const dx = v.x - entry.x, dz = v.z - entry.z;
+      if (Math.abs(dx) > SENSE_CAR_M || Math.abs(dz) > SENSE_CAR_M || !(v.speed > 0.3)) continue;
+      // (Crossing their line, not going by in the lane beside the pavement.)
+      if (dx * fx + dz * fz > -1 && Math.abs(dx * fz - dz * fx) < 2.5) return true;
+    }
+    return false;
   }
   function sweepWalkPlans(now) {
     if (now - walkPlansSwept < 5000) return;
@@ -7695,6 +7727,23 @@ diffuseColor.rgb *= kbCloth;`);
       D.jams.set(`${n}>${best.to}`, until); D.jams.set(`${best.to}>${n}`, until);
       D.tally.shut = (D.tally.shut || 0) + 1;
     } });
+  //: What a crash brings -- the crew, the stretcher, the beacons, the marks on a car, a police
+  //: car's light bar, a hole dug -- drawn once, out of sight, while the city warms up: the compile
+  //: gate (module 27) readies their shaders behind the loading screen. The first crash in play
+  //: froze the page 0.8-1.2 s while they compiled (2026-11-27). Taken away once they are ready.
+  {
+    const rehearsal = new THREE.Group(), tiny = new THREE.PlaneGeometry(0.01, 0.01);
+    rehearsal.name = "city-rehearsal"; rehearsal.position.set(0, -400, 0);
+    for (const m of [...(scenes.materials || []), HOLE_MAT]) rehearsal.add(new THREE.Mesh(tiny, m));
+    // The marks carry a colour with its alpha at each corner (a shader of their own for that).
+    const marked = tiny.clone(); marked.setAttribute("color", new THREE.BufferAttribute(new Float32Array(marked.attributes.position.count * 4).fill(1), 4));
+    rehearsal.add(new THREE.Mesh(marked, SCUFF_MAT));
+    police.rehearse?.(rehearsal);
+    group.add(rehearsal);
+    const gated = () => { let on = false; rehearsal.traverse((o) => { if (o.layers.mask !== 1) on = true; }); return on; };
+    const done = () => { if (gated()) { setTimeout(done, 250); return; } rehearsal.removeFromParent(); };
+    setTimeout(done, 250);
+  }
   //: Someone hit by a car at ``speed``, the way it was going (dx, dz): gone over, folded onto its
   //: bonnet and carried, or thrown (crash.mjs personImpact). ``by``: the car's id, or "me".
   function struck(q, by, dx, dz, speed, model, stop = null) {

@@ -3,6 +3,8 @@
 // batch; the original indices are restored verbatim when the detailed shell is retired.
 const homeShellGroup = new THREE.Group();
 homeShellGroup.name = "home-shells";
+// A house coming in has its shaders compiled before it is drawn (module 27's compile gate).
+homeShellGroup.userData.compileGate = true;
 root.add(homeShellGroup);
 const homeShells = new Set();
 // Glass that reads from the street as the batched facade's windows do -- dark panes with a

@@ -886,6 +886,10 @@ function addTileMeshes(group, meshes) {
 }
 
 function buildTile(tile, layers) {
+  tileGroundMemo = new Map();
+  try { buildTileNow(tile, layers); } finally { tileGroundMemo = null; }
+}
+function buildTileNow(tile, layers) {
   const group = new THREE.Group();
   group.name = `tile:${tile.id}`;
   const f = tileFrame(tile);
@@ -1014,7 +1018,19 @@ const TILE_GROUND_Y = PENINSULA_Y - PERIMETER_UNDER_M;
 //: eased to the edge of a window drawn in full as the landscape is (natureVisualHeightAt). On the
 //: bare terrain it was under that easing: the ground round a window rose over its streets and
 //: lawns by up to thirteen metres.
-function tileGroundAt(x, z) { return natureVisualHeightAt(x, z, null, false); }
+//: While a tile is built, each point's ground is worked out once: the build placed every vertex on
+//: the ground, then read the ground under every vertex again for its natureBases -- the landscape
+//: sampled twice over, a third of a 0.4-0.8 s tile build (2026-11-27). Keyed by the point as the
+//: geometry stores it (32-bit), so the second read finds the first.
+var tileGroundMemo = null;
+function tileGroundAt(x, z) {
+  if (!tileGroundMemo) return natureVisualHeightAt(x, z, null, false);
+  // (A number, not a string: the point to 4 mm, x and z packed -- within 2^53 anywhere in the Bay.)
+  const key = Math.round(Math.fround(x) * 256) * 67108864 + Math.round(Math.fround(z) * 256);
+  let y = tileGroundMemo.get(key);
+  if (y === undefined) { y = natureVisualHeightAt(x, z, null, false); tileGroundMemo.set(key, y); }
+  return y;
+}
 
 const TILE_BOX = new THREE.BoxGeometry(1, 1, 1);
 // Refined terrain must not bury an already-resident neighbouring city tile. Rebase its

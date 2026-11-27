@@ -1191,20 +1191,27 @@ function pushOutOfWalls(p, segments) {
   }
 }
 
+// (Every step of the walker's: no Set a call -- each entry is stamped with the call's number --
+// and no spread of ring points into the distance test, which built two iterators a side.)
 function walkerFootprintBlocked(x, z) {
-  const seen = new Set();
+  // (The count is kept on the function: tests lift it out on its own.)
+  const stamp = walkerFootprintBlocked.stamp = (walkerFootprintBlocked.stamp || 0) + 1;
   const gx = Math.floor(x / FOOTPRINT_CELL), gz = Math.floor(z / FOOTPRINT_CELL);
   for (let dx = -1; dx <= 1; dx += 1) for (let dz = -1; dz <= 1; dz += 1) {
-    for (const entry of footprintGrid.get(`${gx + dx}:${gz + dz}`) || []) {
-      if (seen.has(entry)) continue;
-      seen.add(entry);
+    const list = footprintGrid.get(`${gx + dx}:${gz + dz}`);
+    if (!list) continue;
+    for (let e = 0; e < list.length; e += 1) {
+      const entry = list[e];
+      if (entry._footStamp === stamp) continue;
+      entry._footStamp = stamp;
       // Inside the house entered by its door, its walls (wallSegmentsNear) are what hold the walker.
       if (typeof enteredEntry !== "undefined" && entry === enteredEntry) continue;
       if(typeof stairRecessClear === "function" && stairRecessClear(entry,x,z))continue;
       if (insideFootprint(entry, x, z)) return true;
       const ring = entry.local;
       for (let i = 1; i < ring.length; i += 1) {
-        if (distanceToSegmentSquared(x, z, ...ring[i - 1], ...ring[i]) < WALKER_RADIUS_M ** 2 - 1e-9) return true;
+        const a = ring[i - 1], b = ring[i];
+        if (distanceToSegmentSquared(x, z, a[0], a[1], b[0], b[1]) < WALKER_RADIUS_M ** 2 - 1e-9) return true;
       }
     }
   }

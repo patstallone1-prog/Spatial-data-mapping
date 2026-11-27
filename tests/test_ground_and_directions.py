@@ -32,7 +32,10 @@ def test_the_coarse_mesh_takes_the_envelope_and_the_tiles_the_landscapes_ground(
     runtime = (ROOT / "docs/nature-runtime.mjs").read_text()
     assert "const floor=cityEnvelope(heights,developed,nx+1,ny+1," in runtime
     page = _page_js()
-    assert "function tileGroundAt(x, z) { return natureVisualHeightAt(x, z, null, false); }" in page
+    # The landscape's own ground, read once a point while a tile is built (tileGroundMemo).
+    assert "if (!tileGroundMemo) return natureVisualHeightAt(x, z, null, false);" in page
+    assert "y = natureVisualHeightAt(x, z, null, false); tileGroundMemo.set(key, y);" in page
+    assert "tileGroundMemo = new Map();\n  try { buildTileNow(tile, layers); } finally { tileGroundMemo = null; }" in page
     sync = _extract("restandNatureMeshSteps", page)
     assert "rawTerrainHeightAt" not in sync and sync.count("tileGroundAt(") == 3
 

@@ -363,6 +363,7 @@ function animate(now) {
   if (META && frameCount % 30 === 0) { headsetSettlePictures(); headsetSimplify(scene); }
   if (!worldPaused) {
     if (!xrFrame) runPreupload();
+    if (!xrFrame) runCompileGate();
     // The near photographs out to all the ground in view but what is seen at a grazing angle.
     NEAR_SURFACE.follow(camera, (state.firstPerson ? avatar.position : state.target).y);
     renderer.render(scene, camera);
@@ -442,6 +443,108 @@ function runPreupload() {
     job.at = performance.now();
   }
   if (job.i >= job.meshes.length) { preuploadJobs.shift(); job.resolve(); }
+}
+
+//: Surfaces made in play -- a crash's wreck and its marks, a police car, an ambulance, a shop's
+//: room -- compiled before they are drawn (2026-11-27). Made in play, each new material's shader
+//: was compiled and linked in the frame that first drew it, the whole page waiting on it: freezes
+//: of 0.7-1.2 s, all of it native shader work, while the programs went 555 -> 567 (measured on a
+//: walk through the Marina). Anything added under a group marked userData.compileGate (the living
+//: city) whose materials have no shader yet is moved onto a layer the view does not draw, its
+//: shaders compiled off the page's thread (compileAsync), then drawn once into one pixel with the
+//: scene's own lights -- what makes them ready for the card -- and put back where it was. A few
+//: frames late; never a frozen one. (var: the first adds can come before this part has run.)
+var COMPILE_GATE_LAYER = 29, COMPILE_GATE_MAX_MS = 4000;
+var compileGateJobs = [], compileGateStats = { gated: 0, compiled: 0, late: 0, warmMs: 0 };
+//: What a job already holds (something gated, then moved under something else gated before it was
+//: ready: the later job must not save the gate's layer as its own and put it back).
+var compileGateHeld = new WeakSet();
+//: The second draw goes to a picture, not the page: what is drawn into one -- the stand-in the
+//: light is traced through, a face's portrait -- is drawn by another shader (no tone mapping,
+//: linear colour), and that one compiled in the frame it was first drawn there.
+var compileGateTarget = null;
+function compileGated(parent) {
+  for (let p = parent, k = 0; p && k < 16; p = p.parent, k += 1) if (p.userData.compileGate) return true;
+  return false;
+}
+function compileGateFresh(object) {
+  let fresh = false;
+  object.traverse((o) => {
+    if (fresh || !o.material) return;
+    const list = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of list) if (m && !renderer.properties.get(m).currentProgram) { fresh = true; return; }
+  });
+  return fresh;
+}
+function compileGateAdd(object) {
+  if (!renderer.compileAsync || !compileGateFresh(object)) return;
+  const masks = [];
+  object.traverse((o) => {
+    if (compileGateHeld.has(o)) return;
+    compileGateHeld.add(o); masks.push([o, o.layers.mask, o.frustumCulled]); o.layers.set(COMPILE_GATE_LAYER);
+  });
+  if (!masks.length) return;
+  const job = { object, masks, ready: false, at: performance.now() };
+  compileGateStats.gated += 1;
+  try {
+    // Both shaders, the page's and a picture's (compile reads the target set when it is called).
+    const onPage = renderer.compileAsync(object, camera, scene);
+    compileGateTarget ||= new THREE.WebGLRenderTarget(1, 1);
+    const target = renderer.getRenderTarget();
+    renderer.setRenderTarget(compileGateTarget);
+    let inPicture;
+    try { inPicture = renderer.compileAsync(object, camera, scene); } finally { renderer.setRenderTarget(target); }
+    Promise.all([onPage, inPicture]).then(() => { job.ready = true; requestFrame(); }, () => { job.ready = true; });
+  } catch (error) { job.ready = true; }
+  compileGateJobs.push(job);
+}
+var compileGateObjectAdd = THREE.Object3D.prototype.add;
+THREE.Object3D.prototype.add = function (...objects) {
+  const out = compileGateObjectAdd.apply(this, objects);
+  if (compileGated(this)) for (const o of objects) if (o && o !== this && o.parent === this) compileGateAdd(o);
+  return out;
+};
+window.kerbsideCompileGate = () => ({ ...compileGateStats, waiting: compileGateJobs.length });
+function runCompileGate() {
+  if (typeof compileGateJobs === "undefined" || !compileGateJobs?.length) return;
+  const now = performance.now();
+  const due = compileGateJobs.filter((j) => j.ready || now - j.at > COMPILE_GATE_MAX_MS);
+  if (!due.length) return;
+  compileGateJobs = compileGateJobs.filter((j) => !due.includes(j));
+  // Those still compiling are kept out of the one-pixel draw: drawn, they would compile there and then.
+  const waiting = compileGateJobs.filter((j) => j.object.visible).map((j) => j.object);
+  const t0 = performance.now(), lights = [];
+  scene.traverse((o) => { if (o.isLight) lights.push(o); });
+  const mask = camera.layers.mask, autoShadow = renderer.shadowMap.autoUpdate, scissorTest = renderer.getScissorTest();
+  renderer.getViewport(preuploadViewport); renderer.getScissor(preuploadScissor);
+  try {
+    // Drawn only if still in the world: something made and taken away again before it was ready.
+    for (const j of due) for (const [o] of j.masks) o.frustumCulled = false;
+    for (const l of lights) l.layers.enable(COMPILE_GATE_LAYER);
+    camera.layers.set(COMPILE_GATE_LAYER);
+    for (const o of waiting) o.visible = false;
+    renderer.shadowMap.autoUpdate = false;
+    renderer.setViewport(0, 0, 1, 1); renderer.setScissor(0, 0, 1, 1); renderer.setScissorTest(true);
+    if (due.some((j) => j.object.parent)) {
+      renderer.render(scene, camera);
+      compileGateTarget ||= new THREE.WebGLRenderTarget(1, 1);
+      const target = renderer.getRenderTarget();
+      renderer.setRenderTarget(compileGateTarget);
+      try { renderer.render(scene, camera); } finally { renderer.setRenderTarget(target); }
+    }
+  } catch (error) { console.warn("kerbside: could not ready a new surface's shaders", error); }
+  finally {
+    renderer.setViewport(preuploadViewport); renderer.setScissor(preuploadScissor); renderer.setScissorTest(scissorTest);
+    renderer.shadowMap.autoUpdate = autoShadow;
+    camera.layers.mask = mask;
+    for (const o of waiting) o.visible = true;
+    for (const l of lights) l.layers.disable(COMPILE_GATE_LAYER);
+    for (const j of due) {
+      for (const [o, m, culled] of j.masks) { o.layers.mask = m; o.frustumCulled = culled; compileGateHeld.delete(o); }
+      if (j.ready) compileGateStats.compiled += 1; else compileGateStats.late += 1;
+    }
+  }
+  compileGateStats.warmMs += performance.now() - t0;
 }
 
 // A nonessential callback can fail while the world is still building, then the

@@ -94,6 +94,13 @@ export function gustAt(x, z, t, speed, ux, uz) {
 //: vz}). Returns true while it is moving (false: it lies still and need not be drawn again).
 //: Never through what is solid: a move into it is tried along each axis alone, and failing
 //: that the leaf stops against it.
+//: The ground under a leaf, read again only once it has moved a fifth of a metre: each moving
+//: leaf asked the page's walker ground twice a frame, and that ground read is not cheap.
+function groundUnder(leaf, env) {
+  if (Math.abs(leaf.x - leaf._gx) < 0.2 && Math.abs(leaf.z - leaf._gz) < 0.2) return leaf._gy;
+  leaf._gx = leaf.x; leaf._gz = leaf.z;
+  return (leaf._gy = env.ground(leaf.x, leaf.z));
+}
 export function stepLeaf(leaf, dt, env) {
   const L = LEAVES, [wx, wz] = env.wind, gust = Math.hypot(wx, wz);
   let kicked = false;
@@ -106,7 +113,7 @@ export function stepLeaf(leaf, dt, env) {
     leaf.vy = Math.max(leaf.vy || 0, 0.5 + 1.1 * near * Math.min(1, fv / 2)); leaf.spin = (leaf.spin || 0) + (near - 0.3) * 9;
     leaf.h = 0; leaf.still = false; kicked = true;
   }
-  const ground = env.ground(leaf.x, leaf.z), up = leaf.y - ground;
+  const ground = groundUnder(leaf, env), up = leaf.y - ground;
   if (leaf.still) {
     // Lying still: shifted only by a gust over its own mark -- more for one with others on it.
     if (gust < leaf.lift * (1 + L.buried * Math.min(4, leaf.h || 0))) return false;
@@ -132,7 +139,7 @@ export function stepLeaf(leaf, dt, env) {
   else if (!env.solid(nx, leaf.z)) { leaf.x = nx; leaf.vz *= -0.1; }
   else if (!env.solid(leaf.x, nz)) { leaf.z = nz; leaf.vx *= -0.1; }
   else { leaf.vx = 0; leaf.vz = 0; }
-  const g2 = env.ground(leaf.x, leaf.z);
+  const g2 = groundUnder(leaf, env);
   leaf.y += leaf.vy * dt;
   if (leaf.y <= g2) { leaf.y = g2; if (leaf.vy < 0) leaf.vy = 0; }
   const going = Math.hypot(leaf.vx, leaf.vz);

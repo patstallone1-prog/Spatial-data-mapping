@@ -129,14 +129,25 @@ export function floorCell(x0,y0,size,ctx){
     free.push(Boolean(s&&!s.water&&!ctx.blocked(x0+c,y0+r,.3)));}
   // Habitat varies over tens of metres: a 3 x 3 sample, interpolated.
   const eco=[];for(let r=0;r<3;r++)for(let c=0;c<3;c++)eco.push(ctx.ecology(x0+c*size/2,y0+r*size/2));
+  // (Read at every lattice point: no arrays or closures made per read -- it was the page's most
+  // garbage while the floor filled in, 2026-11-27.)
+  const ECO_KEYS=['forest','scrub','grass','barren','wetland','developed','canopy'];
   const ecoAt=(x,y)=>{
     const u=clamp((x-x0)/size*2,0,1.999),v=clamp((y-y0)/size*2,0,1.999),c=Math.floor(u),r=Math.floor(v),a=u-c,b=v-r;
-    const q=[eco[r*3+c],eco[r*3+c+1],eco[(r+1)*3+c],eco[(r+1)*3+c+1]],w=[(1-a)*(1-b),a*(1-b),(1-a)*b,a*b];
-    const any=q.find(Boolean);if(!any)return null;const out={habitat:{},moisture:0};
-    for(const key of ['forest','scrub','grass','barren','wetland','developed','canopy']){let s=0,t=0;
-      q.forEach((e,i)=>{const v=e?.habitat?.[key];if(Number.isFinite(v)){s+=v*w[i];t+=w[i];}});out.habitat[key]=t?s/t:0;}
-    let s=0,t=0;q.forEach((e,i)=>{if(e){s+=(e.moisture??.5)*w[i];t+=w[i];}});out.moisture=t?s/t:.5;
-    const nearest=q[(b>.5?2:0)+(a>.5?1:0)]||any;out.lon=nearest.lon;out.lat=nearest.lat;return out;
+    const q0=eco[r*3+c],q1=eco[r*3+c+1],q2=eco[(r+1)*3+c],q3=eco[(r+1)*3+c+1];
+    const any=q0||q1||q2||q3;if(!any)return null;
+    const w0=(1-a)*(1-b),w1=a*(1-b),w2=(1-a)*b,w3=a*b,out={habitat:{},moisture:0};
+    for(let k=0;k<ECO_KEYS.length;k++){const key=ECO_KEYS[k];let s=0,t=0,v;
+      if(q0&&Number.isFinite(v=q0.habitat?.[key])){s+=v*w0;t+=w0;}
+      if(q1&&Number.isFinite(v=q1.habitat?.[key])){s+=v*w1;t+=w1;}
+      if(q2&&Number.isFinite(v=q2.habitat?.[key])){s+=v*w2;t+=w2;}
+      if(q3&&Number.isFinite(v=q3.habitat?.[key])){s+=v*w3;t+=w3;}
+      out.habitat[key]=t?s/t:0;}
+    let s=0,t=0;
+    if(q0){s+=(q0.moisture??.5)*w0;t+=w0;}if(q1){s+=(q1.moisture??.5)*w1;t+=w1;}
+    if(q2){s+=(q2.moisture??.5)*w2;t+=w2;}if(q3){s+=(q3.moisture??.5)*w3;t+=w3;}
+    out.moisture=t?s/t:.5;
+    const nearest=(b>.5?(a>.5?q3:q2):(a>.5?q1:q0))||any;out.lon=nearest.lon;out.lat=nearest.lat;return out;
   };
   const at=(x,y)=>{
     const u=clamp(x-x0,0,size-1e-6),v=clamp(y-y0,0,size-1e-6),c=Math.floor(u),r=Math.floor(v),a=u-c,b=v-r;
