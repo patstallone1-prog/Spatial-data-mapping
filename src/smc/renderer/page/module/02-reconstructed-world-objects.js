@@ -464,6 +464,9 @@ function patchMaterial(material, key, patch) {
   material.onBeforeCompile = function (shader, renderer) { if (prev) prev.call(this, shader, renderer); patch(shader); };
   material.customProgramCacheKey = function () { return `${prevKey ? prevKey.call(this) : ""}|${key}`; };
   material.needsUpdate = true;
+  // Patched after it was first drawn: what draws it is held back while its new shader compiles
+  // (module 27's compile gate), not frozen on in the frame it is next drawn.
+  if (typeof compileGateMaterial === "function") compileGateMaterial(material);
   return material;
 }
 //: Windows that light at night: a share of them (by a hash of where each is) glow warm through
@@ -477,7 +480,9 @@ function nightWindows(material) {
     sh.uniforms.kbNight = NIGHT.night; sh.uniforms.kbLit = NIGHT.lit; sh.uniforms.kbWarm = NIGHT.warm;
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 kbWP;")
       .replace("#include <project_vertex>", "#include <project_vertex>\nvec4 kbP = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\nkbP = instanceMatrix * kbP;\n#endif\nkbWP = (modelMatrix * kbP).xyz;");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 kbWP;\nuniform float kbNight; uniform float kbLit; uniform vec3 kbWarm;")
+    // (Patched after the glass, kbNight is declared already: once only, or the window is not drawn.)
+    const night = /uniform\s+float\s+kbNight\s*;/.test(sh.fragmentShader) ? "" : "uniform float kbNight; ";
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>\nvarying vec3 kbWP;\n${night}uniform float kbLit; uniform vec3 kbWarm;`)
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
 { vec3 kbMidW = kbWP;
 #ifdef USE_MAP

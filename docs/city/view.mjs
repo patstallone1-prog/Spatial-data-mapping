@@ -397,7 +397,7 @@ export async function startCity(ctx) {
       if (way.kind === "street" && way.tunnel_kind !== "underground") {
         ways.push({ kind: "street", pts: pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)), lanes: way.lanes_fit || way.lanes || 2, name: way.name || null,
           oneway: way.osm_oneway === "yes" ? 1 : way.osm_oneway === "-1" ? -1 : 0, road_m: way.road_m, service: way.service, busway: way.busway, id: way.osm_id,
-          parking_sides: way.parking_sides, bike: bikeSides(way) });
+          parking_sides: way.parking_sides, bike: bikeSides(way), lane_blocks: way._laneBlocks || null });
       } else if (["sidewalk", "path", "crossing", "footway"].includes(way.kind)) {
         ways.push({ kind: "path", pts: pts.map(([lon, lat]) => ctx.fromLonLat(lon, lat)) });
       }
@@ -1094,6 +1094,12 @@ diffuseColor.rgb *= kbCloth;`);
   const headLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), MAX_CARS * 2);
   const tailLights = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial({ color: 0xc0261f }), MAX_CARS * 2);
   for (const l of [headLights, tailLights]) { l.count = 0; l.frustumCulled = false; l.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(l); }
+  //: The traffic's turn signals (fleet.mjs: before a lane change, a merge and a turn): an amber
+  //: lamp at the front and back corner on the side it is going, flashing at about 1.5 a second,
+  //: day and night. Front -z, right +x.
+  const BLINK_HZ = 1.5;
+  const blinkers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.14, 0.09, 0.05), new THREE.MeshBasicMaterial({ color: 0xffa21a, toneMapped: false }), MAX_CARS * 2);
+  blinkers.name = "city-turn-signals"; blinkers.count = 0; blinkers.frustumCulled = false; blinkers.instanceMatrix.setUsage(THREE.DynamicDrawUsage); group.add(blinkers);
   const M = new THREE.Matrix4(), B = new THREE.Matrix4(), TM = new THREE.Matrix4(), RM = new THREE.Matrix4(), Q = new THREE.Quaternion(), V = new THREE.Vector3(), S3 = new THREE.Vector3(), E = new THREE.Euler(), C = new THREE.Color();
   const groundCache = new Map();
   const groundAt = (x, z) => {
@@ -1674,7 +1680,8 @@ diffuseColor.rgb *= kbCloth;`);
     after() { for (let i = 0; i < standInShown.length; i += 2) standInShown[i].visible = standInShown[i + 1]; standInShown.length = 0; },
   });
   function drawCars(list, night) {
-    let n = 0, heads = 0, tails = 0;
+    let n = 0, heads = 0, tails = 0, blinks = 0;
+    const blinkOn = Math.floor(performance.now() / 1000 * BLINK_HZ * 2) % 2 === 0;
     for (const f of fleet.values()) f.n = 0;
     for (const s of signs.values()) s.n = 0;
     const [full, mid, low] = byTier(carsInView(list), CAR_CAPS);
@@ -1724,6 +1731,11 @@ diffuseColor.rgb *= kbCloth;`);
       if ((v.condition ?? 100) < 85) C.multiplyScalar(0.55 + 0.45 * Math.max(0, v.condition) / 85);
       if (bent) { for (const o of bent.g.children) if (o.userData.tint) { o.setColorAt(0, C); o.instanceColor.needsUpdate = true; } }
       else { for (const part of f.parts) if (part.tint) part.mesh.setColorAt(f.n, C); f.n += 1; }
+      if (v.signal && blinkOn && f && tier !== LOW && blinks < MAX_CARS * 2 - 1) {
+        const sx = v.signal * (w / 2 - 0.1), sy = Math.min(1.1, hgt * 0.42);
+        blinkers.setMatrixAt(blinks++, RM.multiplyMatrices(M, TM.makeTranslation(sx, sy, -l / 2 + 0.03)));
+        blinkers.setMatrixAt(blinks++, RM.multiplyMatrices(M, TM.makeTranslation(sx, sy, l / 2 - 0.03)));
+      }
       if (night && f) {
         f.lamps ||= vehicleLampAnchors(THREE, f.parts.filter((p) => !p.mesh.material.transparent).map((p) => p.mesh.geometry), f.dims || [w, hgt, l]);
         B.copy(M);
@@ -1742,6 +1754,7 @@ diffuseColor.rgb *= kbCloth;`);
     if (!standIn) for (const [id, wb] of wreckBodies) if (wb.seen !== drawNo) dropWreck(id);
     for (const s of signs.values()) { s.mesh.count = s.n; s.mesh.instanceMatrix.needsUpdate = true; }
     headLights.count = heads; tailLights.count = tails; headLights.instanceMatrix.needsUpdate = tailLights.instanceMatrix.needsUpdate = true;
+    blinkers.count = blinks; blinkers.instanceMatrix.needsUpdate = true;
     for (const mesh of [driverBody, driverHead]) { mesh.count = drivers; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
     drawnTiers.drivers = drivers;
   }
@@ -7614,7 +7627,7 @@ diffuseColor.rgb *= kbCloth;`);
         // Its body turned the way it is really going (a swing out, a lane change, backing): the
         // route's heading alone had it slide sideways square to the street.
         if (!base.vehicle?.bike) base.yaw = pos.yaw + bodyTurn(r0.id, pos, Boolean(r0.reversing), Boolean(r0.jump), dt, now);
-        base.moving = Math.abs(r0.v) > 0.2; base.speed = Math.abs(r0.v); base.braking = r0.braking; base.reversing = r0.reversing; base.reason = r0.reason; base.behind = r0.behind; base.held = r0.held || 0;
+        base.moving = Math.abs(r0.v) > 0.2; base.speed = Math.abs(r0.v); base.braking = r0.braking; base.signal = r0.signal || 0; base.reversing = r0.reversing; base.reason = r0.reason; base.behind = r0.behind; base.held = r0.held || 0;
         vehicles.push(base);
       }
       for (const hit of step.hits) carHit(hit, people);

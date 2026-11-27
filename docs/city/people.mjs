@@ -88,6 +88,13 @@ export function saysStreet(text, name) {
   const esc = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return [name, shortStreet(name)].some((n) => new RegExp(`(^|[^A-Za-z0-9])${esc(n)}($|[^A-Za-z0-9])`, "i").test(text));
 }
+//: The census block of a way's ``lane_blocks`` ([{from, to, sides, lanes}], metres along the way)
+//: that ``along`` is in, or null.
+export function blockAt(blocks, along) {
+  if (!Array.isArray(blocks)) return null;
+  for (const b of blocks) if (along >= b.from && along <= b.to) return b;
+  return null;
+}
 export class Streets {
   constructor(ways, { snap = 0.8, cell = 60 } = {}) {
     this.nodes = []; this.edges = []; this.cell = cell; this.grid = new Map(); this.index = new Map();
@@ -162,7 +169,7 @@ export class Streets {
     const street = way.kind === "street";
     const cls = street ? roadClass(way) : "shared";
     const half = street ? Math.max(3, (way.road_m || (way.lanes || 2) * 3.4) / 2) : 0;
-    let prev = null;
+    let prev = null, along = 0;
     const tag = way.id ?? (this._ways = (this._ways || 0) + 1);
     way.pts.forEach(([x, z], k) => {
       const id = this.node(x, z);
@@ -172,12 +179,16 @@ export class Streets {
         const fwd = street && way.oneway !== -1, back = street && way.oneway !== 1;
         if (street) { a.drive = b.drive = true; }
         // Parking on the right of each way of travel (SFMTA's block faces: way.parking_sides, 1
-        // the left of the way as drawn, -1 its right): true, false, or null where unknown.
-        const sides = Array.isArray(way.parking_sides) ? way.parking_sides : null;
+        // the left of the way as drawn, -1 its right): true, false, or null where unknown. Where
+        // the census has the block (way.lane_blocks: the page's, block by block, as the paint
+        // lays its lanes), that block's sides and the lanes that fit beside them.
+        const block = blockAt(way.lane_blocks, along + length / 2);
+        const sides = block ? block.sides : Array.isArray(way.parking_sides) ? way.parking_sides : null, lanes = block ? block.lanes : way.lanes || 2;
         // A bike lane on the right of each way of travel (way.bike: the drawn way's right and left).
         const bike = way.bike || null;
-        this.edges[prev].push({ to: id, length, cls, drive: fwd, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(-1) : null, bike: bike ? bike.right || null : null });
-        this.edges[id].push({ to: prev, length, cls, drive: back, walk: true, half, lanes: way.lanes || 2, name: way.name || null, park: sides ? sides.includes(1) : null, bike: bike ? bike.left || null : null });
+        this.edges[prev].push({ to: id, length, cls, drive: fwd, walk: true, half, lanes, name: way.name || null, park: sides ? sides.includes(-1) : null, bike: bike ? bike.right || null : null });
+        this.edges[id].push({ to: prev, length, cls, drive: back, walk: true, half, lanes, name: way.name || null, park: sides ? sides.includes(1) : null, bike: bike ? bike.left || null : null });
+        along += length;
       }
       prev = id;
     });

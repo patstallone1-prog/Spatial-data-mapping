@@ -793,6 +793,19 @@ async function settleParkingLanes() {
       while (fit > (oneway ? 1 : 2) && room / fit < LANE_FIT_MIN_M) fit -= oneway ? 1 : 2;
       if (fit !== tags) { way.lanes_fit = Math.max(1, fit); parkingLaneStats.ways_refitted += 1; }
     }
+    // And block by block, for the city's traffic (2026-11-27): the sides parked on each census
+    // block and the lanes that fit beside them, as the paint lays them (fitLaneBands reads the
+    // same blocks) -- so a car's lane is the painted one, and a lane that ends where the parking
+    // begins ends for the traffic too (fleet.mjs laneDropAhead: they merge before it).
+    if (tags > 0 && way._parkingBlocks && way._spans === undefined && typeof renderedRoadWidth === "function") {
+      const width = renderedRoadWidth(way), oneway = typeof onewaySign === "function" && onewaySign(way) !== 0;
+      way._laneBlocks = way._parkingBlocks.map((b) => {
+        const sides = parkingSidesAt(way, (b.from + b.to) / 2), room = width - sides.length * PARKING_STALL_M;
+        let fit = tags;
+        while (fit > (oneway ? 1 : 2) && room / fit < LANE_FIT_MIN_M) fit -= oneway ? 1 : 2;
+        return { from: b.from, to: b.to, sides: sides.slice(), lanes: Math.max(1, fit) };
+      });
+    }
   }
   window.kerbsideParkingLanes = () => ({ ...parkingLaneStats });
   window.kerbsideParkingBlocks = (name) => (DATA.ways || []).filter((w) => w._parkingBlocks && (!name || censusStreetKey(w.name) === censusStreetKey(name)))

@@ -20,13 +20,13 @@ export const FLEET_DIMS = {
 //: a car takes, and what it is drawn as. A kind the fleet draws is that model's own size; the
 //: others are a common car of the kind (makers' figures, body without mirrors): a Chevrolet Bolt
 //: (compact EV), a Toyota Camry (sedan), a Ford F-150 SuperCrew with the 5.5 ft bed (pickup), a
-//: Ford Transit 148" high roof (delivery van), a Toyota Prius (taxi), a Ford Police Interceptor
+//: Ram ProMaster 159" high roof (delivery van: the imported model's own), a Toyota Prius (taxi), a Ford Police Interceptor
 //: sedan (patrol) -- the Kenney Car Kit's bodies are stretched to them.
 export const VEHICLE_DIMS = {
   economy: FLEET_DIMS.cuore, compact_ev: [1.77, 1.6, 4.15], sedan: [1.84, 1.45, 4.92], suv: FLEET_DIMS.jeep, pickup: [2.03, 1.96, 5.89],
-  delivery_van: [2.06, 2.78, 5.98], box_truck: FLEET_DIMS.truck, taxi: [1.78, 1.43, 4.6], bus: FLEET_DIMS.bus, patrol: [1.94, 1.55, 5.15],
+  delivery_van: [2.05, 2.52, 6.363], box_truck: FLEET_DIMS.truck, taxi: [1.78, 1.43, 4.6], bus: FLEET_DIMS.bus, patrol: [1.94, 1.55, 5.15],
   sports: FLEET_DIMS.porsche,
-  // What comes to a crash (crash-scene.mjs): the kit's ambulance, and its pickup as a tow truck.
+  // What comes to a crash (crash-scene.mjs): the kit's ambulance, and the Frontier as a tow truck.
   ambulance: [2.1, 2.45, 5.6], tow_truck: [2.03, 1.96, 5.89],
 };
 //: The fleet's file for a kind at a tier: "npc" (the traffic nearest you: the pack's LOD1, the
@@ -58,6 +58,9 @@ export const CAR_MODELS = {
   sonata: { kind: "sedan", dims: [2.107, 1.464, 4.855], registrations: 6108, title: "Hyundai Sonata" },
   glk: { kind: "suv", dims: [1.99, 1.672, 4.522], registrations: 9527, title: "Mercedes-Benz GLK" },
   frontier: { kind: "pickup", dims: [2.268, 2.07, 5.228], registrations: 5923, title: "Nissan Frontier" },
+  // Every delivery van (2026-11-27: "a simple but realistic white truck", for the kit's toy-like
+  // vans and trucks): the Opel Movano's body, sold here as the Ram ProMaster high roof.
+  promaster: { kind: "delivery_van", dims: [2.493, 2.55, 6.364], registrations: null, title: "Ram ProMaster high roof" },
 };
 //: California's new light vehicles registered in 2024 (the same report: 482,708 cars and
 //: 1,276,492 light trucks), and each private kind's share of the city's cars (fleet.mjs
@@ -75,7 +78,11 @@ export const BODY_MIX = {
   economy: [["civic", 0.35]],
   compact_ev: [["civic", 0.35], ["sonata", 0.25]],
   suv: [["glk", 0.45]],
-  pickup: [["frontier", 0.75]],
+  // The kit's pickup, delivery van and van were taken off the street (2026-11-27): every pickup is
+  // the Frontier, the tow truck too (its gear in crash-scene.mjs); every delivery van the ProMaster.
+  pickup: [["frontier", 1]],
+  tow_truck: [["frontier", 1]],
+  delivery_van: [["promaster", 1]],
 };
 //: The body a car of ``model`` (its kind) whose number is ``shade`` is drawn with, the same at
 //: every tier and on every visit: { source: "car" | "fleet" | "kit", id, kind }. Its own digits,
@@ -141,8 +148,7 @@ export function vehicleMaterials(THREE) {
 //: The kit's models for each kind (more than one: a car takes one by its number).
 export const KENNEY_FOR = {
   economy: ["hatchback-sports", "sedan"], compact_ev: ["sedan-sports", "hatchback-sports"], sedan: ["sedan", "sedan-sports"], suv: ["suv", "suv-luxury"], sports: ["sedan-sports"],
-  pickup: ["truck"], delivery_van: ["delivery", "van"], box_truck: ["garbage-truck"], taxi: ["taxi"], patrol: ["police"],
-  ambulance: ["ambulance"], firetruck: ["firetruck"], tow_truck: ["truck"],
+  taxi: ["taxi"], patrol: ["police"], ambulance: ["ambulance"], firetruck: ["firetruck"],
 };
 export function kenneyVariant(model, shade = 0) {
   const variants = KENNEY_FOR[model];
@@ -159,7 +165,7 @@ export function importedKitCar(THREE, kit, colour) {
   return mesh;
 }
 //: Liveried: their colours are theirs, not repainted.
-export const KENNEY_LIVERY = new Set(["taxi", "police", "ambulance", "firetruck", "garbage-truck"]);
+export const KENNEY_LIVERY = new Set(["taxi", "police", "ambulance", "firetruck"]);
 export const KENNEY_DEBRIS = ["debris-bumper", "debris-door", "debris-plate-a", "debris-plate-small-a", "debris-tire", "debris-spoiler-a", "debris-bolt"];
 
 //: One kit model as a single geometry with a ``paintMask`` attribute (1 where the body's paint

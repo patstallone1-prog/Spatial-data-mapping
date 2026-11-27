@@ -1,8 +1,8 @@
 // A crash on the street, cleared up as one is (crash.mjs has the numbers and the shapes): the
 // wrecks stand where they stopped and the hurt lie where they fell, the traffic goes round and
 // other drivers take another street; an ambulance comes for the hurt -- its crew out with a
-// stretcher, the casualty lifted on and carried in -- and a tow truck for each wreck -- boom down,
-// cable out, hooked, its end lifted and drawn up -- and each drives off with what it came for.
+// stretcher, the casualty lifted on and carried in -- and a tow truck for each wreck -- backed up
+// to it, hooked, its end lifted and drawn up -- and each drives off with what it came for.
 // When the last has gone the books are told (world.mjs clearCrash): the hurt in hospital, each
 // of the city's cars as new and stood at the nearest mechanic's. Walk or drive away while it is
 // still there and it is cleared the same way at once, unseen.
@@ -22,24 +22,19 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
   const scenes = [];
   const root = new THREE.Group(); root.name = "city-crash-scenes"; group.add(root);
   const mat = (color, more = {}) => new THREE.MeshLambertMaterial({ color, ...more });
-  // The gear, made once: a crew member (uniformed, a head), the stretcher, the truck's boom,
-  // its cable and hook, and the beacons' lamps.
+  // The gear, made once: a crew member (uniformed, a head), the stretcher, and the beacons' lamps.
   const GEO = {
     body: new THREE.CapsuleGeometry(0.2, 0.95, 4, 8).translate(0, 0.72, 0),
     head: new THREE.SphereGeometry(0.115, 10, 8).translate(0, 1.56, 0),
     bed: new THREE.BoxGeometry(0.56, 0.06, 1.9),
     legs: new THREE.BoxGeometry(0.5, 1, 0.04),
-    boom: new THREE.BoxGeometry(0.16, 0.16, 2.6).translate(0, 0, 1.3),
-    post: new THREE.BoxGeometry(0.3, 1.15, 0.3).translate(0, 0.575, 0),
-    cable: new THREE.CylinderGeometry(0.018, 0.018, 1, 6).translate(0, -0.5, 0),
-    hook: new THREE.TorusGeometry(0.09, 0.025, 6, 10, Math.PI * 1.5),
     lamp: new THREE.BoxGeometry(0.5, 0.12, 0.22),
     // The back doors (a pair, hinged at the corners) and the dark of the inside behind them.
     door: new THREE.BoxGeometry(1, 1.7, 0.06).translate(0.5, 0.85 + 0.38, 0),
     hold: new THREE.PlaneGeometry(1, 1.7).translate(0, 0.85 + 0.38, 0),
   };
   const MAT = {
-    medic: mat(0x1f3a5c), skin: mat(0xb5876a), bed: mat(0xe9e6df), frame: mat(0x8a8f96), steel: mat(0x33383e), cable: mat(0x1c1e21),
+    medic: mat(0x1f3a5c), skin: mat(0xb5876a), bed: mat(0xe9e6df), frame: mat(0x8a8f96), steel: mat(0x33383e),
     red: new THREE.MeshBasicMaterial({ color: 0xff2a1e, toneMapped: false }), amber: new THREE.MeshBasicMaterial({ color: 0xffa51e, toneMapped: false }), dark: mat(0x40181a),
     door: mat(0xf1f0ea), inside: new THREE.MeshBasicMaterial({ color: 0x16191c, side: THREE.DoubleSide }),
   };
@@ -176,13 +171,15 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
     root.add(g);
     return { g, crew, stretcher, legs, lamps, doors, hold };
   }
+  //: The tow truck's beacons. (Its body is the imported pickup's, vehicles.mjs BODY_MIX; the boom,
+  //: post, cable and hook made of boxes here were taken off, 2026-11-27: the wreck's end is drawn
+  //: up onto its wheel lift, behind its tail.)
   function truckGear() {
     const g = new THREE.Group();
-    const post = new THREE.Mesh(GEO.post, MAT.steel), boom = new THREE.Mesh(GEO.boom, MAT.steel), cable = new THREE.Mesh(GEO.cable, MAT.cable), hook = new THREE.Mesh(GEO.hook, MAT.steel);
     const lamps = [new THREE.Mesh(GEO.lamp, MAT.amber), new THREE.Mesh(GEO.lamp, MAT.amber)];
-    g.add(post, boom, cable, hook, ...lamps);
+    g.add(...lamps);
     root.add(g);
-    return { g, post, boom, cable, hook, lamps };
+    return { g, lamps };
   }
   const drop = (gear) => { if (gear) gear.g.removeFromParent(); };
   const beacon = (lamps, on, off, now, phase = 0) => { const k = Math.floor(now / 1000 * SCENE.beacon_hz * 2 + phase) % 2; lamps[0].material = k ? on : off; lamps[1].material = k ? off : on; };
@@ -293,12 +290,8 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
         if (w && !w.gone) { w.gone = true; clear({ vehicles: [w.id], shop: mechanicNear(w) }); }
       }
     }
-    // The boom over the truck's tail, its cable to the wreck's near end, and the wreck drawn up.
-    const y = groundAt(t.x, t.z), tail = behind(t, D[2] / 2 - 0.5), tow = t.phase === "coming" ? towAt(0) : t.phase === "working" ? t.tow || towAt(0) : towAt(1);
-    G.post.position.set(tail.x, y + D[1] * 0.45, tail.z); G.post.rotation.y = t.yaw;
-    const top = y + D[1] * 0.45 + 1.1;
-    G.boom.position.set(tail.x, top, tail.z); G.boom.rotation.set(0, t.yaw, 0, "YXZ"); G.boom.rotation.x = -0.25 - 0.5 * (1 - tow.boom);
-    const tipBack = Math.cos(G.boom.rotation.x) * 2.6, tipUp = -Math.sin(G.boom.rotation.x) * 2.6, tip = behind(t, D[2] / 2 - 0.5 + tipBack), tipY = top + tipUp;
+    // The wreck's near end hooked onto the wheel lift at the truck's tail, lifted, and drawn up.
+    const y = groundAt(t.x, t.z), tow = t.phase === "coming" ? towAt(0) : t.phase === "working" ? t.tow || towAt(0) : towAt(1);
     if (w && t.phase !== "coming" && !w.gone) {
       // The wreck's end nearest the truck is the one hooked: lifted, and the car drawn up behind.
       // (Whichever end of it is towards the truck: one facing the other way is towed backwards.)
@@ -306,22 +299,11 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
       w.rev ??= Math.abs(shortTurn(w.yaw, t.yaw)) > Math.PI / 2;
       const end = w.rev ? -1 : 1, yawTo = t.yaw + (w.rev ? Math.PI : 0), k = tow.draw;
       w.pose = tow.hooked ? { x: w.x + (to.x - w.x) * k, z: w.z + (to.z - w.z) * k, yaw: w.yaw + shortTurn(w.yaw, yawTo) * k, pitch: end * 0.16 * tow.lift, lift: 0.34 * tow.lift } : null;
-      const wx = w.pose ? w.pose.x : w.x, wz = w.pose ? w.pose.z : w.z, wyaw = w.pose ? w.pose.yaw : w.yaw;
-      const nose = { x: wx - end * Math.sin(wyaw) * (WD[2] / 2 - 0.2), z: wz - end * Math.cos(wyaw) * (WD[2] / 2 - 0.2) };
-      const hy = groundAt(nose.x, nose.z) + 0.45 + (w.pose ? w.pose.lift : 0);
-      // (The cable: from the boom's tip toward the hook point by how far it has been run out.)
-      const hx = tip.x + (nose.x - tip.x) * tow.cable, hz = tip.z + (nose.z - tip.z) * tow.cable, hyy = tipY + (hy - tipY) * tow.cable;
-      const len = Math.hypot(hx - tip.x, hyy - tipY, hz - tip.z) || 0.01;
-      G.cable.visible = G.hook.visible = true;
-      G.cable.position.set(tip.x, tipY, tip.z); G.cable.scale.set(1, len, 1);
-      G.cable.quaternion.setFromUnitVectors(DOWN, V.set(hx - tip.x, hyy - tipY, hz - tip.z).normalize());
-      G.hook.position.set(hx, hyy - 0.08, hz); G.hook.rotation.y = t.yaw;
-    } else { G.cable.visible = G.hook.visible = false; }
+    }
     G.lamps.forEach((l, k) => { l.position.set(t.x + (k ? 0.4 : -0.4) * Math.cos(t.yaw) - Math.sin(t.yaw) * 0.2, y + D[1] + 0.06, t.z - (k ? 0.4 : -0.4) * Math.sin(t.yaw) - Math.cos(t.yaw) * 0.2); l.rotation.y = t.yaw; });
     beacon(G.lamps, MAT.amber, MAT.steel, now, 1);
     if (t.phase === "gone") { drop(t.gear); t.gear = null; }
   }
-  const DOWN = new THREE.Vector3(0, -1, 0), V = new THREE.Vector3();
   const shortTurn = (from, to) => ((to - from + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 
   // ---- each frame -------------------------------------------------------------------------------

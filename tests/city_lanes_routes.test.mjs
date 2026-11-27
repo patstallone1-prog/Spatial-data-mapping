@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { loadRules } from "../docs/city/core.mjs";
-import { City, Drivers, Roster, TRAFFIC, edgeKey, segOf } from "../docs/city/fleet.mjs";
+import { City, Drivers, Roster, TRAFFIC, edgeKey, laneDropAhead, segOf } from "../docs/city/fleet.mjs";
 import { LANE, LANE_CHOICE, Streets, alongRoute, chooseLane, laneOffset, placeFromBuilding, rng, turnAhead } from "../docs/city/people.mjs";
 import { BUS_KERB_M, busSide } from "../docs/city/transit.mjs";
 
@@ -176,4 +176,61 @@ test("everyone is a player of the city from the start: no Join the city to press
   assert.ok(VIEW.includes('const name = party.session?.me?.name || lib?.account?.()?.name || "You";'));
   assert.ok(VIEW.includes("alongRoute(route, r0.d, D.stateOf(r0.id)?.side || DRIVE_LANE)"));
   assert.ok(VIEW.includes("A rider at the end of the way rides on"));
+});
+
+test("a lane that ends is left before it ends: signalled, merged into a gap, never carried across; turns are signalled", () => {
+  // One one-way street, 600 m: two lanes for its first 300 m (no parking), one beyond (parking
+  // both sides: the census's block, as the paint lays it -- way.lane_blocks).
+  const pts = Array.from({ length: 11 }, (_, k) => [0, k * 60]);
+  const blocks = [{ from: 0, to: 300, sides: [], lanes: 2 }, { from: 300, to: 600, sides: [1, -1], lanes: 1 }];
+  const S = new Streets([{ kind: "street", pts, lanes: 2, oneway: 1, id: "narrows", highway: "secondary", road_m: 12, lane_blocks: blocks }]);
+  const route = S.route(S.nearest(0, 0, "drive"), S.nearest(0, 600, "drive"), "drive");
+  assert.ok(route, "a route along it");
+  const at = (d) => segOf(route, d);
+  assert.equal(laneDropAhead(route, at(200), 200).n, 1, "the lane ends ahead");
+  assert.ok(Math.abs(laneDropAhead(route, at(200), 200).at - 300) < 1);
+  assert.equal(laneDropAhead(route, at(320), 320), null);
+  const cars = [];
+  for (let k = 0; k < 8; k += 1) {
+    const t0 = k * 1.6, dur = route.length / 11, d0 = 5;
+    cars.push({ id: `m${k}`, key: `m${k}:1`, route, t0,
+      sched: (ts) => (ts < t0 ? 0 : d0 + Math.max(0, Math.min(1, (ts - t0) / dur)) * (route.length - d0)),
+      unsched: (d) => t0 + ((d - d0) / (route.length - d0)) * dur, limit: 12, cruise: 12, length: 4.6, width: 1.85 });
+  }
+  const D = new Drivers(S), dt = 0.05, signalledBefore = new Map(), past = new Map();
+  let worst = Infinity, last = null;
+  for (let t = 0; t < 160; t += dt) {
+    const res = D.step(dt, t, cars.filter((c) => t >= c.t0), []);
+    last = res;
+    const drawn = [];
+    for (const x of res.cars) {
+      const c = cars.find((y) => y.id === x.id), st = D.stateOf(x.id);
+      // Every other car starts in the lane that ends.
+      if (!st.forced && x.d < 30 && Number(c.id.slice(1)) % 2 === 0) { st.lane = st.from = 1; st.lt = 1; st.forced = true; }
+      if (st.signal === 1 && st.signalFor === "lane") signalledBefore.set(x.id, true);
+      if (x.d > 300 && !past.has(x.id)) past.set(x.id, { lane: Math.min(st.lane, st.lt < 1 ? st.from : st.lane), lt: st.lt });
+      if (x.arrived) continue;
+      const p = alongRoute(c.route, x.d, st.side);
+      drawn.push([-1.375, 0, 1.375].map((u) => [p.x - Math.sin(p.yaw) * u, p.z - Math.cos(p.yaw) * u]));
+    }
+    for (let i = 0; i < drawn.length; i += 1) for (let j = i + 1; j < drawn.length; j += 1) {
+      for (const p of drawn[i]) for (const q of drawn[j]) worst = Math.min(worst, Math.hypot(p[0] - q[0], p[1] - q[1]));
+    }
+  }
+  for (const id of ["m0", "m2", "m4", "m6"]) {
+    assert.ok(signalledBefore.get(id), `${id} signalled right before it merged`);
+    assert.equal(past.get(id)?.lane, 0, `${id} over in the lane that goes on before the end (${JSON.stringify(past.get(id))})`);
+  }
+  assert.ok(worst > 1.4, `two cars came ${worst.toFixed(2)} m apart`);
+  assert.equal(last.cars.filter((x) => x.arrived).length, cars.length, "every car got through");
+  // Turning left at the end of the block: the left signal on from TRAFFIC.signal_turn_m before it.
+  const A = avenues(), turnRoute = A.route(A.nearest(0, 0, "drive"), A.nearest(-0 + STEP, STEP, "drive"), "drive");
+  const one = [{ id: "t0", key: "t0:1", route: turnRoute, t0: 0, sched: (ts) => Math.min(turnRoute.length, 5 + ts * 10), unsched: (d) => (d - 5) / 10, limit: 12, cruise: 12, length: 4.6, width: 1.85 }];
+  const T2 = new Drivers(A), turnAt = turnRoute.s[1];
+  let shown = null;
+  for (let t = 0; t < 40; t += 0.05) {
+    const res = T2.step(0.05, t, one, []), x = res.cars[0], st = T2.stateOf("t0");
+    if (x && !x.arrived && x.d < turnAt && turnAt - x.d < TRAFFIC.signal_turn_m - 5 && turnAt - x.d > 10) shown = shown ?? st.signal;
+  }
+  assert.ok(shown === -1 || shown === 1, `a turn is signalled (${shown})`);
 });

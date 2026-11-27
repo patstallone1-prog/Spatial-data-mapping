@@ -253,6 +253,70 @@
     2.07,
     5.228
    ]
+  },
+  "promaster": {
+   "title": "Ram ProMaster 3500 high roof, 159-inch extended (the Opel Movano / Fiat Ducato body)",
+   "kind": "delivery_van",
+   "maker_dims": [
+    2.05,
+    2.52,
+    6.363
+   ],
+   "source": {
+    "site": "CGTrader",
+    "url": "https://www.cgtrader.com/free-3d-models/car/car/modern-delivery-van",
+    "author": "CharlotteUA",
+    "licence": "CGTrader Royalty Free License (no AI)",
+    "file": "Opel Movano Van .zip (Opel Movano Van L3H2 HQ Interior 2023.fbx)"
+   },
+   "popularity": {
+    "registrations_2024": null,
+    "segment": "full-size cargo vans",
+    "counted_as": "every delivery van and ambulance of the city (the one van drawn)"
+   },
+   "lods": {
+    "full": {
+     "file": "promaster-full.glb",
+     "bytes": 1291316,
+     "triangles": 90551,
+     "parts": {
+      "glass": 4999,
+      "lamp": 2905,
+      "tyre": 8776,
+      "interior": 19940,
+      "metal": 9955,
+      "body": 29991,
+      "trim": 13985
+     }
+    },
+    "npc": {
+     "file": "promaster-npc.glb",
+     "bytes": 90312,
+     "triangles": 11816,
+     "parts": {
+      "glass": 899,
+      "trim": 3724,
+      "tyre": 885,
+      "metal": 1316,
+      "body": 4992
+     }
+    },
+    "mid": {
+     "file": "promaster-mid.glb",
+     "bytes": 18304,
+     "triangles": 1668,
+     "parts": {
+      "glass": 160,
+      "trim": 313,
+      "body": 1195
+     }
+    }
+   },
+   "dims": [
+    2.493,
+    2.549,
+    6.364
+   ]
   }
  }
 }

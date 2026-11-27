@@ -30,7 +30,10 @@ def test_surfaces_made_in_play_are_compiled_off_the_page_before_they_are_drawn()
 
 def test_tile_builds_read_each_point_once_and_skip_far_bridge_cuts() -> None:
     tiles = _module("04")
-    assert "tileGroundMemo = new Map();" in tiles
+    assert "const memo = new Map();" in tiles and "tileGroundMemo = memo;" in tiles
+    # Built a piece at a time: the frame goes on between its layers and its lawns.
+    assert "await buildTile(tile, layers);" in tiles
+    assert "for (let k = 0; k < layers.lawns.length; k += TILE_LAWN_ROWS_A_PIECE)" in tiles
     ground = _module("03")
     assert "if(x<bridgeCutsBox[0]||x>bridgeCutsBox[2]||z<bridgeCutsBox[1]||z>bridgeCutsBox[3])return y;" in ground
 

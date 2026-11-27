@@ -2204,7 +2204,12 @@ export class City {
     if (spot.gateway) return { state: "away", hidden: true, last };
     if (spot.garage) return { state: "garage", hidden: true, spot };
     if (spot.indoors) return { state: "indoors", hidden: true, spot };
-    return { state: "parked", x: spot.x, z: spot.z, yaw: spot.yaw, moving: false, spot, lock: spot.lock || null };
+    // (Parked where it was last time asked: the same answer, not a new one -- every parked car in
+    // the district was a new object each scan, most of them thrown away at once as out of reach.
+    // The answer is read, never changed.)
+    const kept = v._parkedAt;
+    if (kept && kept.spot === spot && kept.lock === (spot.lock || null) && kept.x === spot.x && kept.z === spot.z && kept.yaw === spot.yaw) return kept;
+    return (v._parkedAt = { state: "parked", x: spot.x, z: spot.z, yaw: spot.yaw, moving: false, spot, lock: spot.lock || null });
   }
   //: Where along its leg a car is at fraction ``f`` of it, in its lane.
   onLeg(leg, d) {
@@ -2384,6 +2389,12 @@ export const TRAFFIC = { accel: 2.2, brake: 3.2, emergency: 8.5, reaction_s: 0.6
   // ``clear_speed`` (through whatever holds it: a jam must not lock the junction). Cars within
   // ``predict_r_m`` look ``predict_s`` ahead along both their routes; where they would meet, the
   // one in front is moved on for ``push_s`` at ``push_speed`` at least.
+  // Signals (2026-11-27): a car shows which way it is going over for ``signal_lead_s`` before it
+  // starts across, and from ``signal_turn_m`` before a turn. A lane that ends within
+  // ``merge_look_m`` (the street narrows: parking begins, a lane drops at a junction) is left
+  // before it ends -- the car signals, eases off and waits for a gap, and short of the end stops
+  // rather than be carried into the next lane; after ``merge_wait_s`` waiting it takes a tighter gap.
+  signal_lead_s: 1.2, signal_turn_m: 40, merge_look_m: 120, merge_wait_s: 5,
   lane_change_s: 2.5, box_clear_s: 5, clear_speed: 3, predict_r_m: 9, predict_s: [0.5, 1, 1.5], push_s: 1.2, push_speed: 3,
   // Going round (after the steering behaviours of Godot's and GDQuest's toolkits: arrive, avoid):
   // what stands in the lane -- someone, a crashed car, your car -- for ``dodge_after_s`` is gone
@@ -2430,6 +2441,21 @@ export function edgeKey(route, i) {
 }
 // A fresh alongRoute point with its car on it (alongRoute makes a new one each call: no copy).
 const withCar = (p, c) => { p.c = c; return p; };
+//: The nearest point within ``look`` metres ahead of ``d`` on ``route`` (from segment ``i``) where it
+//: has fewer lanes than here, as the paint has them (way.lane_blocks: parking beginning, a lane
+//: dropped at a junction): { n (the lanes after), at (the distance along the route), dist }. A
+//: turn ahead ends the look: past it is another street, whose lanes are turned into, not merged.
+export function laneDropAhead(route, i, d, look = TRAFFIC.merge_look_m) {
+  const plan = lanePlan(route);
+  if (!plan) return null;
+  const n = laneCount(route, i), s = route.s;
+  for (let v = i + 1; v < route.pts.length - 1 && s[v] - d < look; v += 1) {
+    if (plan.turn[v]) return null;
+    const m = laneCount(route, v);
+    if (m < n) return { n: m, at: s[v], dist: s[v] - d };
+  }
+  return null;
+}
 //: A car's own side of the street (for alongRoute): the lane it is in, or on its way across to
 //: the next over (``lt`` 0..1), eased.
 export function laneSide(st) {
@@ -2825,11 +2851,19 @@ export class Drivers {
       if (st.lt < 1) st.lt = Math.min(1, st.lt + (dt / T.lane_change_s) * (st.v < 0.3 ? 0 : Math.min(1, st.v / 2)));
       else if (tsec >= st.nextLook && !(J && st.d > J.s - J.box - c.length / 2 - 6)) {
         st.nextLook = tsec + 1;
-        if (!dodging && !c.bike) this.pickLane(c, st, lanesOn, blockers, people);
+        if (!dodging && !c.bike) this.pickLane(c, st, lanesOn, blockers, people, tsec);
         if (!c.bike) this.lookAhead(c, st, lanesOn, tsec);
       }
       // Waiting for a gap to get over (into the lane for its turn): eased off, to let one by.
       if (st.waiting) target = Math.min(target, limit * 0.7);
+      // Its lane ending ahead and not over yet: slowed to stop short of the end, not carried on
+      // into the next lane at speed.
+      if (st.mergeEnd !== null && st.mergeEnd !== undefined) {
+        if (st.lane <= st.mergeTo || st.d > st.mergeEnd) st.mergeEnd = null;
+        else target = Math.min(target, Math.sqrt(2 * T.brake * Math.max(0, st.mergeEnd - st.d - c.length / 2 - 1)));
+      }
+      // Over in its new lane: the signal off (a turn's stays on until the turn).
+      if (st.signal && st.signalFor === "lane" && st.lt >= 1 && st.lane === st.signalTo) st.signal = 0;
       // Stood at the kerb at the start of its trip: out when its lane is clear beside it and
       // nobody is coming up it (two and a half seconds off, or more) -- and after a while, anyway.
       if (st.startHold) {
@@ -3488,7 +3522,7 @@ export class Drivers {
       { const p = withCar(alongRoute(c.route, st.d, st.side), c); p.body = bodies(p, c.length, c.width || 1.9); unplace(c.id, here); pos.set(c.id, p); place(c.id, p); }
       const delay = tsec - c.unsched(st.d);
       this.delays.set(c.key, delay);
-      out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake, route: st.route, behind: delay, held: st.pedT || 0 });
+      out.push({ id: c.id, d: st.d, v: st.v, reason, braking: st.v < target - 0.01 || decel > T.brake, route: st.route, behind: delay, held: st.pedT || 0, signal: st.signal || 0 });
     }
     // Gone from sight: their state goes, their delay is kept (a few thousand at most).
     for (const id of this.cars.keys()) if (!seen.has(id)) this.cars.delete(id);
@@ -3502,8 +3536,16 @@ export class Drivers {
   }
   //: The lane a car takes on the block it is on (people.mjs chooseLane): for the turn to come,
   //: and the least crowded; one lane over at a time, and only into a gap there.
-  pickLane(c, st, lanesOn, blockers = [], people = []) {
-    const route = c.route, i = segOf(route, st.d), n = laneCount(route, i);
+  pickLane(c, st, lanesOn, blockers = [], people = [], tsec = 0) {
+    const route = c.route, i = segOf(route, st.d), n = laneCount(route, i), T = this.T;
+    const turn = turnAhead(route, i, (node) => junctionAt(this.streets, node) !== null);
+    // The turn coming up, signalled from signal_turn_m before it (and the lane change that is
+    // under way left to finish signalling first).
+    const toTurn = turn ? turn.dist + route.s[i + 1] - st.d : Infinity;
+    if (!(st.signal && st.signalFor === "lane")) {
+      if (turn && toTurn < T.signal_turn_m) { st.signal = turn.side < 0 ? -1 : 1; st.signalFor = "turn"; }
+      else if (st.signalFor === "turn") { st.signal = 0; st.signalFor = null; }
+    }
     if (n <= 1) { st.lane = st.from = 0; return; }
     const cur = Math.min(st.lane, n - 1), here = st.d - route.s[i], others = lanesOn.get(edgeKey(route, i)) || [];
     const crowd = new Array(n).fill(0);
@@ -3530,19 +3572,38 @@ export class Drivers {
       if (along < 2 || along > 60) continue;
       for (let k = 0; k < n; k += 1) if (Math.abs(laneOffset(half, cls, park, i, route, k) - off) < 1.5) crowd[k] += 4;
     }
-    const turn = turnAhead(route, i, (node) => junctionAt(this.streets, node) !== null);
-    const want = chooseLane({ n, cur, turn, crowd });
+    // A lane that ends ahead: never moved into, and left before it ends (merge_look_m).
+    const drop = laneDropAhead(route, i, st.d, T.merge_look_m);
+    if (drop) for (let k = drop.n; k < n; k += 1) crowd[k] += 6;
+    let want = chooseLane({ n, cur, turn, crowd });
+    if (drop && want > drop.n - 1) want = drop.n - 1;
+    const merging = Boolean(drop && cur > drop.n - 1);
+    if (merging) { st.mergeEnd = drop.at; st.mergeTo = drop.n - 1; st.mergeSince ??= tsec; } else { st.mergeEnd = null; st.mergeSince = null; }
     st.waiting = false;
-    if (want === cur) { st.lane = st.from = cur; return; }
+    if (want === cur) {
+      st.lane = st.from = cur;
+      if (st.signalFor === "lane") { st.signal = 0; st.signalFor = null; }
+      return;
+    }
     const next = cur + Math.sign(want - cur);
+    // Signalled first: the lanes are counted from the kerb, so a higher one is to the left.
+    const dir = next > cur ? -1 : 1;
+    if (st.signal !== dir || st.signalFor !== "lane" || st.signalTo !== next) { st.signal = dir; st.signalFor = "lane"; st.signalTo = next; st.signalSince = tsec; }
+    if (tsec - (st.signalSince ?? tsec) < T.signal_lead_s) {
+      st.waiting = merging || Boolean(turn && (turn.blocks === 0 || turn.dist < 90));
+      return;
+    }
+    // (Waited long at the end of its lane: a tighter gap is taken, as the queue beside lets it in.)
+    const tight = merging && tsec - st.mergeSince > T.merge_wait_s;
     for (const o of others) {
       if (o.id === c.id || (o.lane !== next && o.from !== next)) continue;
       const gap = o.along - here;
       // (Room behind for the one coming up that lane to slow to this car's speed: pulling out at
       // a crawl in front of one doing 25 mph, a second ahead of it, it was driven into.)
-      const closing = Math.max(0, o.v * o.v - st.v * st.v) / (2 * this.T.brake);
-      if (gap > -((c.length + o.length) / 2 + 2 + o.v + closing) && gap < (c.length + o.length) / 2 + 3) {
-        st.waiting = Boolean(turn && (turn.blocks === 0 || turn.dist < 90));
+      const closing = Math.max(0, o.v * o.v - st.v * st.v) / (2 * T.brake);
+      const behindRoom = tight ? (c.length + o.length) / 2 + 1 + o.v * 0.5 : (c.length + o.length) / 2 + 2 + o.v + closing;
+      if (gap > -behindRoom && gap < (c.length + o.length) / 2 + (tight ? 1 : 3)) {
+        st.waiting = merging || Boolean(turn && (turn.blocks === 0 || turn.dist < 90));
         return;
       }
     }
