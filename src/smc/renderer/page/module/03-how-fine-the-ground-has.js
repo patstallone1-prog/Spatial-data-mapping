@@ -970,9 +970,18 @@ const INLAND_WATER_ABOVE_SEA_M = 1.5;
 //: 3DEP ground at 10 m smooths a road cut away, so the Golden Gate's road ran on into the hill
 //: north of the span. Segments {ax, az, ay, bx, bz, by, half, box}, in the atlas's heights.
 var BRIDGE_CUTS;
+//: The box round all of them, so a point nowhere near a bridge (nearly every one) asks no cut:
+//: every ground read looped over every cut, a tenth of a tile build (2026-11-27).
+var bridgeCutsBox = null, bridgeCutsBoxOf = -1;
 function bridgeCutHeight(x,z,y) {
   if(!BRIDGE_CUTS)return y;
-  for(const c of BRIDGE_CUTS){
+  if(bridgeCutsBoxOf!==BRIDGE_CUTS.length){
+    bridgeCutsBox=[Infinity,Infinity,-Infinity,-Infinity];
+    for(const c of BRIDGE_CUTS){bridgeCutsBox[0]=Math.min(bridgeCutsBox[0],c.box[0]);bridgeCutsBox[1]=Math.min(bridgeCutsBox[1],c.box[1]);bridgeCutsBox[2]=Math.max(bridgeCutsBox[2],c.box[2]);bridgeCutsBox[3]=Math.max(bridgeCutsBox[3],c.box[3]);}
+    bridgeCutsBoxOf=BRIDGE_CUTS.length;
+  }
+  if(x<bridgeCutsBox[0]||x>bridgeCutsBox[2]||z<bridgeCutsBox[1]||z>bridgeCutsBox[3])return y;
+  for(let i=0;i<BRIDGE_CUTS.length;i+=1){const c=BRIDGE_CUTS[i];
     if(x<c.box[0]||x>c.box[2]||z<c.box[1]||z>c.box[3])continue;
     const dx=c.bx-c.ax,dz=c.bz-c.az,L=dx*dx+dz*dz,t=L?Math.max(0,Math.min(1,((x-c.ax)*dx+(z-c.az)*dz)/L)):0;
     const d=Math.hypot(x-c.ax-dx*t,z-c.az-dz*t),limit=c.ay+(c.by-c.ay)*t-.35+Math.max(0,d-c.half-2)*.9;

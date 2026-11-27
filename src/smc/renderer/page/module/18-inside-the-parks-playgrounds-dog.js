@@ -1672,13 +1672,31 @@ const CURB_RETURN_WINDOW_M = 3;
 //: How near a corner square's outline a measured kerb point counts as on it.
 const CURB_ON_SQUARE_M = 0.35;
 // Inside the ring, or within ``slack`` of one of its sides.
+// (Called for every person's feet every frame through pavementSurfaceAt: no array destructuring
+// -- it built an iterator a point, 94 MB a second of garbage -- no Math.hypot, and a ring's box
+// (kept on the ring) turns away a point nowhere near it before its sides are walked.)
 function nearRing(ring, x, z, slack) {
+  let box = ring._box;
+  if (!box) {
+    let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+    for (let i = 0; i < ring.length; i += 1) {
+      const p = ring[i];
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < z0) z0 = p[1]; if (p[1] > z1) z1 = p[1];
+    }
+    box = ring._box = [x0, z0, x1, z1];
+  }
+  const reach = slack > 0 ? slack : 0;
+  if (x < box[0] - reach || x > box[2] + reach || z < box[1] - reach || z > box[3] + reach) return false;
+  const slack2 = reach * reach;
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
-    const [ax, az] = ring[j], [bx, bz] = ring[i];
+    const a = ring[j], b = ring[i], ax = a[0], az = a[1], bx = b[0], bz = b[1];
     if ((az > z) !== (bz > z) && x < (bx - ax) * (z - az) / ((bz - az) || 1e-9) + ax) inside = !inside;
-    const ex = bx - ax, ez = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / ((ex * ex + ez * ez) || 1)));
-    if (Math.hypot(ax + ex * t - x, az + ez * t - z) < slack) return true;
+    if (slack2 > 0) {
+      const ex = bx - ax, ez = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / ((ex * ex + ez * ez) || 1)));
+      const dx = ax + ex * t - x, dz = az + ez * t - z;
+      if (dx * dx + dz * dz < slack2) return true;
+    }
   }
   return inside;
 }

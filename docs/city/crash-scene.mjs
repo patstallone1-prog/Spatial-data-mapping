@@ -377,6 +377,8 @@ export function crashScenes({ THREE, group, groundAt, streets, traffic, focus, u
 
   return {
     wreck, casualty, step,
+    //: Every material the scenes draw with (view.mjs readies their shaders while the city warms up).
+    materials: Object.values(MAT),
     //: The response vehicles on the street now, for the page to draw and the traffic to see.
     vehicles() { const out = []; for (const s of scenes) { if (s.cleared) continue; if (s.ambulance && s.ambulance.route && s.ambulance.phase !== "gone") out.push(s.ambulance); for (const t of s.trucks) if (t.phase !== "gone") out.push(t); } return out; },
     //: A wreck's place while a truck has it (drawn up behind the truck, its end lifted), or null.

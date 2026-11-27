@@ -684,6 +684,8 @@ export function createPolice(api) {
   }
   return {
     crime, speeding, personFrame, frame, vehicles, people, drawBars, placeCuffs, arrestNow, dispatch,
+    //: A light bar put in ``into`` (view.mjs draws it out of sight once, so its shaders are ready).
+    rehearse: (into) => into.add(barMesh()),
     hidden: (id) => hidden.has(id),
     get locked() { return Boolean(arrest && arrest.stop && arrest.stop.step !== "out"); },
     get pose() { return pose; },

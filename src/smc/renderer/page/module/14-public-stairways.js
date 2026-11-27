@@ -44,18 +44,30 @@ function indexPublicStairs(flights) {
     for (let i = 1; i < xs.length; i += 1) {
       const key = `${Math.floor(xs[i] / STAIR_CELL_M)}:${Math.floor(zs[i] / STAIR_CELL_M)}`;
       if (!publicStairGrid.has(key)) publicStairGrid.set(key, []);
+      if (typeof publicStairNear !== "undefined" && publicStairNear) publicStairNear.clear();
       const bucket = publicStairGrid.get(key);
       if (bucket[bucket.length - 1] !== stair) bucket.push(stair);
     }
   }
 }
 //: The tread of a public flight under (x, z), or null.
+//: The stairs in a cell and the eight round it, by the cell's number, gathered once (publicStairAt
+//: is asked for every person's and every leaf's feet each frame: a Set and nine strings a call).
+var publicStairNear = new Map();
 function publicStairAt(x, z) {
+  if (!publicStairGrid.size) return null;
   // The centreline's cell does not own the whole tread width at cell boundaries.
-  const bucket=new Set();
-  for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)
-    for(const stair of publicStairGrid.get(`${Math.floor(x/STAIR_CELL_M)+dx}:${Math.floor(z/STAIR_CELL_M)+dz}`)||[])bucket.add(stair);
-  if (!bucket.size) return null;
+  const cx = Math.floor(x / STAIR_CELL_M), cz = Math.floor(z / STAIR_CELL_M), key = cx * 1048576 + cz;
+  let bucket = publicStairNear.get(key);
+  if (bucket === undefined) {
+    const found = new Set();
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++)
+      for(const stair of publicStairGrid.get(`${cx+dx}:${cz+dz}`)||[])found.add(stair);
+    bucket = found.size ? [...found] : null;
+    if (publicStairNear.size > 50000) publicStairNear.clear();
+    publicStairNear.set(key, bucket);
+  }
+  if (!bucket) return null;
   let best = null, bestD2 = Infinity;
   for (const stair of bucket) {
     const { xs, zs, q, half } = stair;
