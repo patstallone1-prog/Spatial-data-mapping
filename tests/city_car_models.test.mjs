@@ -55,7 +55,7 @@ test("the bought-in models are most of the street, in California's order, the re
   const N = 40000, counts = {};
   for (let i = 0; i < N; i += 1) {
     const shade = (i * 0.6180339887 + 0.137) % 1;
-    for (const kind of ["sedan", "suv", "pickup", "economy", "compact_ev"]) {
+    for (const kind of ["sedan", "suv", "pickup", "economy", "compact_ev", "delivery_van", "tow_truck"]) {
       const b = bodyOf(kind, shade), key = `${kind}:${b.source}:${b.id}`;
       counts[key] = (counts[key] || 0) + 1;
     }
@@ -69,7 +69,12 @@ test("the bought-in models are most of the street, in California's order, the re
   assert.ok(counts["suv:fleet:jeep"] / N > 0.5);
   assert.ok(counts["economy:fleet:cuore"] / N > 0.6);
   for (const v of KENNEY_FOR.sedan) assert.ok(counts[`sedan:kit:${v}`] / N > 0.08, `sedan ${v}`);
-  assert.ok(counts["pickup:kit:truck"] / N > 0.2);
+  // No kit van or truck on the street (2026-11-27): every pickup and tow truck the Frontier, every
+  // delivery van the ProMaster.
+  assert.equal(counts["pickup:car:frontier"], N);
+  assert.equal(counts["tow_truck:car:frontier"], N);
+  assert.equal(counts["delivery_van:car:promaster"], N);
+  for (const kind of ["pickup", "delivery_van", "box_truck", "tow_truck"]) assert.equal(KENNEY_FOR[kind], undefined, kind);
   // The same car the same body, whatever the tier or the visit.
   assert.deepEqual(bodyOf("sedan", 0.4242), bodyOf("sedan", 0.4242));
   assert.equal(bodyOf("sedan", 0).id, "civic", "a car of yours (number 0) is the commonest model");

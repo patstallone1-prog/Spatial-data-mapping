@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {test} from "node:test";
 import {loadRules} from "../docs/city/core.mjs";
 import {restaurantService,planRestaurant,canWalkRestaurant,fittedKitchenFixtures} from "../docs/city/restaurant-room.mjs";
-import {kenneyVariant,FLEET_FOR,KENNEY_FOR} from "../docs/city/vehicles.mjs";
+import {kenneyVariant,FLEET_FOR,KENNEY_FOR,BODY_MIX} from "../docs/city/vehicles.mjs";
 
 const R=loadRules(JSON.parse(readFileSync(new URL("../docs/city/rules.json",import.meta.url))));
 test("menu pricing, counter service, source windows and available floor space change the dining room",()=>{
@@ -50,7 +50,7 @@ test("an existing fitted restaurant keeps its fixture positions and separates co
   assert.ok(fixtures[0].stations.includes("stove"));
 });
 test("every serviceable car has a city import, and the two sedan variants follow the street fleet's shade",()=>{
-  for(const model of Object.keys(R.vehicles.models))assert.ok(FLEET_FOR[model] || KENNEY_FOR[model]);
+  for(const model of Object.keys(R.vehicles.models))assert.ok(FLEET_FOR[model] || KENNEY_FOR[model] || BODY_MIX[model]);
   assert.equal(kenneyVariant("sedan",0),"sedan");assert.equal(kenneyVariant("sedan",.5/997+1/997),"sedan-sports");
 });
 

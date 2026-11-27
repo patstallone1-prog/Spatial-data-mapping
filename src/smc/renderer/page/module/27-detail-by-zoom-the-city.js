@@ -476,8 +476,8 @@ function compileGateFresh(object) {
   });
   return fresh;
 }
-function compileGateAdd(object) {
-  if (!renderer.compileAsync || !compileGateFresh(object)) return;
+function compileGateAdd(object, changed = false) {
+  if (!renderer.compileAsync || !(changed || compileGateFresh(object))) return;
   const masks = [];
   object.traverse((o) => {
     if (compileGateHeld.has(o)) return;
@@ -498,6 +498,26 @@ function compileGateAdd(object) {
   } catch (error) { job.ready = true; }
   compileGateJobs.push(job);
 }
+//: Materials given a new shader after they were first drawn (patchMaterial, module 02): the
+//: objects drawing them are found on the next frame and held back as anything new is.
+var compileGateRecheck = null;
+function compileGateMaterial(material) {
+  if (typeof renderer === "undefined" || !renderer.compileAsync || !renderer.properties.get(material).currentProgram) return;
+  (compileGateRecheck ||= new Set()).add(material);
+}
+function compileGateRechecked() {
+  // (Before the frame is drawn, or it would compile them there: the scene looked through only on
+  // a frame after one was patched -- a house's glass made real, its windows lit.)
+  if (!compileGateRecheck?.size) return;
+  const changed = compileGateRecheck, users = [];
+  compileGateRecheck = null;
+  scene.traverse((o) => {
+    if (!o.material || compileGateHeld.has(o)) return;
+    const list = Array.isArray(o.material) ? o.material : [o.material];
+    if (list.some((m) => changed.has(m))) users.push(o);
+  });
+  for (const o of users) compileGateAdd(o, true);
+}
 var compileGateObjectAdd = THREE.Object3D.prototype.add;
 THREE.Object3D.prototype.add = function (...objects) {
   const out = compileGateObjectAdd.apply(this, objects);
@@ -506,7 +526,9 @@ THREE.Object3D.prototype.add = function (...objects) {
 };
 window.kerbsideCompileGate = () => ({ ...compileGateStats, waiting: compileGateJobs.length });
 function runCompileGate() {
-  if (typeof compileGateJobs === "undefined" || !compileGateJobs?.length) return;
+  if (typeof compileGateJobs === "undefined") return;
+  compileGateRechecked();
+  if (!compileGateJobs.length) return;
   const now = performance.now();
   const due = compileGateJobs.filter((j) => j.ready || now - j.at > COMPILE_GATE_MAX_MS);
   if (!due.length) return;

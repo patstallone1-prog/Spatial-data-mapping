@@ -823,7 +823,7 @@ async function loadTile(tile) {
     if (!response.ok) throw new Error(`tile ${tile.id} ${name} ${response.status}`);
     layers[name] = await response.json();
   }));
-  buildTile(tile, layers);
+  await buildTile(tile, layers);
   tile.state = "cpu";
   // What the tile holds once built, beside what it was to fetch (tile.bytes, the JSON's size,
   // which the eviction budget counts): the geometry is twenty to forty times that, and the
@@ -885,11 +885,23 @@ function addTileMeshes(group, meshes) {
   if (meshes.length) group.add(...meshes);
 }
 
-function buildTile(tile, layers) {
-  tileGroundMemo = new Map();
-  try { buildTileNow(tile, layers); } finally { tileGroundMemo = null; }
+//: A tile is built a piece at a time (2026-11-27): built whole, one tile held the frame 0.3-1.5 s
+//: while the walker crossed into new ground -- most of it its lawns, then its ground read under
+//: every vertex. Between pieces the frame goes on (yieldFrame, once the slice's budget is used);
+//: its ground memo is its own, set again each time it resumes.
+async function buildTile(tile, layers) {
+  const memo = new Map();
+  tileGroundMemo = memo;
+  const slice = async () => {
+    if (performance.now() - lastYieldAt < sliceBudget()) return;
+    tileGroundMemo = null;
+    try { await yieldFrame(); } finally { tileGroundMemo = memo; }
+  };
+  try { await buildTileNow(tile, layers, slice); } finally { tileGroundMemo = null; }
 }
-function buildTileNow(tile, layers) {
+//: Lawn rings to a mesh at a time, so a park's hundreds of rings are not one frame's work.
+const TILE_LAWN_ROWS_A_PIECE = 48;
+async function buildTileNow(tile, layers, slice = async () => {}) {
   const group = new THREE.Group();
   group.name = `tile:${tile.id}`;
   const f = tileFrame(tile);
@@ -920,8 +932,13 @@ function buildTileNow(tile, layers) {
   for(const material of tile.materials)applyBoxClip({traverse:visit=>visit({material})},
     material===materials.buildings || material===materials.massing ? tileBuildingBox : tileDetailBox,true);
   if (layers.massing) addTileMeshes(group, tileMassing(layers.massing, f, lonOf, latOf, materials.massing));
+  await slice();
   if (layers.buildings) addTileMeshes(group, tileBuildings(layers.buildings, f, lonOf, latOf, materials.buildings));
-  if (layers.lawns) addTileMeshes(group, tileLawns(layers.lawns, f, materials.lawns));
+  await slice();
+  if (layers.lawns) for (let k = 0; k < layers.lawns.length; k += TILE_LAWN_ROWS_A_PIECE) {
+    addTileMeshes(group, tileLawns(layers.lawns.slice(k, k + TILE_LAWN_ROWS_A_PIECE), f, materials.lawns));
+    await slice();
+  }
   // The street, from the outside in: carriageway and footways.  Crossings are not a wide road
   // ribbon: their resolved style becomes either repeated continental bars or two parallel lines,
   // plus the same full rectangular yellow warning fields used by the near-region renderer.
@@ -930,6 +947,7 @@ function buildTileNow(tile, layers) {
                                           ["carriageway", materials.roads, TILE_ROAD_Y],
                                           ["pavement", materials.pavement, TILE_WALK_Y]]) {
     if (layers[name]) addTileMeshes(group, tileRoads(layers[name], f, lonOf, latOf, material, height));
+    await slice();
   }
   if (layers.crossings_continental) {
     addTileMeshes(group, tileCrossings(layers.crossings_continental, "continental", f, lonOf, latOf,
@@ -946,14 +964,17 @@ function buildTileNow(tile, layers) {
   // Deeper tiles draw after shallower ones, so a parent fading out lies over its children
   // rather than fighting them for the depth buffer while it goes.
   group.renderOrder = tile.depth;
-  group.traverse((o) => { if (o.isMesh) {
+  const meshes = [];
+  group.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  for (const o of meshes) {
     o.userData.surface = "tile"; o.userData.liftedOntoGround = true; o.renderOrder = tile.depth;
     if(typeof NATURE!=="undefined"&&NATURE&&!o.isInstancedMesh&&!o.userData.natureBuildings) {
       const p=o.geometry.getAttribute("position"),base=new Float32Array(p.count);
       for(let i=0;i<p.count;i++)base[i]=tileGroundAt(p.getX(i),p.getZ(i));
       o.userData.natureBases=base;
+      await slice();
     }
-  } });
+  }
   tile.group = group;
   // In the headset a tile is plain before it is first drawn (headsetSimplify), not a pass later.
   if (HEADSET) headsetSimplify(group);

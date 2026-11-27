@@ -2,7 +2,10 @@
 //
 //   node scripts/build_city_cars.mjs --raw <folder of scripts/blender_city_cars.py's output> \
 //        --modules <a folder with node_modules/@gltf-transform/*, meshoptimizer and sharp> \
-//        [--fleet docs/city/models/fleet]
+//        [--fleet docs/city/models/fleet] [--only <id>,<id>]
+//
+// (--only: just those cars, from their own raw files; the rest of cars.json is kept as it is --
+// the other cars' downloads are not kept.)
 //
 // (The tools are not the repository's own: as for scripts/build_city_fleet.mjs, install them in a
 // scratch folder -- npm install @gltf-transform/core@4.1.1 @gltf-transform/extensions@4.1.1
@@ -139,8 +142,11 @@ function simplified(g, target, error) {
   return { pos, nor, col, idx: out };
 }
 
+const only = args.only ? new Set(String(args.only).split(",")) : null;
+const kept = only && existsSync(join(OUT, "cars.json")) ? JSON.parse(readFileSync(join(OUT, "cars.json"), "utf8")).cars : {};
 const cars = {};
 for (const [id, car] of Object.entries(CONFIG.cars)) {
+  if (only && !only.has(id)) { if (kept[id]) cars[id] = kept[id]; continue; }
   const record = { title: car.title, kind: car.kind, maker_dims: car.dims, source: car.source, popularity: car.popularity, lods: {} };
   for (const lod of ["full", "npc", "mid"]) {
     const src = join(resolve(args.raw), `${id}-${lod}.raw.glb`);
@@ -149,8 +155,12 @@ for (const [id, car] of Object.entries(CONFIG.cars)) {
     const tris = {};
     let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
     for (const [part, raw] of parts) {
-      const budget = lod === "full" ? Infinity : (MERGED[lod][part] || [part]).reduce((s, p) => s + (CONFIG.budgets[lod][p] || 0), 0);
-      const g = raw.idx.length / 3 > budget ? simplified(raw, budget, ERROR[lod]) : raw;
+      // (The full file is Blender's to cut to its budgets; a part Blender could not -- the
+      // Movano's tyres, thousands of separate tread blocks, left at six times theirs -- is
+      // simplified here as the coarse files are.)
+      const fullBudget = CONFIG.budgets.full[part] || CONFIG.budgets.full.trim;
+      const budget = lod === "full" ? (raw.idx.length / 3 > fullBudget * 1.5 ? fullBudget : Infinity) : (MERGED[lod][part] || [part]).reduce((s, p) => s + (CONFIG.budgets[lod][p] || 0), 0);
+      const g = raw.idx.length / 3 > budget ? simplified(raw, budget, ERROR[lod] ?? ERROR.npc) : raw;
       if (!g.idx.length) continue;
       tris[part] = g.idx.length / 3;
       for (let i = 0; i < g.pos.length; i += 3) for (let a = 0; a < 3; a += 1) { lo[a] = Math.min(lo[a], g.pos[i + a]); hi[a] = Math.max(hi[a], g.pos[i + a]); }

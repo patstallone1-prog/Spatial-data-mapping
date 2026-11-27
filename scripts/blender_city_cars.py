@@ -70,18 +70,59 @@ for o in list(scene.objects):
         bpy.data.objects.remove(o, do_unlink=True)
 meshes = [o for o in scene.objects if o.type == "MESH"]
 # Modifiers (a mirror, a subdivision) applied, then every object's own transform, so the
-# coordinates below are the world's.
-bpy.ops.object.select_all(action="DESELECT")
-for o in meshes:
-    o.select_set(True)
-bpy.context.view_layer.objects.active = meshes[0]
-bpy.ops.object.convert(target="MESH")
-bpy.ops.object.select_all(action="SELECT")
-bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
-meshes = [o for o in scene.objects if o.type == "MESH"]
+# coordinates below are the world's. (Done to each mesh's own data, not by selecting: a download
+# whose pieces cannot be selected -- the Movano's doors -- kept their centimetres and their
+# parent's turn, and the van came out fifteen metres tall.)
+# (Only what has modifiers is converted: converting the Movano's pieces lost their parent's
+# turn and scale.)
+world = {o.name: o.matrix_world.copy() for o in meshes}
+modified = [o for o in meshes if o.modifiers]
+if modified:
+    for o in scene.objects:
+        o.hide_select = False
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in modified:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = modified[0]
+    bpy.ops.object.convert(target="MESH")
+    meshes = [o for o in scene.objects if o.type == "MESH"]
+    for o in meshes:
+        world.setdefault(o.name, o.matrix_world.copy())
 for o in meshes:
     o.data = o.data.copy()  # (instanced data: each object its own, so its transform can be applied)
-bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    m = world[o.name]
+    o.parent = None
+    o.data.transform(m)
+    if m.determinant() < 0:
+        o.data.flip_normals()
+    o.matrix_world = mathutils.Matrix.Identity(4)
+
+# ---- doors modelled open, swung shut ------------------------------------------------------------------
+# A van sold with its back doors swung right round (``open_doors``: each a box, in the download's
+# own frame, round the open door's pieces -- each object whose middle is in it -- and the angle it
+# stands open): turned back about its hinge, which is half way out to the open door's outer edge
+# (the doors meet in the middle), on the line between the door's front and back.
+for fold in CAR.get("open_doors", []):
+    x0, y0, x1, y1 = fold["box"]
+    group = []
+    for o in meshes:
+        n = len(o.data.vertices)
+        if not n:
+            continue
+        c = sum((v.co for v in o.data.vertices), mathutils.Vector()) / n
+        if x0 <= c.x <= x1 and y0 <= c.y <= y1:
+            group.append(o)
+    if not group:
+        print("open_doors: nothing in", fold["box"])
+        continue
+    xs = [v.co.x for o in group for v in o.data.vertices]
+    ys = [v.co.y for o in group for v in o.data.vertices]
+    px, py = max(xs, key=abs) / 2, (min(ys) + max(ys)) / 2
+    shut = (mathutils.Matrix.Translation((px, py, 0)) @ mathutils.Matrix.Rotation(math.radians(fold.get("deg", 180)), 4, "Z")
+            @ mathutils.Matrix.Translation((-px, -py, 0)))
+    for o in group:
+        o.data.transform(shut)
+    print("open_doors:", len(group), "pieces shut about", round(px, 3), round(py, 3))
 
 
 # ---- one object per part -------------------------------------------------------------------------
@@ -318,11 +359,13 @@ for lod in ("full", "npc", "mid"):
             bm.to_mesh(o.data)
             bm.free()
             have = tris(o)
-        if lod != "full":
-            # What a coarse file cannot show is left out before it is simplified: the loose bits
-            # smaller than ``islands_m`` (bolts, clips, a switch), which the collapse below would
-            # otherwise stretch into slivers to keep.
-            smallest = CONFIG["islands_m"][lod]
+        # What a coarse file cannot show is left out before it is simplified: the loose bits
+        # smaller than ``islands_m`` (bolts, clips, a switch), which the collapse below would
+        # otherwise stretch into slivers to keep. In the full file only a car's own
+        # ``full_islands_m`` for a part (the Movano's tyre tread, thousands of separate blocks no
+        # collapse can merge: 36,000 triangles left of a 6,000 budget).
+        smallest = CONFIG["islands_m"][lod] if lod != "full" else CAR.get("full_islands_m", {}).get(part)
+        if smallest:
             bm = bmesh.new()
             bm.from_mesh(o.data)
             bm.faces.ensure_lookup_table()
@@ -360,13 +403,28 @@ for lod in ("full", "npc", "mid"):
         # The coarse files are simplified by scripts/build_city_cars.mjs (meshoptimizer's
         # error-bounded collapse: Blender's, pressed to a few thousand triangles, tore the bodies
         # into shards); only the full one is collapsed here.
-        if have > want and lod == "full":
+        # (Again while it is still well over: one collapse stopped at 36,000 of the Movano's tyres'
+        # 199,000 triangles, against a budget of 6,000.)
+        passes = 0
+        while have > want * (1.3 if passes else 1) and lod == "full" and passes < 4:
+            passes += 1
+            before = have
             mod = o.modifiers.new("decimate", "DECIMATE")
             mod.decimate_type = "COLLAPSE"
             mod.ratio = max(0.0005, want / have)
             mod.use_collapse_triangulate = True
             bpy.context.view_layer.objects.active = o
             bpy.ops.object.modifier_apply(modifier=mod.name)
+            have = tris(o)
+            if have > before * 0.9:
+                # (A collapse that will not go further -- a subdivided tyre's quads -- is undone a
+                # level of subdivision at a time instead, then collapsed again.)
+                mod = o.modifiers.new("unsubdivide", "DECIMATE")
+                mod.decimate_type = "UNSUBDIV"
+                mod.iterations = 2
+                bpy.ops.object.modifier_apply(modifier=mod.name)
+                have = tris(o)
+        if passes:
             # A collapsed vertex can be put far outside the car (the Sonata's trim had one a metre
             # under the road): any face reaching out of the car's own box is taken out.
             bm = bmesh.new()
