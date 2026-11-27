@@ -1764,7 +1764,15 @@ function walkPace(move) {
   const step = !crossing && !stairs ? stepAhead(x, z, move, here, ahead) : null;
   if (step) return { factor: STEP_PACE, stairs: false, grade: 0, step };
   const plain = here.kind === "terrain" && ahead.kind === "terrain";
-  if (plain && !crossing && (grade > MAX_WALK_GRADE || grade < -MAX_DROP_GRADE)) {
+  const cliff = (g) => g > MAX_WALK_GRADE || g < -MAX_DROP_GRADE;
+  // Sunk in the ground, or left on a spike of it (a ground read that was missing a moment, a
+  // tile not built yet), every way is a cliff: the walker walks out, never held there frozen
+  // (2026-11-27). A cliff keeps a walker standing on level ground from going over it, no more.
+  if (plain && !crossing && cliff(grade)
+      && [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dz]) => cliff((probe(dx, dz).y - here.y) / PACE_PROBE_M))) {
+    return { factor: 1, stairs: false, grade: 0, escape: true };
+  }
+  if (plain && !crossing && cliff(grade)) {
     // Along the slope instead: the contour, the way that is level here.
     const e = probe(1, 0).y - here.y, n = probe(0, 1).y - here.y;
     const g = Math.hypot(e, n);
@@ -1776,7 +1784,7 @@ function walkPace(move) {
     move.normalize();
     ahead = probe(move.x, move.z);
     grade = (ahead.y - here.y) / PACE_PROBE_M;
-    if (grade > MAX_WALK_GRADE || grade < -MAX_DROP_GRADE) { move.set(0, 0, 0); return { factor: 0, blocked: true }; }
+    if (cliff(grade)) { move.set(0, 0, 0); return { factor: 0, blocked: true }; }
   }
   let factor = crossing ? 1 : toblerPace(grade);
   if (stairs && !crossing) factor = Math.min(factor, STAIR_PACE);
