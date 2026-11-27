@@ -48,7 +48,11 @@ def test_the_view_looks_straight_up_and_down() -> None:
 def test_cliffs_are_not_walked_and_stairs_are_climbed_tread_by_tread() -> None:
     js = _page_js()
     pace = _extract("walkPace", js)
-    assert "grade > MAX_WALK_GRADE || grade < -MAX_DROP_GRADE" in pace
+    assert "const cliff = (g) => g > MAX_WALK_GRADE || g < -MAX_DROP_GRADE;" in pace
+    assert "if (cliff(grade)) { move.set(0, 0, 0); return { factor: 0, blocked: true }; }" in pace
+    # Every way out a cliff (sunk in the ground): walked out of, never frozen there.
+    assert "[[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dz]) => cliff((probe(dx, dz).y - here.y) / PACE_PROBE_M))" in pace
+    assert "return { factor: 1, stairs: false, grade: 0, escape: true };" in pace
     assert 'here.kind === "terrain" && ahead.kind === "terrain"' in pace, "only plain ground is a cliff"
     assert "factor = Math.min(factor, STAIR_PACE)" in pace
     info = _extract("walkerGroundInfo", js)
