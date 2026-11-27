@@ -1889,7 +1889,10 @@ function settleStreetShapes() {
     return walk;
   };
   // What each piece standing apart is: a scrap (taken out), an island (drawn again), or left.
-  const gone = new Set(), redraw = new Map();
+  const gone = new Set(), redraw = new Map(), clipped = new Set();
+  // (Within a few centimetres of a surveyed island: its own kerb, which is kept.)
+  const bySurvey = (x, z, r) => typeof surveyedIslandAt === "function"
+    && [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]].some(([dx, dz]) => surveyedIslandAt(x + dx, z + dz));
   for (const comp of comps) {
     if (!comp) continue;
     const area = comp.cells * c * c;
@@ -1905,11 +1908,19 @@ function settleStreetShapes() {
       const isle = redraw.get(label.get(at((ax + bx + cx) / 3, (az + bz + cz) / 3)));
       if (!isle) return;
       isle.pts.push([ax, az], [bx, bz], [cx, cz]);
+      isle.faces = (isle.faces || 0) + 1;
+      if (typeof surveyedIslandAt === "function" && surveyedIslandAt((ax + bx + cx) / 3, (az + bz + cz) / 3)) isle.surveyed = (isle.surveyed || 0) + 1;
       isle.top = Math.max(isle.top, pos.getY(i), pos.getY(j), pos.getY(k));
     });
   }
   const shapes = [];
   for (const [id, isle] of redraw) {
+    // An island the survey drew (module 15 SURVEYED_ISLANDS) is in its own shape already: drawn
+    // again as its rectangle it took in the inferred pieces round it (Fillmore & Chestnut, a slab
+    // 10 m by 8 m where the street has a strip 1.5 m wide).
+    // The pieces laid over it beyond the survey's kerb -- a footway's width, a crossing's landing
+    // -- are trimmed off at that kerb instead (clipped, below): there they stood in the lanes.
+    if ((isle.surveyed || 0) >= 0.2 * (isle.faces || 1)) { redraw.delete(id); clipped.add(id); streetShapeStats.surveyed = (streetShapeStats.surveyed || 0) + 1; continue; }
     const hull = shapeConvexOutline(isle.pts);
     if (hull.length < 3) { redraw.delete(id); continue; }
     // In the roadway all round: a piece of pavement standing off a block's own is not an island.
@@ -1943,19 +1954,27 @@ function settleStreetShapes() {
     let cutN = 0;
     for (let t = 0; t < n; t += 3) {
       const i = index ? index.getX(t) : t, j = index ? index.getX(t + 1) : t + 1, k = index ? index.getX(t + 2) : t + 2;
-      if (drop((pos.getX(i) + pos.getX(j) + pos.getX(k)) / 3, (pos.getZ(i) + pos.getZ(j) + pos.getZ(k)) / 3)) cutN += 1; else keep.push(i, j, k);
+      if (drop((pos.getX(i) + pos.getX(j) + pos.getX(k)) / 3, (pos.getZ(i) + pos.getZ(j) + pos.getZ(k)) / 3,
+        [pos.getX(i), pos.getZ(i), pos.getX(j), pos.getZ(j), pos.getX(k), pos.getZ(k)])) cutN += 1; else keep.push(i, j, k);
     }
     if (cutN) g.setIndex(keep);
     return cutN;
   };
-  if (gone.size || redraw.size) for (const b of walks) for (const g of b.parts) {
+  if (gone.size || redraw.size || clipped.size) for (const b of walks) for (const g of b.parts) {
     if (!g.getAttribute("position")) continue;
-    cut(g, (x, z) => { const l = labelNear(x, z); return l > 0 && (gone.has(l) || redraw.has(l)); });
+    cut(g, (x, z, v) => {
+      const l = labelNear(x, z);
+      // (Every corner on the island, a hair's slack: a long thin piece with its middle on the
+      // island still stood out into the lanes as a spike.)
+      if (l > 0 && clipped.has(l)) return !bySurvey(v[0], v[1], 0.15) || !bySurvey(v[2], v[3], 0.15) || !bySurvey(v[4], v[5], 0.15);
+      return l > 0 && (gone.has(l) || redraw.has(l));
+    });
   }
   for (const b of kerbs) for (const g of b.parts) {
     if (!g.getAttribute("position")) continue;
     streetShapeStats.kerb_tris_cut += cut(g, (x, z) => {
       const l = labelNear(x, z);
+      if (l > 0 && clipped.has(l)) return !bySurvey(x, z, 0.35);
       if (l) return l > 0 && (gone.has(l) || redraw.has(l));
       // (No walk of the street's own beside it: a plaza's or a park's paving may be, off the grid.)
       for (const [dx, dz] of [[0, 0], [0.4, 0], [-0.4, 0], [0, 0.4], [0, -0.4]]) if (pavementTopAt(x + dx, z + dz) !== undefined) return false;

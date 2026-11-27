@@ -1219,6 +1219,7 @@ function buildInterior(entry) {
   const source = INTERIORS.sources[plan.src] || {};
   const floorSurface = (x, z) => (insideFootprint(entry, x, z) ? floorY : null);
   standingSurfaces.add(floorSurface);
+  if (typeof syncPlainRooms === "function") queueMicrotask(() => syncPlainRooms(entry));
   entry.interior = { group, segments, floorSurface, rooms: roomSpecs, lights, roomDoors, floorY, height,
     doorSpecs: [...interiorDoorSpecs.values()].map((spec) => ({ ...spec })),
     plan: `${plan.src === "resplan" ? "ResPlan dwelling" : "Swiss Dwellings building"} ${plan.id}${nx * ny > 1 ? ` ×${nx * ny}` : ""} (${source.license || ""})` };
@@ -1301,6 +1302,7 @@ function removeInterior(entry) {
   entry.interior.group.traverse((o) => { if (o.geometry && !o.userData.sharedInteriorAsset) o.geometry.dispose(); });
   entry.interior = null;
   interiorsBuilt.delete(entry);
+  if (typeof syncPlainRooms === "function") syncPlainRooms(entry);
 }
 window.kerbsideInteriors = () => ({ loaded: Boolean(INTERIORS), built: [...interiorsBuilt].map((e) => e.way.osm_id),
   summary: INTERIORS && INTERIORS.summary, shells: [...homeShells].map((e) => ({

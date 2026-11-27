@@ -355,6 +355,73 @@ function addTransitIslands() {
 }
 var TRANSIT_ISLAND_SPOTS = [];
 
+// ---- the islands the survey has, ahead of the ones the page infers ----
+//
+// The aerial pass (scripts/build_ortho_islands.py, docs/sf-corridor-islands.json) gives the
+// islands it saw raised, at the survey's own kerb lines. Between the two halves of a divided
+// street the page also infers a median from the gap: wherever the gap was wide enough it was
+// raised, kerb to kerb. Where the survey has an island in that gap, the survey's island is the
+// island and the rest of the gap is roadway. At Fillmore & Chestnut the inferred one was a
+// slab 5-8 m wide where the street has a strip under 2 m with angled parking beside it.
+//
+//: Islands confirmed from a photograph where the aerial pass could not confirm them, by the
+//: survey's line ids (``lines`` in the islands file). 4137: the narrow island between
+//: Fillmore's southbound lanes and its right-turn lane at Chestnut (street photograph,
+//: 2026-11-26).
+const CONFIRMED_SURVEY_ISLAND_LINES = new Set([4137]);
+function surveyedIslandKept(island) {
+  return island.basis !== "survey_unconfirmed" || Boolean(island.closed_in_survey)
+    || (island.lines || []).some((id) => CONFIRMED_SURVEY_ISLAND_LINES.has(id));
+}
+//: The kept islands as x/z rings with their bounds: [{ ring, x0, z0, x1, z1 }].
+const SURVEYED_ISLANDS = (typeof ORTHO_ISLANDS !== "undefined" && ORTHO_ISLANDS?.schema === "kerbside.islands/1")
+  ? (ORTHO_ISLANDS.islands || []).filter(surveyedIslandKept)
+    .map((island) => island.p.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; }))
+    .filter((ring) => ring.length >= 4)
+    .map((ring) => ({ ring, x0: Math.min(...ring.map((p) => p[0])), x1: Math.max(...ring.map((p) => p[0])),
+      z0: Math.min(...ring.map((p) => p[1])), z1: Math.max(...ring.map((p) => p[1])) }))
+  : [];
+function surveyedIslandAt(x, z) {
+  for (const s of SURVEYED_ISLANDS) {
+    if (x < s.x0 || x > s.x1 || z < s.z0 || z > s.z1) continue;
+    if (pointInRing(x, z, s.ring)) return true;
+  }
+  return false;
+}
+//: Whether a surveyed island lies on the segment from (ax, az) to (bx, bz), looked at every
+//: 0.4 m (the narrowest island the survey keeps is wider than that).
+function surveyedIslandAcross(ax, az, bx, bz) {
+  if (!SURVEYED_ISLANDS.length) return false;
+  const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.4));
+  for (let k = 0; k <= n; k += 1) if (surveyedIslandAt(ax + (bx - ax) * k / n, az + (bz - az) * k / n)) return true;
+  return false;
+}
+//: The pieces of a line (lon/lat points) not running beside a surveyed island: each point is
+//: asked whether one lies within ``reach`` m to its left (a divided half's median side).
+function clearOfSurveyedIslands(points, reach) {
+  if (!SURVEYED_ISLANDS.length || points.length < 2) return [points];
+  const xz = points.map(([lon, lat]) => { const [x, y] = xy(lon, lat); return [x, -y]; });
+  const beside = xz.map(([x, z], i) => {
+    const [px, pz] = xz[Math.max(0, i - 1)], [qx, qz] = xz[Math.min(xz.length - 1, i + 1)];
+    const len = Math.hypot(qx - px, qz - pz) || 1;
+    // Left of travel in x/z (z is south): (dz, -dx).
+    const lx = (qz - pz) / len, lz = -(qx - px) / len;
+    return surveyedIslandAcross(x, z, x + lx * reach, z + lz * reach);
+  });
+  const pieces = [];
+  let run = [];
+  points.forEach((p, i) => {
+    if (beside[i]) { if (run.length >= 2) pieces.push(run); run = []; medianSurveyStats.edgeLinesCut += 1; return; }
+    run.push(p);
+  });
+  if (run.length >= 2) pieces.push(run);
+  return pieces;
+}
+//: Stations of an inferred median left as roadway because the survey has the island there, and
+//: points of the median-edge line not painted beside one.
+const medianSurveyStats = { yielded: 0, edgeLinesCut: 0 };
+window.kerbsideMedianSurvey = () => ({ ...medianSurveyStats, islands: SURVEYED_ISLANDS.length });
+
 const DRAW_ORDER = DATA.ways.slice().sort((a, b) => {
   const rank = (w) => w.kind === "divider" ? 2
     : (w.kind === "sidewalk" || w.kind === "path" ? 0 : 1);
@@ -751,12 +818,17 @@ addBikeLaneMarkings(way, renderPoints, widthMeters, roadTop);
     // edge of its travel lanes on the median side is a solid yellow line -- the line that says
     // the traffic beyond runs the other way. Without it a divided street (Broadway in Oakland,
     // the Embarcadero) read as dashed white and nothing else, as if one-way.
+    // Not beside an island the survey has in the gap: San Francisco paints no edge line along a
+    // raised median's kerb (Fillmore north of Chestnut), and where the island stands off the
+    // half, the line ran down the asphalt between them.
     if (way._twin === true && markingRuns.length) {
       const profile = laneMarkingProfile(way, road);
       const edge = (profile.left ?? road / 2) - MARK_W * 1.5;
       for (const run of markingRuns) {
-        const line = paintedLine(offsetWay(run, edge), MARK_W, 0xd8a92e, roadTop + 0.02);
-        if (line) addMerged("marking:median-edge", line, "marking");
+        for (const piece of clearOfSurveyedIslands(offsetWay(run, edge), 9)) {
+          const line = paintedLine(piece, MARK_W, 0xd8a92e, roadTop + 0.02);
+          if (line) addMerged("marking:median-edge", line, "marking");
+        }
       }
     }
     addLaneTransitionMarkings(way, renderPoints, road, roadTop);
@@ -951,12 +1023,19 @@ function addDividedMedians() {
       // The ground between the halves is roadway first -- the median's nose stops short of
       // the crossing, and the box of the junction is asphalt between them -- and the raised
       // median stands on it, outside the junction box.
-      const raised = found && found.edge >= MEDIAN_MIN_M
+      // (Not where the survey has an island in the gap: that island is the median, drawn at its
+      // own kerbs, and the rest of the gap is roadway.)
+      const surveyed = Boolean(found) && surveyedIslandAcross(ex, ez, ex + nx * found.edge, ez + nz * found.edge);
+      const raised = found && found.edge >= MEDIAN_MIN_M && !surveyed
         && !insideJunctionBox(ex, ez) && !insideJunctionBox(ex + nx * 1.0, ez + nz * 1.0);
       stations.push(found && found.edge >= 0.05
-        ? { a: [ex, ez], b: [ex + nx * found.edge, ez + nz * found.edge], twin: found.twin, raised, nx, nz }
+        ? { a: [ex, ez], b: [ex + nx * found.edge, ez + nz * found.edge], twin: found.twin, raised, surveyed, nx, nz }
         : null);
     }
+    // Two stations either side of a surveyed one are not raised either: an inferred piece
+    // butting onto the survey's nose was the choppy start of the island.
+    const nearSurveyed = stations.map((st, k) => stations.slice(Math.max(0, k - 2), k + 3).some((o) => o?.surveyed));
+    stations.forEach((st, k) => { if (st && nearSurveyed[k]) { st.raised = false; medianSurveyStats.yielded += 1; } });
     // A station with no twin between two that have one -- where the other half is split into
     // a new way and the two pieces do not quite meet -- takes the strip its neighbours have.
     for (let i = 1; i + 1 < stations.length; i += 1) {

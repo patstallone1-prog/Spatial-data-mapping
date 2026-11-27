@@ -606,8 +606,9 @@ function buildHomeShell(entry) {
   group.name = `house-shell:${id}`;
   // This shell's own copies of the shared lining, glass and frame materials, disposed with it.
   const shellPlaster = plasterMaterial.clone();
-  // The inside of the outside walls in the house's own paint, not plaster white.
-  shellPlaster.color.setHex(WALL_PAINTS[roomPaint(Math.abs(Number(entry.way.osm_id) || 0), 99)]);
+  // The inside of the outside walls in the house's own paint, not plaster white: one of the plain
+  // rooms' four (plainRoomPaint), the walls all one colour. Real rooms paint their own stretches.
+  shellPlaster.color.setHex(plainRoomPaint(Math.abs(Number(entry.way.osm_id) || 0)));
   const shellGlass = homeGlassMaterial.clone();
   if (typeof nightWindows === "function") nightWindows(shellGlass);   // (a clone loses the night's patch)
   realGlass(shellGlass, { paneUv: true });                             // (and the glass's)
@@ -745,9 +746,12 @@ function buildHomeShell(entry) {
   }
   group.userData = { grade: "visual_detail_not_measured", windows: windowRegistry };
   batchHomeShell(group);
+  // Until its rooms are built: a wooden floor and a ceiling on every storey (plainRoomsFor).
+  const plain = plainRoomsFor(entry);
+  if (plain) group.add(plain);
   homeShellGroup.add(group);
   // (The layout it was laid out from, which the decal pass compares against, not the headset's copy.)
-  entry.homeShell = { group, material, glass: shellGlass, layout: laidOut, liningFaces,
+  entry.homeShell = { group, material, glass: shellGlass, layout: laidOut, liningFaces, plain,
     glasses: [shellGlass],
     materials: [...new Set([material, shellPlaster, shellGlass, shellGlassInside, shellFrame,...bandMaterials,...trimMaterials.values()])] };
   entry.shellNeedsRebuild = false;
@@ -759,7 +763,54 @@ function buildHomeShell(entry) {
   const hadRooms = Boolean(entry.interior);
   if (hadRooms) removeInterior(entry);
   if (hadRooms || (typeof interiorHeld === "function" && interiorHeld(entry))) buildInterior(entry);
+  syncPlainRooms(entry);
   for (const d of entry.doors || []) if (d.leaf) d.leaf.renderOrder = 0;
+}
+
+// ---- plain rooms: what a house shows through its windows until its own rooms are built ----
+//
+// A house's rooms are built for the nearest few (module 24 interiorsOnStop); its shell -- its
+// walls cut round the real openings, glass in them -- stands for the nearest eight. A shell with
+// no rooms behind it showed the far walls' lining and the ground. Every shell now has a plain room
+// on each storey: a wooden floor, a white ceiling, and its outside walls' lining in one colour,
+// picked for the house from four -- light blue, light green, rose, white. The lining is the walls'
+// own inner face with every door and window cut out of it, so a window on the outside is a window
+// from inside, on every side. The plain floors stand down when the real rooms are built.
+const PLAIN_ROOM_PAINTS = [0xcbdde9, 0xd0e4cb, 0xebcdd1, 0xf3f1ec];   // light blue, light green, rose, white
+function plainRoomPaint(seed) {
+  return PLAIN_ROOM_PAINTS[Math.floor(random(seed * 29 + 3) * PLAIN_ROOM_PAINTS.length) % PLAIN_ROOM_PAINTS.length];
+}
+function plainRoomsFor(entry) {
+  const ring = entry.local, spec = HOME_RENDER.get(String(entry.way.osm_id));
+  if (!ring || ring.length < 4 || !spec || typeof houseFloorMaterial !== "function") return null;
+  const floorY = entryFloorY(entry), visible = spec.base + spec.height - floorY;
+  if (!(visible > 2.3)) return null;
+  const step = homeStoreyHeight(entry, visible);
+  // (Inside the lining, as the rooms' own slabs are: run to the footprint, a slab's edge lay in
+  // the wall's plane and showed through it as a line.)
+  const slab = insetRing(entry, ring.slice(0, -1), INTERIOR_WALL_INSET_M + 0.01);
+  const shape = new THREE.Shape(slab.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const seed = Math.abs(Number(entry.way.osm_id) || 0), wood = houseFloorMaterial(seed);
+  const group = new THREE.Group();
+  group.name = "plain-rooms";
+  group.userData = { surface: "plain_rooms", grade: "inferred_not_measured" };
+  for (let level = 0; level * step + 2.3 <= visible + 1e-6; level += 1) {
+    const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), wood);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = floorY + level * step + 0.01;
+    floor.receiveShadow = true;
+    floor.userData.surface = "plain_room_floor";
+    const ceiling = new THREE.Mesh(new THREE.ShapeGeometry(shape), ceilingMaterial);
+    ceiling.rotation.x = -Math.PI / 2;
+    ceiling.position.y = floorY + Math.min((level + 1) * step, visible) - 0.07;
+    ceiling.userData.surface = "plain_room_ceiling";
+    group.add(floor, ceiling);
+  }
+  return group.children.length ? group : null;
+}
+//: The plain floors shown only while the house has no rooms of its own built.
+function syncPlainRooms(entry) {
+  if (entry?.homeShell?.plain) entry.homeShell.plain.visible = !entry.interior;
 }
 
 function removeHomeShell(entry) {
@@ -798,6 +849,8 @@ function updateHomeShells(x, z) {
   for (const e of homeShells) if (!wanted.has(e) || e.shellNeedsRebuild
       || (e.decalLayout && e.homeShell.layout !== e.decalLayout)) removeHomeShell(e);
   for (const e of wanted) buildHomeShell(e);
+  // (Rooms come from more than one builder -- fitted, generated, edited -- so asked each tick too.)
+  for (const e of homeShells) syncPlainRooms(e);
   // A house's photographs stay on it while its shell stands: hiding them whenever the walker
   // came within a shell's reach made the photograph vanish on approach and pop back on leaving.
   // The panel faces the street and is culled from inside, and the doors stand in front of it.

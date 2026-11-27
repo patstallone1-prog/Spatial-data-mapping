@@ -166,6 +166,20 @@ function kerbsideBlockedAt(before, here, after, side, inner) {
   return insideCarriageway(x, -y, 0.15);
 }
 
+//: Whether a surveyed island (module 15 SURVEYED_ISLANDS) lies within 9 m out from this side's
+//: kerb along a third or more of the way.
+function medianSideSurveyed(renderPoints, side, inner) {
+  if (typeof surveyedIslandAcross !== "function") return false;
+  const kerb = offsetWay(renderPoints, side * inner), out = offsetWay(renderPoints, side * (inner + 9));
+  let sampled = 0, hits = 0;
+  for (let i = 0; i < kerb.length; i += Math.max(1, Math.floor(kerb.length / 8))) {
+    const [ax, ay] = xy(kerb[i][0], kerb[i][1]), [bx, by] = xy(out[i][0], out[i][1]);
+    sampled += 1;
+    if (surveyedIslandAcross(ax, -ay, bx, -by)) hits += 1;
+  }
+  return sampled > 0 && hits >= sampled / 3;
+}
+
 function walkSidesToDraw(way, renderPoints, inner) {
   // Both sides unless OpenStreetMap says otherwise and the ground agrees with it.
   const stated = way.walk_sides;
@@ -180,7 +194,11 @@ function walkSidesToDraw(way, renderPoints, inner) {
       drawn.push(side);
       continue;
     }
-    // The tag excludes this side. Believe it only where a mapped footway is standing there.
+    // The tag excludes this side. Believe it only where a mapped footway is standing there --
+    // or where it is a divided half's median side and the survey has the island in the gap:
+    // laid there, the "pavement" covered the roadway between the halves (Fillmore north of
+    // Chestnut, its angled parking under 4 m of paving either side of the median).
+    if (isDividedHalf(way) && typeof medianSideSurveyed === "function" && medianSideSurveyed(renderPoints, side, inner)) continue;
     const kerb = offsetWay(renderPoints, side * (inner + 1.6));
     let sampled = 0;
     let covered = 0;
@@ -1068,6 +1086,13 @@ function junctionCrossings() {
   return found;
 }
 
+//: Whether a corner piece (its points in x/z) stands on an island the survey has (module 15
+//: SURVEYED_ISLANDS): an island is not a block's corner, and it draws its own outline.
+function cornerOnSurveyedIsland(points) {
+  if (typeof surveyedIslandAt !== "function") return false;
+  return points.some(([x, z]) => surveyedIslandAt(x, z));
+}
+
 function addJunctionSquares() {
   junctionSquares.length = 0;
   let laid = 0;
@@ -1129,6 +1154,9 @@ function addJunctionSquares() {
           skipped.onRoad += 1;
           continue;
         }
+        // Not on an island the survey has: the pavement it found to complete was the island's,
+        // and the square grew it into the lanes round it (Fillmore & Chestnut's bus island).
+        if (cornerOnSurveyedIsland([mid, K, A1, C, B1])) { skipped.island = (skipped.island || 0) + 1; continue; }
         const top = Math.max(topA, topB) + 0.002;
         // Tiled square to street A, as A's pavement is.
         const uOf = (q) => (q[0] * a.ux + q[1] * a.uz) / WALK_UV_M;
@@ -1216,6 +1244,8 @@ function addPavementCorners() {
         skipped.onRoad += 1;
         continue;
       }
+      // (Its points are east and north here.)
+      if (cornerOnSurveyedIsland(samples.map(([sx, sy]) => [sx, -sy]))) { skipped.island = (skipped.island || 0) + 1; continue; }
       const y = mine.y;
       const thickness = mine.thickness;
       const top = y + thickness / 2;
@@ -2200,7 +2230,11 @@ function tactilePadCorners(endpoint, intoCrossing, crossingWidth) {
   const outZ = -dz / len;
   const acrossX = -outZ;
   const acrossZ = outX;
-  const width = Math.max(TACTILE_PAD_MIN_W_M, Math.min(TACTILE_PAD_MAX_W_M, crossingWidth));
+  // A crossing that ends on an island the survey has: its pad is on the island, all of it, or it
+  // is not laid (one stood in the right-turn lane at Fillmore & Chestnut once the island was
+  // drawn at its own kerbs).
+  const island = typeof padOnSurveyedIsland === "function" && padOnSurveyedIsland(ex, ez, outX, outZ);
+  let width = Math.max(TACTILE_PAD_MIN_W_M, Math.min(TACTILE_PAD_MAX_W_M, crossingWidth));
   const depth = TACTILE_PAD_DEPTH_M;
   let cx = ex + outX * (depth / 2 + TACTILE_PAD_SETBACK_M);
   let cz = ez + outZ * (depth / 2 + TACTILE_PAD_SETBACK_M);
@@ -2210,16 +2244,38 @@ function tactilePadCorners(endpoint, intoCrossing, crossingWidth) {
     [cx + acrossX * width / 2 + outX * depth / 2, cz + acrossZ * width / 2 + outZ * depth / 2],
     [cx - acrossX * width / 2 + outX * depth / 2, cz - acrossZ * width / 2 + outZ * depth / 2],
   ];
-  for (let step = 0; step < 8; step += 1) {
-    const corners = cornersAt();
-    if (!insideCarriageway(cx, cz, 0.10)
-        && !corners.some(([x, z]) => insideCarriageway(x, z, -0.05))) {
-      return { corners, width, depth };
+  const startX = cx, startZ = cz;
+  for (const narrowed of island ? [width, TACTILE_PAD_MIN_W_M] : [width]) {
+    width = narrowed; cx = startX; cz = startZ;
+    // (Onto an island ahead of the crossing's mapped end: up to ISLAND_LANDING_AHEAD_M on.)
+    for (let step = 0; step < (island ? 16 : 8); step += 1) {
+      const corners = cornersAt();
+      if (!insideCarriageway(cx, cz, 0.10)
+          && !corners.some(([x, z]) => insideCarriageway(x, z, -0.05))
+          && (!island || corners.every(([x, z]) => onSurveyedIsland(x, z, 0.2)))) {
+        return { corners, width, depth };
+      }
+      cx += outX * 0.25;
+      cz += outZ * 0.25;
     }
-    cx += outX * 0.25;
-    cz += outZ * 0.25;
   }
   return null;
+}
+//: Whether a crossing's end at (x, z) lands on an island the survey has (module 15): one within
+//: 2 m of it, or ahead of it along the crossing (outX, outZ) within ISLAND_LANDING_AHEAD_M. The
+//: slip-lane crossing at Fillmore & Chestnut is mapped to end 3 m short of the bus island, and
+//: its pad stood on its own in the gap, 4–5 m short.
+const ISLAND_LANDING_AHEAD_M = 6;
+function padOnSurveyedIsland(x, z, outX, outZ) {
+  if (typeof surveyedIslandAt !== "function") return false;
+  if ([[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2], [1.2, 1.2], [-1.2, 1.2], [1.2, -1.2], [-1.2, -1.2]].some(([dx, dz]) => surveyedIslandAt(x + dx, z + dz))) return true;
+  if (outX === undefined) return false;
+  for (let d = 2.25; d <= ISLAND_LANDING_AHEAD_M; d += 0.25) if (surveyedIslandAt(x + outX * d, z + outZ * d)) return true;
+  return false;
+}
+function onSurveyedIsland(x, z, slack) {
+  return typeof surveyedIslandAt === "function"
+    && [[0, 0], [slack, 0], [-slack, 0], [0, slack], [0, -slack]].some(([dx, dz]) => surveyedIslandAt(x + dx, z + dz));
 }
 
 function crossingLandingCorners(endpoint, intoCrossing, crossingWidth) {
@@ -2239,7 +2295,8 @@ function crossingLandingCorners(endpoint, intoCrossing, crossingWidth) {
       [b[0] + vx * side + ux * (pad.depth + back), b[1] + vz * side + uz * (pad.depth + back)],
       [a[0] - vx * side + ux * (pad.depth + back), a[1] - vz * side + uz * (pad.depth + back)],
     ];
-    if (!corners.some(([x, z]) => insideCarriageway(x, z, -0.05))) {
+    if (!corners.some(([x, z]) => insideCarriageway(x, z, -0.05))
+        && (typeof padOnSurveyedIsland !== "function" || !padOnSurveyedIsland(...pad.corners[0]) || corners.every(([x, z]) => onSurveyedIsland(x, z, 0.2)))) {
       return { corners, width: pad.width + side * 2, depth: pad.depth + front + back };
     }
     front *= 0.5; side *= 0.5;

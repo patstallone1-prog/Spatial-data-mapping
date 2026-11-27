@@ -234,6 +234,7 @@
       "park_facility:drinking_fountain": "furniture.drinking_fountain",
       "interior": "interior.floor", "interior_storey": "interior.floor", "interior_base_floor": "interior.floor",
       "interior_threshold": "interior.floor", "interior_wall_paint": "interior.wall", "interior_ceiling": "interior.ceiling",
+      "plain_rooms": "interior.floor", "plain_room_floor": "interior.floor", "plain_room_ceiling": "interior.ceiling",
       "furnishing:carpet": "interior.floor_covering", "furnishing:picture": "interior.wall_hanging",
       "furnishing:television": "interior.appliance", "furnishing:ceiling_light": "interior.light",
       "furniture:post": "furniture.sign_post", "furniture:generic": "furniture.sign_post", "furniture:stop": "furniture.sign_post",
